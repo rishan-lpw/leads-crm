@@ -6,6 +6,7 @@ use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
 use App\Models\UserLevel;
+use Dom\Text;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,13 +14,13 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Forms\Components\TextInput;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
-use Forms\Components\Select;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 
 class UserResource extends Resource
 {
@@ -35,6 +36,7 @@ class UserResource extends Resource
 
     public static function form(Form $form): Form
     {
+        
         return $form
             ->schema([
                 TextInput::make('name')
@@ -51,20 +53,19 @@ class UserResource extends Resource
                     ->dehydrated(fn ($state) => filled($state))
                     ->maxLength(255),
                 // User Type
-                Select::make('user_type')
-                    ->required()
-                    ->options([
-                        'super_admin' => 'Super Admin',
-                        'admin' => 'Admin',
-                        'user' => 'User',
-                        'junior_user' => 'Junior User',
-                    ])
-                    ->label('User Type'),
+                // Select::make('user_type')
+                //     ->required()
+                //     ->options([
+                //         'super_admin' => 'Super Admin',
+                //         'admin' => 'Admin',
+                //         'user' => 'User',
+                //         'junior_user' => 'Junior User',
+                //     ])
+                //     ->label('User Type'),
                 Select::make('user_level_id')
                     ->required()
-                    ->options(UserLevel::all()->pluck('name', 'id'))
-                    ->label('User Level')
-                    ->visible(fn ($record) => true),
+                    ->options(UserLevel::query()->pluck('title', 'id')->toArray())
+                    ->label('User Level'),
             ]);
 
     }
@@ -75,30 +76,28 @@ class UserResource extends Resource
             ->columns([
                 TextColumn::make('name'),
                 TextColumn::make('email'),
-                TextColumn::make('user_type')
-                    ->label('User Type')
-                    ->formatStateUsing(fn ($state) => match ($state) {
-                        'super_admin' => 'Super Admin',
-                        'admin' => 'Admin',
-                        'user' => 'User',
-                        'junior_user' => 'Junior User',
-                        default => 'Unknown',
-                    }),
-                TextColumn::make('user_level.name')->label('User Level'),
+                // TextColumn::make('user_type')
+                //     ->label('User Type')
+                //     ->formatStateUsing(fn ($state) => match ($state) {
+                //         'super_admin' => 'Super Admin',
+                //         'admin' => 'Admin',
+                //         'user' => 'User',
+                //         'junior_user' => 'Junior User',
+                //         default => 'Unknown',
+                //     }),
+                TextColumn::make('level.title')->label('User Level'),
             ])
             ->filters([
-                //
+                // Add filters here
+                
             ])
             ->actions([
-                EditAction::make()
-                    ->visible(fn ($record) => auth()->user()->hasAtleastLevel(5)),
-                DeleteAction::make()
-                    ->visible(fn ($record) => auth()->user()->hasAtleastLevel(5)),
+                EditAction::make(),
+                DeleteAction::make(),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()
-                        ->visible(fn ($record) => auth()->user()->hasAtleastLevel(5)),
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

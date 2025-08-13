@@ -29,7 +29,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            // ->login()
             ->colors([
                 'primary' => Color::Emerald,
             ])
@@ -41,7 +41,11 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
+                // Add our custom widgets to the dashboard
+                \App\Filament\Widgets\StatsOverviewWidget::class,
+                \App\Filament\Widgets\CustomerActivityChart::class,
+                \App\Filament\Widgets\CustomerGrowthChart::class,
+                \App\Filament\Widgets\LatestActivities::class,
             ])
             ->resources([
                 UserResource::class,

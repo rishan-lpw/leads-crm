@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Forms;
 
+use Filament\Actions\Action;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -41,6 +42,7 @@ class LoginForm extends Form
         RateLimiter::clear($this->throttleKey());
     }
 
+    // Google login button for the login form
     /**
      * Ensure the authentication request is not rate limited.
      */

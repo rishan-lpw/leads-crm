@@ -50,7 +50,7 @@ class CustomerResource extends Resource
                     ->label('User'),
                 Select::make('role_id')
                     // ->required()
-                    ->options(Role::all()->pluck('name', 'id'))
+                    ->options(Role::all()->pluck('role_name'))
                     ->label('Role'),
             ]);
     }
@@ -63,8 +63,8 @@ class CustomerResource extends Resource
                 TextColumn::make('phone_number'),
                 TextColumn::make('email'),
                 TextColumn::make('address'),
-                TextColumn::make('add_id')->label('User'),
-                TextColumn::make('role_id')->label('Role'),
+                TextColumn::make('user.name')->label('User'),
+                TextColumn::make('role.role_name')->label('Role'),
             ])
             ->filters([
                 //
