@@ -10,7 +10,9 @@ use App\Models\User;
 class Activity extends Model
 {
     use HasFactory;
-    
+
+    protected $table = 'activity';
+
     protected $fillable = [
         'customer_id',
         'user_id',

@@ -7,6 +7,9 @@ use App\Models\Customer;
 
 class AddOn extends Model
 {
+
+    protected $table = 'add_on';
+
     protected $fillable = [
         'customer_id',
         'title',
