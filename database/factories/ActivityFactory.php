@@ -21,14 +21,14 @@ class ActivityFactory extends Factory
     public function definition(): array
     {
         $activityTypes = ['Call', 'Email', 'Meeting', 'Follow-up', 'Sale', 'Support', 'Complaint'];
-        $statuses = ['Pending', 'Completed', 'Cancelled', 'In Progress', 'Scheduled'];
+        // $statuses = ['Pending', 'Completed', 'Cancelled', 'In Progress', 'Scheduled'];
         
         return [
             'customer_id' => Customer::inRandomOrder()->first()?->id ?? 1,
             'user_id' => User::inRandomOrder()->first()?->id ?? 1,
             'activity_type' => $this->faker->randomElement($activityTypes),
-            'status' => $this->faker->randomElement($statuses),
-            'level_score' => $this->faker->numberBetween(1, 10),
+            // 'status' => $this->faker->randomElement($statuses),
+            // 'level_score' => $this->faker->numberBetween(1, 10),
             'notes' => $this->faker->paragraph(),
             'created_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
             'updated_at' => fn (array $attributes) => Carbon::parse($attributes['created_at'])->addDays(rand(1, 30)),

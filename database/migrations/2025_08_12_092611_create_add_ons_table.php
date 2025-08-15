@@ -23,7 +23,7 @@ return new class extends Migration
     // updated_at date
     public function up(): void
     {
-        Schema::create('add_ons', function (Blueprint $table) {
+        Schema::create('add_on', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('customer_id')->nullable();
             $table->text('title')->nullable();
@@ -41,6 +41,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('add_ons');
+        Schema::dropIfExists('add_on');
     }
 };

@@ -17,8 +17,6 @@ class Activity extends Model
         'customer_id',
         'user_id',
         'activity_type',
-        'status',
-        'level_score',
         'notes',
     ];
 

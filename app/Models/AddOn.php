@@ -3,25 +3,26 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Customer;
 
 class AddOn extends Model
 {
 
+    use HasFactory;
+
     protected $table = 'add_on';
 
     protected $fillable = [
-        'customer_id',
         'title',
         'description',
         'price',
         'location',
-        'type',
-        'method_id',
+        'category_id',
     ];
 
-    public function customer()
+    public function category()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(Category::class);
     }
 }

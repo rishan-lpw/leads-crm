@@ -5,7 +5,9 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ActivityResource\Pages;
 use App\Filament\Resources\ActivityResource\RelationManagers;
 use App\Models\Activity;
+use App\Models\ActivityFollowUp;
 use Filament\Forms;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -31,7 +33,14 @@ class ActivityResource extends Resource
                     ->numeric()
                     ->default(null),
                 Forms\Components\Textarea::make('activity_type')
-                    ->columnSpanFull(),
+                    ->required()
+                    ->columnSpanFull()
+                    ->options([
+                        'call' => 'Call',
+                        'email' => 'Email',
+                        'meeting' => 'Meeting',
+                        'message' => 'Message',
+                    ]),
                 Forms\Components\Textarea::make('status')
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('level_score')
@@ -50,13 +59,21 @@ class ActivityResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('user.name')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('level_score')
-                    ->numeric()
+                Select::make('activity_type')
+                    ->options([
+                        'Call' => 'Call',
+                        'Email' => 'Email',
+                        'Meeting' => 'Meeting',
+                        'Message' => 'Message',
+                    ])
                     ->sortable(),
                 Tables\Columns\TextColumn::make('activity_type')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('status')
-                    ->sortable(),
+                Select::make('status')
+                    ->options(
+                        ActivityFollowUp::query()
+                            ->pluck('status', 'id')
+                    ),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

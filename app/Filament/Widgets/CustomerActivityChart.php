@@ -63,6 +63,6 @@ class CustomerActivityChart extends ChartWidget
     
     protected function getType(): string
     {
-        return 'pie';
+        return 'line';
     }
 }
