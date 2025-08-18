@@ -9,18 +9,13 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    
     public function up(): void
     {
-        Schema::create('customer', function (Blueprint $table) {
+        Schema::create('category', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('phone_number');
-            $table->string('email');
-            $table->string('password');
-            $table->string('address');
-            $table->unsignedBigInteger('add_id')->nullable();
-            $table->unsignedBigInteger('role_id')->nullable();
+            $table->enum('status', ['active', 'inactive']);
+            $table->text('description')->nullable();
             $table->timestamps();
         });
     }
@@ -30,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('customer');
+        Schema::dropIfExists('category');
     }
 };

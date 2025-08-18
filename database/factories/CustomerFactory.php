@@ -29,6 +29,7 @@ class CustomerFactory extends Factory
             'name' => $this->faker->name,
             'phone_number' => $this->faker->phoneNumber,
             'email' => $this->faker->unique()->safeEmail,
+            'password' => bcrypt('password'), // Use bcrypt for password hashing
             'address' => $this->faker->address,
             'add_id' => $userId,
             'role_id' => $roleId,

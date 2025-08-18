@@ -61,6 +61,11 @@ class User extends Authenticatable
         return $this->belongsTo(UserLevel::class, 'user_level_id');
     }
 
+    public function userType()
+    {
+        return $this->belongsTo(UserType::class, 'user_type');
+    }
+
     // ...existing code...
 
     // ...existing code...

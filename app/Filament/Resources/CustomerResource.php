@@ -45,6 +45,12 @@ class CustomerResource extends Resource
                     ->required()
                     ->email()
                     ->maxLength(255),
+                // Add password field
+                TextInput::make('password')
+                    ->required()
+                    ->password()
+                    ->minLength(8)
+                    ->maxLength(255),
                 TextInput::make('address')
                     ->required()
                     ->maxLength(255),

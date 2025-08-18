@@ -10,6 +10,7 @@ use Dom\Text;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use App\Models\UserType;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,16 +53,11 @@ class UserResource extends Resource
                     ->dehydrateStateUsing(fn ($state) => filled($state) ? bcrypt($state) : null)
                     ->dehydrated(fn ($state) => filled($state))
                     ->maxLength(255),
-                // User Type
-                // Select::make('user_type')
-                //     ->required()
-                //     ->options([
-                //         'super_admin' => 'Super Admin',
-                //         'admin' => 'Admin',
-                //         'user' => 'User',
-                //         'junior_user' => 'Junior User',
-                //     ])
-                //     ->label('User Type'),
+                // User Type should be the option from user_type table.
+                Select::make('user_type')
+                    ->required()
+                    ->options(UserType::query()->pluck('type_name', 'id')->toArray())
+                    ->label('User Type'),
                 Select::make('user_level_id')
                     ->required()
                     ->options(UserLevel::query()->pluck('title', 'id')->toArray())
@@ -76,15 +72,7 @@ class UserResource extends Resource
             ->columns([
                 TextColumn::make('name'),
                 TextColumn::make('email'),
-                // TextColumn::make('user_type')
-                //     ->label('User Type')
-                //     ->formatStateUsing(fn ($state) => match ($state) {
-                //         'super_admin' => 'Super Admin',
-                //         'admin' => 'Admin',
-                //         'user' => 'User',
-                //         'junior_user' => 'Junior User',
-                //         default => 'Unknown',
-                //     }),
+                TextColumn::make('userType.type_name')->label('User Type'),
                 TextColumn::make('level.title')->label('User Level'),
             ])
             ->filters([

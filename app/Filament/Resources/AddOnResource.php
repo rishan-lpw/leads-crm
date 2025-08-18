@@ -38,9 +38,10 @@ class AddOnResource extends Resource
                 Forms\Components\Textarea::make('location')
                     ->required()
                     ->columnSpanFull(),
-                Forms\Components\TextInput::make('category_id')
+                Forms\Components\Select::make('category_id')
                     ->required()
-                    ->numeric(),
+                    ->relationship('category', 'name')
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -57,8 +58,9 @@ class AddOnResource extends Resource
                 Tables\Columns\TextColumn::make('location')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('category_id')
+                Tables\Columns\TextColumn::make('category.name')
                     ->sortable()
+                    ->label('Category')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('price')
                     ->sortable()
