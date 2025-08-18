@@ -16,6 +16,8 @@ return new class extends Migration
             $table->unsignedBigInteger('customer_id');
             $table->unsignedBigInteger('user_id');
             $table->text('activity_type');
+            $table->text('status');
+            $table->integer('level_score');
             $table->text('notes')->nullable();
             $table->timestamps();
         });

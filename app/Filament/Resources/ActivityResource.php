@@ -22,6 +22,10 @@ class ActivityResource extends Resource
 
     protected static ?string $navigationIcon = 'lucide-activity';
 
+    protected static ?string $navigationLabel = 'Agent\'s Activities';
+
+    protected static ?string $navigationGroup = 'Agents';
+
     public static function form(Form $form): Form
     {
         return $form
@@ -32,7 +36,7 @@ class ActivityResource extends Resource
                 Forms\Components\TextInput::make('user_id')
                     ->numeric()
                     ->default(null),
-                Forms\Components\Textarea::make('activity_type')
+                Forms\Components\Select::make('activity_type')
                     ->required()
                     ->columnSpanFull()
                     ->options([
@@ -41,11 +45,19 @@ class ActivityResource extends Resource
                         'meeting' => 'Meeting',
                         'message' => 'Message',
                     ]),
-                Forms\Components\Textarea::make('status')
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('level_score')
-                    ->numeric()
-                    ->default(null),
+                Forms\Components\Select::make('status')
+                    ->columnSpanFull()
+                    ->options([
+                        'open' => 'Open',
+                        'in_progress' => 'In Progress',
+                        'closed' => 'Closed',
+                    ]),
+                Forms\Components\Select::make('level_score')
+                    ->options([
+                        'low' => 'Low',
+                        'medium' => 'Medium',
+                        'high' => 'High',
+                    ]),
                 Forms\Components\Textarea::make('notes')
                     ->columnSpanFull(),
             ]);
@@ -59,21 +71,14 @@ class ActivityResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('user.name')
                     ->sortable(),
-                Select::make('activity_type')
-                    ->options([
-                        'Call' => 'Call',
-                        'Email' => 'Email',
-                        'Meeting' => 'Meeting',
-                        'Message' => 'Message',
-                    ])
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('activity_type')
                     ->sortable(),
-                Select::make('status')
-                    ->options(
-                        ActivityFollowUp::query()
-                            ->pluck('status', 'id')
-                    ),
+                Tables\Columns\TextColumn::make('status')
+                    ->sortable()
+                    ->label('Follow Up Status'),
+                Tables\Columns\TextColumn::make('level_score')
+                    ->sortable()
+                    ->label('Follow Up Level Score'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -102,6 +107,29 @@ class ActivityResource extends Resource
         return [
             //
         ];
+    }
+
+    // Active Agents List
+    // Agents' Dashboard
+    // PAA Agents
+    // Expired Agents
+    // Prospects
+
+    public static function getGlobalSearchAttributes(): array
+    {
+        return [
+            'customer.name',
+            'user.name',
+            'activity_type',
+            'status',
+            'created_at',
+            'updated_at',
+        ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return Activity::count() > 10 ? Activity::count() : null;
     }
 
     public static function getPages(): array

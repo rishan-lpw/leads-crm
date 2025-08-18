@@ -17,6 +17,8 @@ class Activity extends Model
         'customer_id',
         'user_id',
         'activity_type',
+        'status',
+        'level_score',
         'notes',
     ];
 
@@ -28,5 +30,9 @@ class Activity extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    public function activityFollowUp()
+    {
+        return $this->hasMany(ActivityFollowUp::class);
     }
 }
