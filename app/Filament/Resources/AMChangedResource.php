@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\HuntersResource\Pages;
-use App\Filament\Resources\HuntersResource\RelationManagers;
-use App\Models\Hunters;
+use App\Filament\Resources\AMChangedResource\Pages;
+use App\Filament\Resources\AMChangedResource\RelationManagers;
+use App\Models\AMChanged;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,13 +13,13 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class HuntersResource extends Resource
+class AMChangedResource extends Resource
 {
-    protected static ?string $model = Hunters::class;
+    protected static ?string $model = AMChanged::class;
 
-    protected static ?string $navigationLabel = 'Hunters';
+    protected static ?string $navigationLabel = 'AM Changes';
 
-    protected static ?string $navigationGroup = 'Private Sellers';
+    protected static ?string $navigationGroup = 'Reports';
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -60,9 +60,9 @@ class HuntersResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListHunters::route('/'),
-            'create' => Pages\CreateHunters::route('/create'),
-            'edit' => Pages\EditHunters::route('/{record}/edit'),
+            'index' => Pages\ListAMChangeds::route('/'),
+            'create' => Pages\CreateAMChanged::route('/create'),
+            'edit' => Pages\EditAMChanged::route('/{record}/edit'),
         ];
     }
 }

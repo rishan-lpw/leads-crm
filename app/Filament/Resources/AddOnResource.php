@@ -18,6 +18,8 @@ class AddOnResource extends Resource
 {
     protected static ?string $model = AddOn::class;
 
+    protected static ?string $navigationLabel = 'Add List';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form

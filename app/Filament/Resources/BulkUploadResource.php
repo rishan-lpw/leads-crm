@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\HuntersResource\Pages;
-use App\Filament\Resources\HuntersResource\RelationManagers;
-use App\Models\Hunters;
+use App\Filament\Resources\BulkUploadResource\Pages;
+use App\Filament\Resources\BulkUploadResource\RelationManagers;
+use App\Models\BulkUpload;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,15 +13,15 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class HuntersResource extends Resource
+class BulkUploadResource extends Resource
 {
-    protected static ?string $model = Hunters::class;
-
-    protected static ?string $navigationLabel = 'Hunters';
-
-    protected static ?string $navigationGroup = 'Private Sellers';
+    protected static ?string $model = BulkUpload::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
+    protected static ?string $navigationLabel = 'Bulk Upload';
+
+    protected static ?string $navigationGroup = 'Customers';
 
     public static function form(Form $form): Form
     {
@@ -60,9 +60,9 @@ class HuntersResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListHunters::route('/'),
-            'create' => Pages\CreateHunters::route('/create'),
-            'edit' => Pages\EditHunters::route('/{record}/edit'),
+            'index' => Pages\ListBulkUploads::route('/'),
+            'create' => Pages\CreateBulkUpload::route('/create'),
+            'edit' => Pages\EditBulkUpload::route('/{record}/edit'),
         ];
     }
 }

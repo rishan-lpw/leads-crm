@@ -17,6 +17,10 @@ class UpsellRenewalsResource extends Resource
 {
     protected static ?string $model = UpsellRenewals::class;
 
+    protected static ?string $navigationLabel = 'Upsell Renewals';
+
+    protected static ?string $navigationGroup = 'Private Sellers';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
