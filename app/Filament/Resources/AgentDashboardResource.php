@@ -17,17 +17,15 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class AgentDashboardResource extends Page
 {
-    protected static ?string $model = AgentDashboard::class;
+    // protected static ?string $model = AgentDashboard::class;
 
     protected static ?string $navigationLabel = 'Agent Dashboard';
 
     protected static ?string $navigationGroup = 'Agents';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $slug = 'agent-dashboard';
-
-    protected function getWidgets(): array
+    protected function getHeaderWidgets(): array
     {
         return [
             StatsOverview::class,

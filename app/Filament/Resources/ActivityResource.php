@@ -45,19 +45,12 @@ class ActivityResource extends Resource
                         'meeting' => 'Meeting',
                         'message' => 'Message',
                     ]),
-                Forms\Components\Select::make('status')
-                    ->columnSpanFull()
-                    ->options([
-                        'open' => 'Open',
-                        'in_progress' => 'In Progress',
-                        'closed' => 'Closed',
-                    ]),
-                Forms\Components\Select::make('level_score')
-                    ->options([
-                        'low' => 'Low',
-                        'medium' => 'Medium',
-                        'high' => 'High',
-                    ]),
+                Forms\Components\Select::make('Follow up Status')
+                    ->relationship('activity_follow_up', 'status')
+                    ->required(),
+                Forms\Components\Select::make('Follow up Level Score')
+                    ->relationship('activity_follow_up', 'level_score')
+                    ->required(),
                 Forms\Components\Textarea::make('notes')
                     ->columnSpanFull(),
             ]);
@@ -73,10 +66,10 @@ class ActivityResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('activity_type')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('status')
+                Tables\Columns\TextColumn::make('activityFollowUp.status')
                     ->sortable()
                     ->label('Follow Up Status'),
-                Tables\Columns\TextColumn::make('level_score')
+                Tables\Columns\TextColumn::make('activityFollowUp.level_score')
                     ->sortable()
                     ->label('Follow Up Level Score'),
                 Tables\Columns\TextColumn::make('created_at')

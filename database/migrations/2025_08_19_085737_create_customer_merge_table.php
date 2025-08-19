@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('activity_follow_up', function (Blueprint $table) {
+        Schema::create('customer_merge', function (Blueprint $table) {
             $table->id();
-            $table->timestamp('follow_up_time');
-            $table->text('status');
-            $table->unsignedBigInteger('level_score');
+            $table->foreignId('primary_customer_id');
+            $table->foreignId('secondary_customer_id');
+            $table->timestamp('merge_at')->nullable();
+            $table->foreignId('merged_by');
             $table->timestamps();
         });
     }
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('activity_follow_up');
+        Schema::dropIfExists('customer_merge');
     }
 };

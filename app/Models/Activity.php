@@ -16,6 +16,7 @@ class Activity extends Model
     protected $fillable = [
         'customer_id',
         'user_id',
+        'activity_follow_up_id',
         'activity_type',
         'status',
         'level_score',
@@ -33,6 +34,6 @@ class Activity extends Model
     }
     public function activityFollowUp()
     {
-        return $this->hasMany(ActivityFollowUp::class);
+        return $this->belongsTo(ActivityFollowUp::class, 'activity_follow_up_id');
     }
 }

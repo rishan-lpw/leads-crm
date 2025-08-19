@@ -11,6 +11,7 @@ class UserType extends Model
     protected $fillable = [
         'type_name',
         'sub_type',
+        'status',
         'activities',
     ];
 }
