@@ -9,29 +9,16 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-
-    // Add-Ons Table columns:
-    // id int pk
-    // customer_id int
-    // title text
-    // description text
-    // price float
-    // location text
-    // type text
-    // method_id  - int
-    // created_at date
-    // updated_at date
     public function up(): void
     {
         Schema::create('add_on', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('customer_id')->nullable();
-            $table->text('title')->nullable();
+            $table->unsignedBigInteger('customer_id');
+            $table->text('title');
             $table->text('description')->nullable();
-            $table->float('price')->nullable();
-            $table->text('location')->nullable();
-            $table->text('type')->nullable();
-            $table->unsignedBigInteger('method_id')->nullable();
+            $table->float('price');
+            $table->text('location');
+            $table->unsignedBigInteger('category_id');
             $table->timestamps();
         });
     }
