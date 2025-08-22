@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\HuntersResource\Pages;
 use App\Filament\Resources\HuntersResource\RelationManagers;
-use App\Models\Hunters;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class HuntersResource extends Resource
 {
-    protected static ?string $model = Hunters::class;
+    protected static ?string $model = User::class;
 
     protected static ?string $navigationLabel = 'Hunters';
 
@@ -33,9 +33,16 @@ class HuntersResource extends Resource
 
     public static function table(Table $table): Table
     {
+        // I want to display hunter details in table, which retrieves data from the user table whose user_type_id is 1 or 2.
         return $table
+            ->query(fn () => User::query()->whereIn('user_type', [1, 2]))
             ->columns([
-                //
+                // Tables\Columns\TextColumn::make('id')->label('ID')->sortable(),
+                Tables\Columns\TextColumn::make('name')->label('Name')->searchable(),
+                Tables\Columns\TextColumn::make('email')->label('Email')->searchable(),
+                Tables\Columns\TextColumn::make('userType.type_name')->label('User Type'),
+                Tables\Columns\TextColumn::make('userType.sub_type')->label('User Sub Type')->searchable(),
+                Tables\Columns\TextColumn::make('level.title')->label('User Level'),
             ])
             ->filters([
                 //

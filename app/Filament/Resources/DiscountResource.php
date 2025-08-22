@@ -21,7 +21,7 @@ class DiscountResource extends Resource
 
     protected static ?string $navigationGroup = 'Accounts';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-s-currency-dollar';
 
     public static function form(Form $form): Form
     {
