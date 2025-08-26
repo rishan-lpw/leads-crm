@@ -14,6 +14,13 @@ class ListCrons extends ListRecords
 {
     protected static string $resource = CronResource::class;
 
+    public bool $expandAll = false;
+
+    protected function getTableRecordIsCollapsed($record): bool
+    {
+        return ! $this->expandAll;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

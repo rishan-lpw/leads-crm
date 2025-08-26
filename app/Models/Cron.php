@@ -14,6 +14,11 @@ class Cron extends Model
         'frequency',
         'is_active',
         'last_run_at',
+        'category',
+        'rules',
+        'visibility',
+        'source_highlight',
+        'allow_manual_trigger',
     ];
 
     public function logs()

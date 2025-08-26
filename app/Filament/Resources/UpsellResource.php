@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\UpsellRenewalsResource\Pages;
-use App\Filament\Resources\UpsellRenewalsResource\RelationManagers;
-use App\Models\UpsellRenewals;
+use App\Filament\Resources\UpsellResource\Pages;
+use App\Filament\Resources\UpsellResource\RelationManagers;
+use App\Models\Upsell;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,11 +13,11 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class UpsellRenewalsResource extends Resource
+class UpsellResource extends Resource
 {
-    protected static ?string $model = UpsellRenewals::class;
+    protected static ?string $model = Upsell::class;
 
-    protected static ?string $navigationLabel = 'Upsell Renewals';
+    protected static ?string $label = 'Upsell';
 
     protected static ?string $navigationGroup = 'Private Sellers';
 
@@ -60,9 +60,9 @@ class UpsellRenewalsResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUpsellRenewals::route('/'),
-            'create' => Pages\CreateUpsellRenewals::route('/create'),
-            'edit' => Pages\EditUpsellRenewals::route('/{record}/edit'),
+            'index' => Pages\ListUpsells::route('/'),
+            'create' => Pages\CreateUpsell::route('/create'),
+            'edit' => Pages\EditUpsell::route('/{record}/edit'),
         ];
     }
 }

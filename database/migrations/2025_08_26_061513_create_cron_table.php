@@ -24,17 +24,14 @@ return new class extends Migration
                 'merge',
                 'followup'
             ]);
-            $table->json('rules')->nullable()->default(json_encode([
-                'priority' => 'high',
-                'location' => ['Colombo', 'Kandy'],
-                'min_value' => 100000000
-            ]));
+            
             $table->string('visibility')->default('all')->option([
                 'all',
                 'seniors',
                 'hunters',
                 'ams'
             ]);
+            $table->text('rules')->nullable()->label('Business Rules');
             $table->string('source_highlight')->option([
                 'transaction',
                 'pvt-seller'
