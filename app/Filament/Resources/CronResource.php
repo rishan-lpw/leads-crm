@@ -6,6 +6,7 @@ use App\Filament\Resources\CronResource\Pages;
 use App\Filament\Resources\CronResource\RelationManagers;
 use App\Models\Cron;
 use Filament\Forms;
+use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -25,79 +26,46 @@ class CronResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
-                    ->label('Job Name')
-                    ->required()
-                    ->maxLength(100)
-                    ->placeholder('e.g. Daily Cleanup'),
-
-                Forms\Components\Select::make('command')
-                    ->label('Artisan Command')
-                    ->options(collect(Artisan::all())->mapWithKeys(fn ($command, $key) => [$key => $key])->toArray())
-                    ->searchable()
-                    ->required()
-                    ->hint('Select a registered Artisan command'),
-
-                Forms\Components\Select::make('frequency')
-                    ->label('Frequency')
-                    ->options([
-                        '* * * * *' => 'Every Minute',
-                        '0 * * * *' => 'Hourly',
-                        '0 0 * * *' => 'Daily',
-                        '0 0 * * 0' => 'Weekly',
-                        '0 0 1 * *' => 'Monthly',
-                        'custom'    => 'Custom Expression',
-                    ])
-                    ->reactive()
+                    ->label('Cron Name')
                     ->required(),
-
-                Forms\Components\TextInput::make('custom_frequency')
-                    ->label('Custom Cron Expression')
-                    ->placeholder('e.g. 0 2 * * *')
-                    ->visible(fn ($get) => $get('frequency') === 'custom')
-                    ->helperText('Use standard cron format'),
-
-                Forms\Components\Toggle::make('is_active')
-                    ->label('Active')
-                    ->default(true),
-
                 Forms\Components\Select::make('category')
                     ->label('Category')
                     ->options([
-                        'leads'    => 'Leads',
-                        'calls'    => 'Calls',
-                        'merge'    => 'Merge',
-                        'followup' => 'Followup',
+                        'Pending Payment' => 'Pending Payment',
+                        'Ikman' => 'Ikman',
+                        'Facebook-Ads' => 'Facebook-Ads',
                     ])
                     ->required(),
 
-                Forms\Components\Select::make('visibility')
-                    ->label('Visibility')
+                Forms\Components\Select::make('team_name')
+                    ->label('Team Name')
                     ->options([
-                        'all'     => 'All',
-                        'seniors' => 'Seniors',
-                        'hunters' => 'Hunters',
-                        'ams'     => 'AMs',
+                        'Junior Hunters' => 'Junior Hunters',
+                        'Senior Hunters' => 'Senior Hunters',
+                        'Sales' => 'Sales',
                     ])
-                    ->default('all')
                     ->required(),
 
-                // Rules column want a longtext input field.
-                Forms\Components\Textarea::make('rules')
-                    ->label('Business Rules')
-                    ->placeholder('Enter business rules here...')
-                    ->rows(4),
+                Forms\Components\Select::make('rule_1_days')
+                    ->label('No. of Days Assigned (Rule 1)')
+                    ->options(array_combine(range(1, 30), range(1, 30)))
+                    ->required(),
 
-                Forms\Components\Select::make('source_highlight')
-                    ->label('Source Highlight')
+                Forms\Components\Select::make('rule_2_days')
+                    ->label('No. of Days Assigned (Rule 2)')
+                    ->options(array_combine(range(1, 30), range(1, 30)))
+                    ->required(),
+
+                // Running frequency
+                Forms\Components\Select::make('frequency')
+                    ->label('Frequency')
                     ->options([
-                        'transaction' => 'Transaction',
-                        'pvt-seller'  => 'PVT Seller',
+                        'daily' => 'Daily',
+                        '2 days' => '2 Days',
+                        '3 days' => '3 Days',
+                        'weekly' => 'Weekly',
                     ])
                     ->required(),
-
-                Forms\Components\Toggle::make('allow_manual_trigger')
-                    ->label('Allow Manual Trigger')
-                    ->default(true),
             ]);
     }
 
@@ -105,38 +73,32 @@ class CronResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('command'),
-                Tables\Columns\TextColumn::make('frequency'),
-                Tables\Columns\IconColumn::make('is_active')->boolean(),
-                Tables\Columns\TextColumn::make('category')->label('Category'),
-                Tables\Columns\TextColumn::make('source_highlight')->label('Source Highlight'),
-                Tables\Columns\TextColumn::make('created_at')->label('Created At')->dateTime(),
-                Tables\Columns\TextColumn::make('updated_at')->label('Updated At')->dateTime(),
-                Tables\Columns\TextColumn::make('last_run_at')->label('Last Run At')->dateTime(),
-                Tables\Columns\TextColumn::make('rules')->label('Business Rules')->wrap(),
-                Tables\Columns\TextColumn::make('visibility')->label('Visibility'),
-                Tables\Columns\TextColumn::make('cron_log.status')->label('Cron Log Status')->badge(),
+                Tables\Columns\TextColumn::make('name')->label('Cron Name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('category')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('team_name')->label('Team Name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('rule_1_days')->label('Rule 1 Days')->sortable(),
+                Tables\Columns\TextColumn::make('rule_2_days')->label('Rule 2 Days')->sortable(),
+                Tables\Columns\TextColumn::make('frequency')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('created_at')->dateTime()->label('Created At')->sortable(),
+                Tables\Columns\TextColumn::make('updated_at')->dateTime()->label('Updated At')->sortable(),
             ])
             
             ->filters([
                 //
             ])
-            ->headerActions([
-                Tables\Actions\Action::make('expandAll')
-                    ->label(fn($livewire) => $livewire->expandAll ? 'Collapse All' : 'Expand All')
-                    ->action(function ($livewire) {
-                        $livewire->expandAll = ! $livewire->expandAll;
-                    })
-            ])
-            ->recordUrl(null)
             ->actions([
-                Tables\Actions\Action::make('Run Now')
-                    ->action(function ($record) {
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('run')
+                    ->label('Run Now')
+                    ->action(function (Cron $record) {
+                        // Directly call the command stored in the cron record
                         try {
-                            Artisan::call($record->command);
-                            $output = Artisan::output();
-
+                            $output = null;
+                            if ($record->command) {
+                                Artisan::call($record->command);
+                                $output = Artisan::output();
+                            }
+                            // Optionally, log the run or show a notification
                             \App\Models\CronLog::create([
                                 'cron_id'    => $record->id,
                                 'started_at' => now(),
@@ -154,8 +116,10 @@ class CronResource extends Resource
                             ]);
                         }
                     })
-                    ->requiresConfirmation(),
+                    ->color('success'),
             ])
+
+            
             // Removed unsupported expandable() method
         ;
     }

@@ -9,16 +9,13 @@ class Cron extends Model
     protected $table = 'cron';
 
     protected $fillable = [
+        // Update for newly added fields
         'name',
-        'command',
-        'frequency',
-        'is_active',
-        'last_run_at',
         'category',
-        'rules',
-        'visibility',
-        'source_highlight',
-        'allow_manual_trigger',
+        'team_name',
+        'rule_1_days',
+        'rule_2_days',
+        'frequency',
     ];
 
     public function logs()
