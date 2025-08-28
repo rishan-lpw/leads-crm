@@ -30,4 +30,5 @@ class Lead extends Model
         'last_update_date' => 'date',
         'price' => 'decimal:2',
     ];
+    
 }
