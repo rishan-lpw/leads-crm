@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CronResource\Pages;
 use App\Filament\Resources\CronResource\RelationManagers;
 use App\Models\Cron;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Form;
@@ -29,7 +30,7 @@ class CronResource extends Resource
                     ->label('Cron Name')
                     ->required(),
                 Forms\Components\Select::make('category')
-                    ->label('Category')
+                    ->label('Select Channel')
                     ->options([
                         'Pending Payment' => 'Pending Payment',
                         'Ikman' => 'Ikman',
@@ -37,13 +38,16 @@ class CronResource extends Resource
                     ])
                     ->required(),
 
-                Forms\Components\Select::make('team_name')
-                    ->label('Team Name')
-                    ->options([
-                        'Junior Hunters' => 'Junior Hunters',
-                        'Senior Hunters' => 'Senior Hunters',
-                        'Sales' => 'Sales',
-                    ])
+                // Select multiple options as user names in user table
+                Forms\Components\Select::make('member')
+                    ->label('Select Member')
+                    ->options(
+                        User::query()
+                            ->whereNotNull('name')
+                            // ->where('type_name', '==', 'Agent')
+                            ->pluck('name', 'id')
+                            ->toArray()
+                    )
                     ->required(),
 
                 Forms\Components\Select::make('rule_1_days')
@@ -56,16 +60,16 @@ class CronResource extends Resource
                     ->options(array_combine(range(1, 30), range(1, 30)))
                     ->required(),
 
-                // Running frequency
-                Forms\Components\Select::make('frequency')
-                    ->label('Frequency')
-                    ->options([
-                        'daily' => 'Daily',
-                        '2 days' => '2 Days',
-                        '3 days' => '3 Days',
-                        'weekly' => 'Weekly',
-                    ])
-                    ->required(),
+                // // Running frequency
+                // Forms\Components\Select::make('frequency')
+                //     ->label('Frequency')
+                //     ->options([
+                //         'daily' => 'Daily',
+                //         '2 days' => '2 Days',
+                //         '3 days' => '3 Days',
+                //         'weekly' => 'Weekly',
+                //     ])
+                //     ->required(),
             ]);
     }
 
@@ -75,14 +79,19 @@ class CronResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')->label('Cron Name')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('category')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('team_name')->label('Team Name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('member')
+                    ->label('Member Names')
+                    ->formatStateUsing(function ($state) {
+                        return \App\Models\User::find($state)?->name ?? 'Unknown';
+                    })
+                    ->sortable()
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('rule_1_days')->label('Rule 1 Days')->sortable(),
                 Tables\Columns\TextColumn::make('rule_2_days')->label('Rule 2 Days')->sortable(),
-                Tables\Columns\TextColumn::make('frequency')->sortable()->searchable(),
+                // Tables\Columns\TextColumn::make('frequency')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->label('Created At')->sortable(),
                 Tables\Columns\TextColumn::make('updated_at')->dateTime()->label('Updated At')->sortable(),
-            ])
-            
+            ])            
             ->filters([
                 //
             ])

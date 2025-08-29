@@ -12,10 +12,13 @@ class Cron extends Model
         // Update for newly added fields
         'name',
         'category',
-        'team_name',
+        'member',
         'rule_1_days',
         'rule_2_days',
-        'frequency',
+    ];
+
+    protected $casts = [
+        'member' => 'array', // This will automatically convert between array and JSON
     ];
 
     public function logs()

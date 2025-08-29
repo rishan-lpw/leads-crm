@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('category');
-            $table->string('team_name');
+            $table->string('member');
             $table->integer('rule_1_days');
             $table->integer('rule_2_days');
             $table->timestamps();
