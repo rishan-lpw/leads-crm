@@ -16,11 +16,12 @@ class Activity extends Model
     protected $fillable = [
         'customer_id',
         'user_id',
-        'activity_follow_up_id',
         'activity_type',
-        'status',
-        'level_score',
         'notes',
+        'scheduled_at',
+        'due_at',
+        'last_checked_at',
+        'auto_status_updated',
     ];
 
     public function customer()
@@ -32,6 +33,7 @@ class Activity extends Model
     {
         return $this->belongsTo(User::class);
     }
+    
     public function activityFollowUp()
     {
         return $this->belongsTo(ActivityFollowUp::class, 'activity_follow_up_id');

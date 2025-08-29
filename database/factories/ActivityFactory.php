@@ -19,26 +19,18 @@ class ActivityFactory extends Factory
      *
      * @return array<string, mixed>
      */
+
     public function definition(): array
     {
-    
         return [
-            'customer_id' => fn() => Customer::inRandomOrder()->first()?->id ?? 
-                              Customer::factory()->create()->id,
-                              
-            'user_id' => fn() => User::inRandomOrder()->first()?->id ?? 
-                         User::factory()->create()->id,
-            
-            'activity_follow_up_id' => fn() => ActivityFollowUp::inRandomOrder()->first()?->id ?? 
-                                      ActivityFollowUp::factory()->create()->id,
-
-            'activity_type' => $this->faker->randomElement(['Call', 'Email', 'Meeting', 'Follow-up', 'Sale', 'Support', 'Complaint']),
-            // status and level_score should be random from activity_follow_up table
-            'status' => fn() => ActivityFollowUp::inRandomOrder()->first()?->status ?? 'Pending',
-            'level_score' => fn() => ActivityFollowUp::inRandomOrder()->first()?->level_score ?? 1,
-            'notes' => $this->faker->paragraph(),
-            'created_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
-            'updated_at' => fn (array $attributes) => Carbon::parse($attributes['created_at'])->addDays(rand(1, 30)),
+            'customer_id' => Customer::factory(),
+            'user_id' => User::factory(),
+            'activity_type' => $this->faker->randomElement(['call', 'email', 'meeting', 'follow_up']),
+            'notes' => $this->faker->optional()->sentence(10),
+            'scheduled_at' => $this->faker->optional()->dateTimeBetween('now', '+30 days'),
+            'due_at' => $this->faker->optional()->dateTimeBetween('now', '+30 days'),
+            'last_checked_at' => $this->faker->optional()->dateTimeBetween('-30 days', 'now'),
+            'auto_status_updated' => $this->faker->boolean(20), // 20% chance of being true
         ];
     }
 }

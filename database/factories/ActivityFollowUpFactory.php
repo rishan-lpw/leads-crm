@@ -16,18 +16,28 @@ class ActivityFollowUpFactory extends Factory
      * @return array<string, mixed>
      */
 
-    // $table->timestamp('follow_up_time');
-    // $table->text('status');
-    // $table->unsignedBigInteger('level_score');
+        // 'activity_id',
+        // 'follow_up_time',
+        // 'status',
+        // 'level_score',
+        // 'reminder_at',
+        // 'completed_at',
+        // 'auto_status_updated',
+        // 'created_at',
+        // 'updated_at',
 
     public function definition(): array
     {
         return [
-            'follow_up_time' => Carbon::now()->addDays(rand(1, 30)), 
-            'status' => $this->faker->randomElement(['pending', 'completed', 'cancelled']),
-            'level_score' => $this->faker->numberBetween(1, 5), 
-            'created_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
-            'updated_at' => fn (array $attributes) => Carbon::parse($attributes['created_at'])->addDays(rand(1, 30)),
+            'activity_id' => \App\Models\Activity::factory(),
+            'follow_up_time' => $this->faker->optional()->dateTimeBetween('now', '+30 days'),
+            'status' => $this->faker->randomElement(['pending', 'done', 'missed', 'overdue']),
+            'level_score' => $this->faker->numberBetween(0, 100),
+            'reminder_at' => $this->faker->optional()->dateTimeBetween('now', '+30 days'),
+            'completed_at' => $this->faker->optional()->dateTimeBetween('-30 days', 'now'),
+            'auto_status_updated' => $this->faker->boolean(20), // 20% chance of being true
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
         ];
     }
 }

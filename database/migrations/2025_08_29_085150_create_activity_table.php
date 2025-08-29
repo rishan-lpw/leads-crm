@@ -11,7 +11,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-
         Schema::create('activity', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('customer_id');
