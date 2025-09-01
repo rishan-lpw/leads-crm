@@ -11,11 +11,13 @@ use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\Tabs;
 use Filament\Infolists\Components\Tabs\Tab;
 use Filament\Forms\Form;
+use Filament\Infolists\Components\Actions;
 use Filament\Infolists\Components\Tabs as ComponentsTabs;
 use Filament\Infolists\Components\Tabs\Tab as TabsTab;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Infolists\Components\Actions\Action as InfolistAction;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Enums\FiltersLayout;
@@ -208,28 +210,6 @@ class HuntersResource extends Resource
                                                     ->size('lg')
                                                     ->weight('bold')
                                                     ->color('success'),
-                                            ])
-                                            ->columns(2),
-                                        
-                                        Section::make('Latest Comments')
-                                            ->schema([
-                                                TextEntry::make('latest_comments')
-                                                    ->label('')
-                                                    ->placeholder('No comments available')
-                                                    ->columnSpanFull(),
-                                            ]),
-                                    ]),
-
-                                Tab::make('Details')
-                                    ->icon('heroicon-o-document-text')
-                                    ->schema([
-                                        Section::make('Contact Information')
-                                            ->schema([
-                                                TextEntry::make('name')
-                                                    ->label('Full Name'),
-                                                TextEntry::make('tel')
-                                                    ->label('Telephone')
-                                                    ->icon('heroicon-o-phone'),
                                                 TextEntry::make('source')
                                                     ->label('Source')
                                                     ->badge()
@@ -244,9 +224,6 @@ class HuntersResource extends Resource
                                                 TextEntry::make('property_type')
                                                     ->label('Property Type')
                                                     ->placeholder('Not specified'),
-                                                TextEntry::make('price')
-                                                    ->label('Amount')
-                                                    ->money('LKR'),
                                                 TextEntry::make('city')
                                                     ->label('City')
                                                     ->icon('heroicon-o-map-pin')
@@ -263,6 +240,135 @@ class HuntersResource extends Resource
                                                     ->placeholder('Not specified'),
                                             ])
                                             ->columns(2),
+                                        
+                                        Section::make('Latest Comments')
+                                            ->schema([
+                                                TextEntry::make('latest_comments')
+                                                    ->label('')
+                                                    ->placeholder('No comments available')
+                                                    ->columnSpanFull(),
+                                            ]),
+                                    ]),
+
+                                Tab::make('Details')
+                                    ->icon('heroicon-o-document-text')
+                                    ->schema([
+                                        Actions::make([
+                                            InfolistAction::make('edit')
+                                                ->label('Edit Hunter Details')
+                                                ->icon('heroicon-o-pencil')
+                                                ->color('primary')
+                                                ->form([
+                                                    Forms\Components\TextInput::make('name')
+                                                        ->label('Name')
+                                                        ->required(),
+                                                    Forms\Components\TextInput::make('tel')
+                                                        ->label('Telephone')
+                                                        ->tel(),
+                                                    Forms\Components\Select::make('source')
+                                                        ->label('Source')
+                                                        ->options([
+                                                            'ikman' => 'Ikman',
+                                                            'facebook' => 'Facebook',
+                                                            'website' => 'Website',
+                                                            'referral' => 'Referral',
+                                                        ])
+                                                        ->required(),
+                                                    Forms\Components\TextInput::make('am')
+                                                        ->label('Account Manager'),
+                                                    Forms\Components\Select::make('property_type')
+                                                        ->label('Property Type')
+                                                        ->options([
+                                                            'house' => 'House',
+                                                            'apartment' => 'Apartment',
+                                                            'land' => 'Land',
+                                                            'commercial' => 'Commercial',
+                                                        ]),
+                                                    Forms\Components\TextInput::make('price')
+                                                        ->label('Price')
+                                                        ->numeric()
+                                                        ->prefix('LKR'),
+                                                    Forms\Components\TextInput::make('city')
+                                                        ->label('City'),
+                                                    Forms\Components\TextInput::make('location')
+                                                        ->label('Location'),
+                                                    Forms\Components\TextInput::make('duration')
+                                                        ->label('Duration'),
+                                                    Forms\Components\Select::make('ad_type')
+                                                        ->label('Ad Type')
+                                                        ->options([
+                                                            'sell' => 'Sell',
+                                                            'rent' => 'Rent',
+                                                            'lease' => 'Lease',
+                                                        ]),
+                                                    Forms\Components\Select::make('status')
+                                                        ->label('Status')
+                                                        ->options([
+                                                            'new' => 'New',
+                                                            'follow_up' => 'Follow Up',
+                                                            'closed' => 'Closed',
+                                                            'rejected' => 'Rejected',
+                                                        ])
+                                                        ->required(),
+                                                    Forms\Components\Textarea::make('latest_comments')
+                                                        ->label('Latest Comments')
+                                                        ->rows(3),
+                                                    Forms\Components\TextInput::make('last_update_by')
+                                                        ->label('Last Updated By'),
+                                                ])
+                                                ->fillForm(fn ($record): array => [
+                                                    'name' => $record->name,
+                                                    'tel' => $record->tel,
+                                                    'source' => $record->source,
+                                                    'am' => $record->am,
+                                                    'property_type' => $record->property_type,
+                                                    'price' => $record->price,
+                                                    'city' => $record->city,
+                                                    'location' => $record->location,
+                                                    'duration' => $record->duration,
+                                                    'ad_type' => $record->ad_type,
+                                                    'status' => $record->status,
+                                                    'latest_comments' => $record->latest_comments,
+                                                    'last_update_by' => $record->last_update_by,
+                                                ])
+                                                ->action(function (array $data, $record): void {
+                                                    $record->update($data);
+                                                })
+                                                ->modalHeading('Edit Hunter Details')
+                                                ->modalSubmitActionLabel('Save Changes')
+                                                ->modalWidth('4xl'),
+                                        ]),
+                                        
+                                        Section::make('Non-Editable Information')
+                                            ->description('These fields are system-managed and cannot be edited')
+                                            ->schema([
+                                                TextEntry::make('posted_date')
+                                                    ->label('Posted Date')
+                                                    ->date('M d, Y')
+                                                    ->icon('heroicon-o-calendar'),
+                                                TextEntry::make('last_update_date')
+                                                    ->label('Last Update Date')
+                                                    ->dateTime('M d, Y H:i')
+                                                    ->icon('heroicon-o-clock'),
+                                                TextEntry::make('user_type_id')
+                                                    ->label('User Type ID')
+                                                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                                                        '2' => 'Premium User',
+                                                        '3' => 'Standard User',
+                                                        default => 'Unknown Type',
+                                                    })
+                                                    ->badge(),
+                                                TextEntry::make('created_at')
+                                                    ->label('Created At')
+                                                    ->dateTime('M d, Y H:i')
+                                                    ->icon('heroicon-o-plus'),
+                                                TextEntry::make('updated_at')
+                                                    ->label('Updated At')
+                                                    ->dateTime('M d, Y H:i')
+                                                    ->icon('heroicon-o-pencil'),
+                                            ])
+                                            ->columns(2)
+                                            ->collapsed(),
                                     ]),
 
                                 Tab::make('Activity')
@@ -363,6 +469,9 @@ class HuntersResource extends Resource
                             ])
                             ->columnSpanFull(),
                     ]),
+                    // Add separate edit action
+                    Tables\Actions\EditAction::make()
+                        ->slideOver(),
             ])
             ->recordUrl(null); // disable row click
     }
