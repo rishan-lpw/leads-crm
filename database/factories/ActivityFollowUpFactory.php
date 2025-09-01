@@ -16,16 +16,6 @@ class ActivityFollowUpFactory extends Factory
      * @return array<string, mixed>
      */
 
-        // 'activity_id',
-        // 'follow_up_time',
-        // 'status',
-        // 'level_score',
-        // 'reminder_at',
-        // 'completed_at',
-        // 'auto_status_updated',
-        // 'created_at',
-        // 'updated_at',
-
     public function definition(): array
     {
         return [

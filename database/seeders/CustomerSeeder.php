@@ -13,7 +13,19 @@ class CustomerSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create 10 customers with random data
-        Customer::factory()->count(10)->create();
+        // Create 10 regular customers with mixed memberships
+        Customer::factory(10)->create();
+        
+        // Create 10 customers with active memberships
+        Customer::factory(10)->activeMembership()->create();
+        
+        // Create 8 customers with expired memberships
+        Customer::factory(8)->expiredMembership()->create();
+        
+        // Create 5 premium customers
+        Customer::factory(5)->premium()->create();
+        
+        // Create 3 VIP customers
+        Customer::factory(3)->vip()->create();
     }
 }
