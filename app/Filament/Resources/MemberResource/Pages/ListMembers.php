@@ -42,12 +42,13 @@ class ListMembers extends ListRecords
             // 2. Expired - Grace Period(AM)
             // 3. Expired - Deactivated(AM)
             // 4. Expired 2+ (Hunters)
-            // 5. Un-allocated Agents
+            // 5. Un-allocated Agents - AM field is null
             'All Agents' => Tab::make('All Agents'),
             'Expired - Grace Period(AM)' => Tab::make('Expired - Grace Period(AM)'),
             'Expired - Deactivated(AM)' => Tab::make('Expired - Deactivated(AM)'),
             'Expired 2+ (Hunters)' => Tab::make('Expired 2+ (Hunters)'),
-            'Un-allocated Agents' => Tab::make('Un-allocated Agents'),
+            // Add a tab called Un-allocated Agents, whose AM field is null
+            'Un-Allocated Agents' => Tab::make('Un-Allocated Agents'),
         ];
     }
 };

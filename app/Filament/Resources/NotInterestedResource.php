@@ -2,15 +2,15 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PendingPaymentResource\Pages;
-use App\Filament\Resources\PendingPaymentResource\RelationManagers;
-use App\Models\Lead;
-use App\Models\PendingPayment;
+use App\Filament\Resources\NotInterestedResource\Pages;
+use App\Filament\Resources\NotInterestedResource\RelationManagers;
+use App\Models\NotInterested;
 use Filament\Forms;
 use Filament\Infolists\Components\Actions;
 use Filament\Infolists\Components\Actions\Action as InfolistAction;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Tabs;
+use App\Models\Lead;
 use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Form;
 use Filament\Infolists\Components\TextEntry;
@@ -20,20 +20,20 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class PendingPaymentResource extends Resource
+class NotInterestedResource extends Resource
 {
     protected static ?string $model = Lead::class;
 
-    protected static ?string $label = 'Pending Payment';
-
     protected static ?string $navigationGroup = 'Private Sellers';
+
+    protected static ?string $navigationLabel = 'Not Interested';
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    // Override the Eloquent query to filter pending payments
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('source', 'pending payments');
+        return parent::getEloquentQuery()
+            ->where('status', 'Not Interested');
     }
 
     public static function form(Form $form): Form
@@ -44,7 +44,7 @@ class PendingPaymentResource extends Resource
             ]);
     }
 
-    public static function table(Table $table): Table
+    public static function table(Tables\Table $table): Tables\Table
     {
         return $table
             ->columns([
@@ -488,9 +488,7 @@ class PendingPaymentResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPendingPayments::route('/'),
-            // 'create' => Pages\CreatePendingPayment::route('/create'),
-            // 'edit' => Pages\EditPendingPayment::route('/{record}/edit'),
+            'index' => Pages\ListNotInteresteds::route('/'),
         ];
     }
 }
