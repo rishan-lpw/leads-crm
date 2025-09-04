@@ -48,7 +48,7 @@ class NotInterestedResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('customer.name')
                     ->label('Name')
                     ->searchable()
                     ->sortable(),
@@ -64,7 +64,7 @@ class NotInterestedResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('am')
+                Tables\Columns\TextColumn::make('user.name')
                     ->label('AM')
                     ->sortable()
                     ->searchable(),
@@ -130,8 +130,10 @@ class NotInterestedResource extends Resource
                     ->options([
                         'new' => 'New',
                         'follow_up' => 'Follow Up',
-                        'closed' => 'Closed',
-                        'rejected' => 'Rejected',
+                        'upsell' => 'Upsell',
+                        'expired' => 'Expired',
+                        'not_interested' => 'Not Interested',
+                        'renew' => 'Renew',
                     ]),
                 Tables\Filters\Filter::make('last_update_date')
                     ->form([

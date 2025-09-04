@@ -12,11 +12,11 @@ class Lead extends Model
     protected $table = 'lead';
 
     protected $fillable = [
-        'user_type_id',
-        'name',
+        'user_id',
+        'customer_id',
         'posted_date',
         'source',
-        'am',
+        // 'am',
         'status',
         'latest_comments',
         'last_update_date',
@@ -30,5 +30,15 @@ class Lead extends Model
         'last_update_date' => 'date',
         'price' => 'decimal:2',
     ];
-    
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
 }

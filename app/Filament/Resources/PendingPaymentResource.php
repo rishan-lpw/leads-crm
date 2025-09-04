@@ -9,9 +9,9 @@ use App\Models\PendingPayment;
 use Filament\Forms;
 use Filament\Infolists\Components\Actions;
 use Filament\Infolists\Components\Actions\Action as InfolistAction;
-use Filament\Infolists\Components\Section;
-use Filament\Infolists\Components\Tabs;
-use Filament\Infolists\Components\Tabs\Tab;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Form;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -33,7 +33,7 @@ class PendingPaymentResource extends Resource
     // Override the Eloquent query to filter pending payments
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('source', 'pending payments');
+        return parent::getEloquentQuery()->where('source', 'pending payment');
     }
 
     public static function form(Form $form): Form
@@ -48,7 +48,7 @@ class PendingPaymentResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('customer.name')
                     ->label('Name')
                     ->searchable()
                     ->sortable(),
@@ -64,7 +64,7 @@ class PendingPaymentResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('am')
+                Tables\Columns\TextColumn::make('user.name')
                     ->label('AM')
                     ->sortable()
                     ->searchable(),
@@ -101,81 +101,38 @@ class PendingPaymentResource extends Resource
                     ->searchable(),
             ])
             ->filters([
-                // Apply column filters and date filters
-                Tables\Filters\Filter::make('posted_date')
+                Tables\Filters\Filter::make('status')
                     ->form([
-                        Forms\Components\DatePicker::make('posted_date')
-                            ->label('Posted Date'),
+                        Forms\Components\Select::make('status')
+                            ->label('Status')
+                            ->options([
+                                'new' => 'New',
+                                'follow_up' => 'Follow Up',
+                                'upsell' => 'Upsell',
+                                'expired' => 'Expired',
+                                'not_interested' => 'Not Interested',
+                                'renew' => 'Renew',
+                            ]),
                     ])
-                    ->query(fn (Builder $query, array $data): Builder => 
-                        $query->when(
-                            $data['posted_date'],
-                            fn (Builder $query, $date): Builder => $query->whereDate('posted_date', $date),
-                        )
-                    ),
-                Tables\Filters\SelectFilter::make('source')
-                    ->options([
-                        'ikman' => 'Ikman',
-                        'facebook' => 'Facebook',
-                        'website' => 'Website',
-                        'referral' => 'Referral',
-                    ]),
-                Tables\Filters\SelectFilter::make('am')
-                    ->options([
-                        'john' => 'John',
-                        'jane' => 'Jane',
-                        'mike' => 'Mike',
-                    ]),
-                Tables\Filters\SelectFilter::make('status')
-                    ->options([
-                        'new' => 'New',
-                        'follow_up' => 'Follow Up',
-                        'closed' => 'Closed',
-                        'rejected' => 'Rejected',
-                    ]),
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['status'],
+                                fn (Builder $query, $status): Builder => $query->where('status', $status),
+                            );
+                    }),
                 Tables\Filters\Filter::make('last_update_date')
                     ->form([
                         Forms\Components\DatePicker::make('last_update_date')
                             ->label('Last Update Date'),
                     ])
-                    ->query(fn (Builder $query, array $data): Builder => 
-                        $query->when(
-                            $data['last_update_date'],
-                            fn (Builder $query, $date): Builder => $query->whereDate('last_update_date', $date),
-                        )
-                    ),
-                Tables\Filters\SelectFilter::make('last_update_by'),
-                Tables\Filters\Filter::make('tel')
-                    ->form([
-                        Forms\Components\TextInput::make('tel')
-                            ->label('Telephone'),
-                    ])
-                    ->query(fn (Builder $query, array $data): Builder => 
-                        $query->when(
-                            $data['tel'],
-                            fn (Builder $query, $tel): Builder => $query->where('tel', 'like', "%{$tel}%"),
-                        )
-                    ),
-                Tables\Filters\Filter::make('price')
-                    ->form([
-                        Forms\Components\TextInput::make('min_price')
-                            ->label('Min Price')
-                            ->numeric(),
-                        Forms\Components\TextInput::make('max_price')
-                            ->label('Max Price')
-                            ->numeric(),
-                    ])
-                    ->query(fn (Builder $query, array $data): Builder => 
-                        $query
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
                             ->when(
-                                $data['min_price'],
-                                fn (Builder $query, $price): Builder => $query->where('price', '>=', $price),
-                            )
-                            ->when(
-                                $data['max_price'],
-                                fn (Builder $query, $price): Builder => $query->where('price', '<=', $price),
-                            )
-                    ),
+                                $data['last_update_date'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('last_update_date', $date),
+                            );
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()

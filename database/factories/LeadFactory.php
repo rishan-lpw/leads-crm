@@ -20,17 +20,17 @@ class LeadFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_type_id' => $this->faker->randomElement([1, 2]),
-            'name' => $this->faker->name(),
-            'posted_date' => $this->faker->dateTimeBetween('-30 days', 'now'),
-            'source' => $this->faker->randomElement(['Ikman', 'Facebook-Ads', 'Website', 'Direct']),
-            'am' => $this->faker->randomElement(['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson']),
-            'status' => $this->faker->randomElement(['new', 'follow_up', 'system', 'closed']),
-            'latest_comments' => $this->faker->sentence(10),
-            // 'last_update_date' => $this->faker->dateTimeBetween('-7 days', 'now'),
-            'last_update_by' => $this->faker->randomElement(['Admin', 'Manager', 'Agent', 'System']),
+            'user_id' => $this->faker->numberBetween(1, 10),
+            'customer_id' => $this->faker->numberBetween(81, 100),
+            'posted_date' => $this->faker->date(),
+            'source' => $this->faker->randomElement(['pending payment', 'facebook ads', '']),
+            'am' => $this->faker->name(),
+            'status' => $this->faker->randomElement(['new', 'follow_up', 'system', 'to_be_expired', 'expired']),
+            'latest_comments' => $this->faker->sentence(),
+            'last_update_date' => $this->faker->date(),
+            'last_update_by' => $this->faker->name(),
             'tel' => $this->faker->phoneNumber(),
-            'price' => $this->faker->randomFloat(2, 10000, 5000000), // Price between 10k to 5M
+            'price' => $this->faker->randomFloat(2, 1000, 10000),
         ];
     }
 }

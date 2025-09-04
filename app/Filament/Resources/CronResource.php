@@ -20,6 +20,10 @@ class CronResource extends Resource
 {
     protected static ?string $model = Cron::class;
 
+    protected static ?string $navigationGroup = 'Admin';
+
+    protected static ?string $navigationLabel = 'Assign Rules';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
@@ -38,16 +42,17 @@ class CronResource extends Resource
                     ])
                     ->required(),
 
-                // Select multiple options as user names in user table
+                // Select multiple options as user names in user table. User can be able to select many choices here.
                 Forms\Components\Select::make('member')
-                    ->label('Select Member')
-                    ->options(
-                        User::query()
-                            ->whereNotNull('name')
-                            // ->where('type_name', '==', 'Agent')
-                            ->pluck('name', 'id')
-                            ->toArray()
-                    )
+                    ->label('Select Member/Members')
+                    ->multiple()
+                    // Give options as user names from user table whose user_type <= 3
+                    ->options(User::query()
+                        ->where('user_type', '<=', 3)
+                        ->whereNotNull('name')
+                        ->where('name', '!=', '')
+                        ->pluck('name', 'id')
+                        ->toArray())
                     ->required(),
 
                 Forms\Components\Select::make('rule_1_days')
@@ -59,17 +64,6 @@ class CronResource extends Resource
                     ->label('No. of Days Assigned (Rule 2)')
                     ->options(array_combine(range(1, 30), range(1, 30)))
                     ->required(),
-
-                // // Running frequency
-                // Forms\Components\Select::make('frequency')
-                //     ->label('Frequency')
-                //     ->options([
-                //         'daily' => 'Daily',
-                //         '2 days' => '2 Days',
-                //         '3 days' => '3 Days',
-                //         'weekly' => 'Weekly',
-                //     ])
-                //     ->required(),
             ]);
     }
 
@@ -79,13 +73,7 @@ class CronResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')->label('Cron Name')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('category')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('member')
-                    ->label('Member Names')
-                    ->formatStateUsing(function ($state) {
-                        return \App\Models\User::find($state)?->name ?? 'Unknown';
-                    })
-                    ->sortable()
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('member')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('rule_1_days')->label('Rule 1 Days')->sortable(),
                 Tables\Columns\TextColumn::make('rule_2_days')->label('Rule 2 Days')->sortable(),
                 // Tables\Columns\TextColumn::make('frequency')->sortable()->searchable(),

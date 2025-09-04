@@ -46,7 +46,8 @@ class HuntersResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                // Display customer name from customer table
+                Tables\Columns\TextColumn::make('customer.name')
                     ->label('Name')
                     ->searchable()
                     ->sortable(),
@@ -62,7 +63,7 @@ class HuntersResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('am')
+                Tables\Columns\TextColumn::make('user.name')
                     ->label('AM')
                     ->sortable()
                     ->searchable(),
