@@ -24,6 +24,8 @@ use Filament\Tables\Enums\FiltersLayout;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
+use function Pest\Laravel\options;
+
 class HuntersResource extends Resource
 {
     protected static ?string $model = Lead::class;
@@ -113,18 +115,29 @@ class HuntersResource extends Resource
                         )
                     ),
                 Tables\Filters\SelectFilter::make('source')
-                    ->options([
-                        'ikman' => 'Ikman',
-                        'facebook' => 'Facebook',
-                        'website' => 'Website',
-                        'referral' => 'Referral',
-                    ]),
+                    // Dynamically get source names from lead table where not null or empty
+                    ->options(Lead::query()
+                        ->whereNotNull('source')
+                        ->where('source', '!=', '')
+                        ->pluck('source', 'source')
+                        ->toArray()),
+                // Tables\Filters\SelectFilter::make('am')
+                //     // Dynamically get AM names from user table where user_type <= 3 and not null or empty
+                //     ->options(\App\Models\User::query()
+                //         ->where('user_type', '<', 3)
+                //         ->whereNotNull('name')
+                //         ->where('name', '!=', '')
+                //         ->pluck('name', 'name')
+                //         ->toArray()),
                 Tables\Filters\SelectFilter::make('am')
-                    ->options([
-                        'john' => 'John',
-                        'jane' => 'Jane',
-                        'mike' => 'Mike',
-                    ]),
+                    ->label('AM')
+                    // Dynamically get AM names from user table where user_type <= 3 and not null or empty
+                    ->options(\App\Models\User::query()
+                        ->where('user_type', '<=', 3)
+                        ->whereNotNull('name')
+                        ->where('name', '!=', '')
+                        ->pluck('name', 'name')
+                        ->toArray()),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'new' => 'New',

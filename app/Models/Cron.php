@@ -15,6 +15,10 @@ class Cron extends Model
         'member',
         'rule_1_days',
         'rule_2_days',
+        'is_active',
+        'last_run_at',
+        'last_run_result',
+        
     ];
 
     protected $casts = [

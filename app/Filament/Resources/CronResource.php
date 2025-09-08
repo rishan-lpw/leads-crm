@@ -7,11 +7,12 @@ use App\Filament\Resources\CronResource\RelationManagers;
 use App\Models\Cron;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Container\Attributes\Log;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Artisan;
@@ -20,11 +21,11 @@ class CronResource extends Resource
 {
     protected static ?string $model = Cron::class;
 
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
     protected static ?string $navigationGroup = 'Admin';
 
     protected static ?string $navigationLabel = 'Assign Rules';
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
     {
@@ -72,53 +73,41 @@ class CronResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')->label('Cron Name')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('category')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('member')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('rule_1_days')->label('Rule 1 Days')->sortable(),
-                Tables\Columns\TextColumn::make('rule_2_days')->label('Rule 2 Days')->sortable(),
-                // Tables\Columns\TextColumn::make('frequency')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('created_at')->dateTime()->label('Created At')->sortable(),
-                Tables\Columns\TextColumn::make('updated_at')->dateTime()->label('Updated At')->sortable(),
-            ])            
+                Tables\Columns\TextColumn::make('category')->label('Channel')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('member')
+                    ->label('Members')
+                    ->formatStateUsing(fn ($state) => implode(', ', json_decode($state, true) ?? []))
+                    ->sortable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('rule_1_days')->label('Days (Rule 1)')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('rule_2_days')->label('Days (Rule 2)')->sortable()->searchable(),
+                // is_active, last_run_at, last_run_result
+                Tables\Columns\BooleanColumn::make('is_active')->label('Is Active')->sortable(),
+                Tables\Columns\TextColumn::make('last_run_at')->label('Last Run At')->sortable(),
+                Tables\Columns\TextColumn::make('last_run_result')->label('Last Run Result')->sortable(),
+                ])
             ->filters([
                 //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('run')
+                // Add a run now action
+                Tables\Actions\Action::make('run_now')
                     ->label('Run Now')
-                    ->action(function (Cron $record) {
-                        // Directly call the command stored in the cron record
-                        try {
-                            $output = null;
-                            if ($record->command) {
-                                Artisan::call($record->command);
-                                $output = Artisan::output();
-                            }
-                            // Optionally, log the run or show a notification
-                            \App\Models\CronLog::create([
-                                'cron_id'    => $record->id,
-                                'started_at' => now(),
-                                'finished_at' => now(),
-                                'status'     => true,
-                                'output'     => $output,
-                            ]);
-                        } catch (\Throwable $e) {
-                            \App\Models\CronLog::create([
-                                'cron_id'    => $record->id,
-                                'started_at' => now(),
-                                'finished_at' => now(),
-                                'status'     => false,
-                                'output'     => $e->getMessage(),
-                            ]);
-                        }
-                    })
-                    ->color('success'),
+                    ->icon('heroicon-o-play')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Execute Cron Job')
+                    ->modalDescription(fn (Cron $record): string => 
+                        "Are you sure you want to execute the cron job '{$record->name}' for category '{$record->category}' now?"
+                    )
+                    ->modalSubmitActionLabel('Execute Now') 
             ])
-
-            
-            // Removed unsupported expandable() method
-        ;
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
     }
 
     public static function getRelations(): array

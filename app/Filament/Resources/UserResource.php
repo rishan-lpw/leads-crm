@@ -53,11 +53,16 @@ class UserResource extends Resource
                     ->dehydrateStateUsing(fn ($state) => filled($state) ? bcrypt($state) : null)
                     ->dehydrated(fn ($state) => filled($state))
                     ->maxLength(255),
-                // User Type should be the option from user_type table.
-                Select::make('user_type')
+                // User Type should be the type_name option from user_type table.
+                Select::make('user_type_id')
                     ->required()
                     ->options(UserType::query()->pluck('type_name', 'id')->toArray())
                     ->label('User Type'),
+                // User Sub Type should be the sub_type option from user_type table.
+                Select::make('user_sub_type_id')
+                    ->required()
+                    ->options(UserType::query()->pluck('sub_type', 'id')->toArray())
+                    ->label('User Sub Type'),
                 Select::make('user_level_id')
                     ->required()
                     ->options(UserLevel::query()->pluck('title', 'id')->toArray())
