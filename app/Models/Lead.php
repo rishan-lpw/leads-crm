@@ -14,6 +14,7 @@ class Lead extends Model
     protected $fillable = [
         'user_id',
         'customer_id',
+        'activity_id',
         'posted_date',
         'source',
         // 'am',
@@ -41,4 +42,9 @@ class Lead extends Model
         return $this->belongsTo(Customer::class, 'customer_id');
     }
 
+    // has many activities
+    public function activities()
+    {
+        return $this->hasMany(Activity::class, 'lead_id');
+    }
 }

@@ -22,10 +22,10 @@ class LeadFactory extends Factory
         return [
             'user_id' => $this->faker->numberBetween(1, 10),
             'customer_id' => $this->faker->numberBetween(81, 100),
+            'activity_id' => $this->faker->numberBetween(1, 50),
             'posted_date' => $this->faker->date(),
-            'source' => $this->faker->randomElement(['pending payment', 'facebook ads', '']),
-            'am' => $this->faker->name(),
-            'status' => $this->faker->randomElement(['new', 'follow_up', 'system', 'to_be_expired', 'expired']),
+            'source' => $this->faker->randomElement(['pending payment', 'facebook ads', 'ikman.lk']),
+            'status' => $this->faker->randomElement(['new', 'follow_up', 'system', 'to_be_expired', 'expired', 'upsell']),
             'latest_comments' => $this->faker->sentence(),
             'last_update_date' => $this->faker->date(),
             'last_update_by' => $this->faker->name(),

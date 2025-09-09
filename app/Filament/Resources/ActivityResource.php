@@ -59,9 +59,9 @@ class ActivityResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('customer.name')
+                Tables\Columns\TextColumn::make('lead.customer.name')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('user.name')
+                Tables\Columns\TextColumn::make('lead.user.name')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('activity_type')
                     ->sortable(),

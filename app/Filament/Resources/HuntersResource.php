@@ -75,6 +75,11 @@ class HuntersResource extends Resource
                     ->sortable()
                     ->searchable(),
 
+                // Tables\Columns\TextColumn::make('activities.notes')
+                //     ->label('Activity Notes')
+                //     ->sortable()
+                //     ->searchable(),
+
                 Tables\Columns\TextColumn::make('latest_comments')
                     ->label('Latest Comments')
                     ->limit(40)
@@ -90,10 +95,10 @@ class HuntersResource extends Resource
                     ->label('Last Update By')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('tel')
-                    ->label('Tel')
-                    ->sortable()
-                    ->searchable(),
+                // Tables\Columns\TextColumn::make('tel')
+                //     ->label('Tel')
+                //     ->sortable()
+                //     ->searchable(),
 
                 Tables\Columns\TextColumn::make('price')
                     ->label('Price')

@@ -14,8 +14,7 @@ class Activity extends Model
     protected $table = 'activity';
 
     protected $fillable = [
-        'customer_id',
-        'user_id',
+        'lead_id',
         'activity_type',
         'notes',
         'scheduled_at',
@@ -24,14 +23,19 @@ class Activity extends Model
         'auto_status_updated',
     ];
 
+    public function lead()
+    {
+        return $this->belongsTo(Lead::class, 'lead_id');
+    }
+
     public function customer()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(Customer::class, 'customer_id');
     }
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
     
     public function activityFollowUp()

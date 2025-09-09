@@ -22,26 +22,24 @@ class LatestActivities extends BaseWidget
                     ->limit(5)
             )
             ->columns([
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('customer.name')
-                    ->label('Customer')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('activity_type')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'Call' => 'success',
-                        'Email' => 'info',
-                        'Meeting' => 'warning',
-                        'Sale' => 'danger',
-                        default => 'gray',
-                    }),
-                Tables\Columns\TextColumn::make('status')
-                    ->badge(),
-                Tables\Columns\TextColumn::make('user.name')
-                    ->label('Assigned To')
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('id')->label('ID')->sortable(),
+                Tables\Columns\TextColumn::make('lead.customer.name')->label('Customer')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('lead.user.name')->label('Hunter')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('activity_type')->label('Type')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('notes')->label('Notes')->limit(30)->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('scheduled_at')->label('Scheduled At')->dateTime()->sortable(),
+                Tables\Columns\TextColumn::make('due_at')->label('Due At')->dateTime()->sortable(),
+                Tables\Columns\TextColumn::make('last_checked_at')->label('Last Checked At')->dateTime()->sortable(),
+                // follow up from activity follow up table
+                // level_score
+                Tables\Columns\TextColumn::make('activityFollowUp.level_score')->label('Follow Up Level Score')->sortable(),
+                Tables\Columns\TextColumn::make('activityFollowUp.due_at')->label('Follow Up Due At')->dateTime()->sortable(),
+                Tables\Columns\TextColumn::make('activityFollowUp.last_checked_at')->label('Follow Up Last Checked At')->dateTime()->sortable(),
+
+
+                // Tables\Columns\BooleanColumn::make('auto_status_updated')->label('Auto Status Updated')->sortable(),
+                // Tables\Columns\TextColumn::make('created_at')->label('Created At')->dateTime()->sortable(),
+                // Tables\Columns\TextColumn::make('updated_at')->label('Updated At')->dateTime()->sortable(),
             ])
             ->actions([
                 Tables\Actions\Action::make('view')

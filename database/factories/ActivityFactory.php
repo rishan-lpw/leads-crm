@@ -23,9 +23,8 @@ class ActivityFactory extends Factory
     public function definition(): array
     {
         return [
-            'customer_id' => Customer::factory(),
-            'user_id' => User::factory(),
-            'activity_type' => $this->faker->randomElement(['call', 'email', 'meeting', 'follow_up']),
+            'lead_id' => $this->faker->numberBetween(1, 50),
+            'activity_type' => $this->faker->randomElement(['call', 'email', 'meeting', 'follow_up', 'message']),
             'notes' => $this->faker->optional()->sentence(10),
             'scheduled_at' => $this->faker->optional()->dateTimeBetween('now', '+30 days'),
             'due_at' => $this->faker->optional()->dateTimeBetween('now', '+30 days'),
