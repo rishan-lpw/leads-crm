@@ -312,49 +312,106 @@ class HuntersResource extends Resource
                                             ->collapsed(),
                                     ]),
 
-                                Tab::make('Activity')
-                                    ->icon('heroicon-o-clock')
-                                    ->schema([
-                                        Section::make('Recent Activity')
-                                            ->schema([
-                                                TextEntry::make('posted_date')
-                                                    ->label('Posted Date')
-                                                    ->date('M d, Y')
-                                                    ->icon('heroicon-o-calendar'),
-                                                TextEntry::make('last_update_date')
-                                                    ->label('Last Update Date')
-                                                    ->dateTime('M d, Y H:i')
-                                                    ->icon('heroicon-o-clock'),
-                                                TextEntry::make('last_update_by')
-                                                    ->label('Last Updated By')
-                                                    ->icon('heroicon-o-user'),
-                                                TextEntry::make('status')
-                                                    ->label('Current Status')
-                                                    ->badge(),
-                                            ])
-                                            ->columns(2),
-                                        
-                                        Section::make('Comments History')
-                                            ->schema([
-                                                TextEntry::make('latest_comments')
-                                                    ->label('Latest Comments')
-                                                    ->placeholder('No comments available')
-                                                    ->columnSpanFull(),
-                                            ]),
-                                        
-                                        Section::make('System Information')
-                                            ->schema([
-                                                TextEntry::make('user_type_id')
-                                                    ->label('User Type ID'),
-                                                TextEntry::make('created_at')
-                                                    ->label('Created At')
-                                                    ->dateTime('M d, Y H:i'),
-                                                TextEntry::make('updated_at')
-                                                    ->label('Updated At')
-                                                    ->dateTime('M d, Y H:i'),
-                                            ])
-                                            ->columns(3),
-                                    ]),
+                    Tab::make('Activity')
+                        ->icon('heroicon-o-clock')
+                        ->schema([
+                            Section::make('Recent Activity')
+                                ->schema([
+                                    TextEntry::make('posted_date')
+                                        ->label('Posted Date')
+                                        ->date('M d, Y')
+                                        ->icon('heroicon-o-calendar'),
+                                    TextEntry::make('last_update_date')
+                                        ->label('Last Update Date')
+                                        ->dateTime('M d, Y H:i')
+                                        ->icon('heroicon-o-clock'),
+                                    TextEntry::make('last_update_by')
+                                        ->label('Last Updated By')
+                                        ->icon('heroicon-o-user'),
+                                    TextEntry::make('status')
+                                        ->label('Current Status')
+                                        ->badge(),
+                                ])
+                                ->columns(2),
+
+                            Section::make('Activity History')
+                                ->schema([
+                                    \Filament\Infolists\Components\RepeatableEntry::make('activities')
+                                        ->label('All Activities')
+                                        ->schema([
+                                            TextEntry::make('activity_type')
+                                                ->label('Activity Type')
+                                                ->badge()
+                                                ->color('info'),
+
+                                            TextEntry::make('notes')
+                                                ->label('Notes')
+                                                ->placeholder('No notes')
+                                                ->columnSpanFull(),
+
+                                            TextEntry::make('last_checked_at')
+                                                ->label('Last Checked At')
+                                                ->dateTime('M d, Y H:i'),
+
+                                            TextEntry::make('follow_up_time')
+                                                ->label('Follow Up Time')
+                                                ->dateTime('M d, Y H:i'),
+
+                                            TextEntry::make('status')
+                                                ->label('Status')
+                                                ->badge()
+                                                ->color(fn($state) => match ($state) {
+                                                    'completed' => 'success',
+                                                    'pending' => 'warning',
+                                                    'overdue' => 'danger',
+                                                    'canceled' => 'gray',
+                                                    default => 'primary',
+                                                }),
+
+                                            TextEntry::make('level_score')
+                                                ->label('Level Score')
+                                                ->formatStateUsing(
+                                                    fn($state, $record) =>
+                                                    "{$state}/" . ($record->max_score ?? 10)
+                                                )
+                                                ->badge()
+                                                ->color(fn($state) => $state >= 7 ? 'success' : ($state >= 4 ? 'warning' : 'danger'))
+                                                ->size('lg'),
+                                        ])
+                                        ->columns(2)
+                                        ->visible(fn($record) => $record->activities->count() > 0),
+
+                                    TextEntry::make('activities_count')
+                                        ->label('Total Activities')
+                                        ->formatStateUsing(fn($record) => $record->activities->count())
+                                        ->visible(fn($record) => $record->activities->count() > 0)
+                                        ->badge()
+                                        ->color('primary')
+                                        ->size('lg'),
+                                ])
+                                ->collapsible(),
+
+                            Section::make('Comments History')
+                                ->schema([
+                                    TextEntry::make('latest_comments')
+                                        ->label('Latest Comments')
+                                        ->placeholder('No comments available')
+                                        ->columnSpanFull(),
+                                ]),
+
+                            Section::make('System Information')
+                                ->schema([
+                                    TextEntry::make('user_type_id')
+                                        ->label('User Type ID'),
+                                    TextEntry::make('created_at')
+                                        ->label('Created At')
+                                        ->dateTime('M d, Y H:i'),
+                                    TextEntry::make('updated_at')
+                                        ->label('Updated At')
+                                        ->dateTime('M d, Y H:i'),
+                                ])
+                                ->columns(3),
+                        ]),
 
                                 Tab::make('Stats')
                                     ->icon('heroicon-o-chart-bar')
