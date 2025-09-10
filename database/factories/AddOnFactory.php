@@ -23,14 +23,7 @@ class AddOnFactory extends Factory
     public function definition(): array
     {
         return [
-            'title' => $this->faker->word(),
-            'description' => $this->faker->sentence(),
-            'price' => $this->faker->randomFloat(2, 1, 100),
-            'location' => $this->faker->city(),
-            'category_id' => Category::inRandomOrder()->first()?->id ?? 1,
-            'customer_id' => Customer::inRandomOrder()->first()?->id ?? 1,
-            'created_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
-            'updated_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
+           
         ];
     }
 }

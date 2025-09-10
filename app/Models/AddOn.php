@@ -11,15 +11,23 @@ class AddOn extends Model
 
     use HasFactory;
 
-    protected $table = 'add_on';
+    // Fields: id,	title,	desc_short,	description,	order_desc,	price,	discount_price,	valid_period,	image,	offer,	site,	active_method.	
+    protected $table = 'add_ons';
 
     protected $fillable = [
         'title',
-        'customer_id',
+        'desc_short',
         'description',
+        'order_desc',
         'price',
-        'location',
+        'discount_price',
+        'valid_period',
+        'image',
+        'offer',
+        'site',
+        'active_method',
         'category_id',
+        'customer_id',
     ];
 
     public function category() 

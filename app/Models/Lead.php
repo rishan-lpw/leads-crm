@@ -24,6 +24,15 @@ class Lead extends Model
         'last_update_by',
         'tel',
         'price',
+        'Company_Name',
+        'Source_Type',
+        'Invoice_Name',
+        'Invoice_Address',
+        'LinkIn_Profile',
+        'Member_Image',
+        'Auto_Boost',
+        'Auto_Boost_for_New_Ads',
+        'Remarks',
     ];
 
     protected $casts = [

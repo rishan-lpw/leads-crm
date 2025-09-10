@@ -13,7 +13,16 @@ class Category extends Model
 
     protected $fillable = [
         'name',
-        'status',
+        'slug',
         'description',
+        'icon',
+        'image',
+        'sort_order',
+        'is_active',
     ];
+
+    public function addOns()
+    {
+        return $this->hasMany(AddOn::class, 'category_id');
+    }
 }
