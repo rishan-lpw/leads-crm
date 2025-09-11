@@ -14,19 +14,9 @@ class Customer extends Model
     use HasFactory;
     
     protected $fillable = [
-        'name',
-        'phone_number',
-        'email',
-        //'password',
-        'address',
-        'add_id',   
-        'role_id',
-        'membership_exp_date',
-        'payment_exp_date',
-        'membership_status',
-        // 'last_boost_added_date',
-        'created_at',
-        'updated_at',
+        'firstname', 'surname', 'mobile', 'mobile_alt', 'email',
+        'address', 'add_id', 'role_id', 'membership_exp_date', 'payment_exp_date', 'membership_status',
+        'last_boost_added_date'
     ];
 
     protected $casts = [

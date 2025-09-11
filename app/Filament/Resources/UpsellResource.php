@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UpsellResource\Pages;
 use App\Filament\Resources\UpsellResource\RelationManagers;
+use App\Models\Lead;
 use App\Models\Upsell;
 use Filament\Forms;
 // use Filament\Forms\Components\Actions;
@@ -22,7 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class UpsellResource extends Resource
 {
-    protected static ?string $model = Upsell::class;
+    protected static ?string $model = Lead::class;
 
     protected static ?string $label = 'Upsell';
 
@@ -47,57 +48,123 @@ class UpsellResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
-                    ->label('Name')
+                // Print customer name and user name as new columns
+                Tables\Columns\TextColumn::make('customer.firstname')
+                    ->label('Customer Name')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('User Name')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('heading')
+                    ->label('Property Heading')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold')
+                    ->limit(50),
+
+                Tables\Columns\BadgeColumn::make('type')
+                    ->label('Listing Type')
+                    ->colors([
+                        'primary' => 'sell',
+                        'success' => 'rent',
+                        'warning' => 'lease',
+                    ])
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('posted_date')
-                    ->label('Posted Date')
-                    ->date()
-                    ->sortable()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('source')
-                    ->label('Source')
-                    ->sortable()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('am')
-                    ->label('AM')
-                    ->sortable()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
-                    ->sortable()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('latest_comments')
-                    ->label('Latest Comments')
-                    ->limit(40)
-                    ->wrap()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('last_update_date')
-                    ->label('Last Update Date')
-                    ->date()
+                Tables\Columns\BadgeColumn::make('propty_type')
+                    ->label('Property Type')
+                    ->colors([
+                        'primary' => 'house',
+                        'success' => 'apartment',
+                        'warning' => 'land',
+                        'danger' => 'commercial',
+                        'info' => 'villa',
+                    ])
+                    ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('last_update_by')
-                    ->label('Last Update By')
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('tel')
-                    ->label('Tel')
+                Tables\Columns\TextColumn::make('city')
+                    ->label('City')
+                    ->searchable()
                     ->sortable()
-                    ->searchable(),
+                    ->icon('heroicon-o-map-pin'),
 
                 Tables\Columns\TextColumn::make('price')
                     ->label('Price')
                     ->money('LKR')
                     ->sortable()
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('contact_name')
+                    ->label('Contact')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('contact_type')
+                    ->label('Contact Type')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'owner',
+                        'success' => 'agent',
+                        'warning' => 'developer',
+                    ]),
+
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Status')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'new',
+                        'secondary' => 'follow_up',
+                        'success' => 'system',
+                        'warning' => 'to_be_expired',
+                        'danger' => 'expired',
+                    ])
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('source')
+                    ->label('Source')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'pending_payments',
+                        'success' => 'ikman',
+                        'warning' => 'facebook',
+                        'secondary' => 'other',
+                    ])
+                    ->sortable(),
+
+                // Tables\Columns\IconColumn::make('pic')
+                //     ->label('Has Pictures')
+                //     ->boolean()
+                //     ->trueIcon('heroicon-o-camera')
+                //     ->falseIcon('heroicon-o-x-mark'),
+
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label('Active')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger'),
+
+                // Tables\Columns\IconColumn::make('is_trending')
+                //     ->label('Trending')
+                //     ->boolean()
+                //     ->trueIcon('heroicon-o-fire')
+                //     ->falseIcon('heroicon-o-minus')
+                //     ->trueColor('warning'),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created')
+                    ->dateTime('M d, Y')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Updated')
+                    ->dateTime('M d, Y')
+                    ->sortable(),
             ])
             ->filters([
                 // Apply column filters and date filters

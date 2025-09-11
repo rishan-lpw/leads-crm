@@ -63,7 +63,7 @@ class LeadStatusManageCron extends Command
          * Rule 4: system -> to_be_expired
          * If activity.notes != 'payment_completed' within 29 days
          */
-        Lead::where('status', 'system')
+        Lead::where('status', 'upsell')
             ->whereDate('posted_date', '<=', $now->copy()->subDays(29))
             ->whereDoesntHave('activities', function ($query) {
                 $query->where('notes', 'payment_completed');

@@ -38,18 +38,19 @@ class CustomerFactory extends Factory
         }
         
         return [
-            'name' => $this->faker->name,
-            'phone_number' => $this->faker->phoneNumber,
-            'email' => $this->faker->unique()->safeEmail,
-            //'password' => bcrypt('password'), // Use bcrypt for password hashing
-            'address' => $this->faker->address,
-            'add_id' => $userId,
+            'firstname' => $this->faker->firstName(),
+            'surname' => $this->faker->lastName(),
+            'mobile' => $this->faker->phoneNumber(),
+            'mobile_alt' => $this->faker->optional()->phoneNumber(),
+            'email' => $this->faker->unique()->safeEmail(),
+            'address' => $this->faker->optional()->address(),
+            'add_id' => null, // Assuming no add-ons for simplicity
             'role_id' => $roleId,
             'membership_exp_date' => $membershipExpDate,
             'payment_exp_date' => $paymentExpDate,
             'membership_status' => $membershipStatus,
-            // 'created_at' => Carbon::now(),
-            // 'updated_at' => Carbon::now(),
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
         ];
     }
 

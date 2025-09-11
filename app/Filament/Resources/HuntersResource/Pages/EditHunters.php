@@ -32,7 +32,7 @@ class EditHunters extends EditRecord
                 ->modalSubmitActionLabel('Mark Upsell')
                 ->action(function () {
                     $this->record->update([
-                        'status' => 'closed',
+                        'status' => 'upsell',
                         'last_update_date' => now(),
                         'last_update_by' => auth()->user()->name ?? 'System',
                         'latest_comments' => ($this->record->latest_comments ? $this->record->latest_comments . "\n\n" : '') . 
@@ -58,7 +58,7 @@ class EditHunters extends EditRecord
                 ->modalSubmitActionLabel('Mark Pending')
                 ->action(function () {
                     $this->record->update([
-                        'status' => 'pending_payment',
+                        'status' => 'pending payments',
                         'source' => 'pending payments',
                         'last_update_date' => now(),
                         'last_update_by' => auth()->user()->name ?? 'System',

@@ -4,27 +4,29 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\HuntersResource\Pages;
 use App\Filament\Resources\HuntersResource\RelationManagers;
+use App\Models\Customer;
 use App\Models\Lead;
+use App\Services\LpwApiService;
 use Filament\Forms;
 use Filament\Infolists\Components\Section;
-// use Filament\Forms\Components\Tabs\Tab;
 use Filament\Infolists\Components\Tabs;
 use Filament\Infolists\Components\Tabs\Tab;
 use Filament\Forms\Form;
 use Filament\Infolists\Components\Actions;
-use Filament\Infolists\Components\Tabs as ComponentsTabs;
-use Filament\Infolists\Components\Tabs\Tab as TabsTab;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use Illuminate\Support\Collection;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Infolists\Components\Actions\Action as InfolistAction;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Enums\FiltersLayout;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-
-use function Pest\Laravel\options;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class HuntersResource extends Resource
 {
@@ -34,442 +36,932 @@ class HuntersResource extends Resource
 
     protected static ?string $navigationGroup = 'Private Sellers';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-users';
+
+    // Show all leads since there's no source field in the new structure
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery();
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                //
+                Forms\Components\Section::make('Basic Information')
+                    ->schema([
+                        Forms\Components\TextInput::make('heading')
+                            ->label('Property Heading')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\Select::make('type')
+                            ->label('Listing Type')
+                            ->options([
+                                'sell' => 'For Sale',
+                                'rent' => 'For Rent',
+                                'lease' => 'For Lease',
+                            ])
+                            ->required(),
+                        Forms\Components\Select::make('propty_type')
+                            ->label('Property Type')
+                            ->options([
+                                'house' => 'House',
+                                'apartment' => 'Apartment',
+                                'land' => 'Land',
+                                'commercial' => 'Commercial',
+                                'villa' => 'Villa',
+                                'townhouse' => 'Townhouse',
+                            ])
+                            ->required(),
+                        Forms\Components\Select::make('service_type')
+                            ->label('Service Type')
+                            ->options([
+                                'complete' => 'Complete Service',
+                                'basic' => 'Basic Listing',
+                                'premium' => 'Premium Service',
+                            ]),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Location Details')
+                    ->schema([
+                        Forms\Components\TextInput::make('street')
+                            ->label('Street Address')
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('city')
+                            ->label('City')
+                            ->required()
+                            ->maxLength(100),
+                        Forms\Components\TextInput::make('lat')
+                            ->label('Latitude')
+                            ->numeric()
+                            ->step(0.00000001),
+                        Forms\Components\TextInput::make('lng')
+                            ->label('Longitude')
+                            ->numeric()
+                            ->step(0.00000001),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Property Description')
+                    ->schema([
+                        Forms\Components\Textarea::make('desc')
+                            ->label('Description')
+                            ->rows(4)
+                            ->columnSpanFull(),
+                    ]),
+
+                Forms\Components\Section::make('Pricing Information')
+                    ->schema([
+                        Forms\Components\TextInput::make('price')
+                            ->label('Main Price')
+                            ->numeric()
+                            ->prefix('LKR'),
+                        Forms\Components\TextInput::make('alt_price')
+                            ->label('Alternative Price')
+                            ->numeric(),
+                        Forms\Components\Select::make('alt_currency')
+                            ->label('Alternative Currency')
+                            ->options([
+                                'LKR' => 'LKR',
+                                'USD' => 'USD',
+                                'EUR' => 'EUR',
+                                'GBP' => 'GBP',
+                            ]),
+                        Forms\Components\Select::make('price_type')
+                            ->label('Price Type')
+                            ->options([
+                                'total' => 'Total Price',
+                                'per_sq_ft' => 'Per Square Foot',
+                                'per_month' => 'Per Month',
+                                'negotiable' => 'Negotiable',
+                            ]),
+                        Forms\Components\TextInput::make('price_monthly')
+                            ->label('Monthly Price')
+                            ->numeric()
+                            ->prefix('LKR'),
+                        Forms\Components\TextInput::make('price_land_pp')
+                            ->label('Land Price per Perch')
+                            ->numeric()
+                            ->prefix('LKR'),
+                        Forms\Components\TextInput::make('price_land_total')
+                            ->label('Total Land Price')
+                            ->numeric()
+                            ->prefix('LKR'),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Contact Information')
+                    ->schema([
+                        Forms\Components\Select::make('contact_type')
+                            ->label('Contact Type')
+                            ->options([
+                                'owner' => 'Property Owner',
+                                'agent' => 'Real Estate Agent',
+                                'developer' => 'Developer',
+                            ]),
+                        Forms\Components\TextInput::make('contact_name')
+                            ->label('Contact Name')
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('email')
+                            ->label('Email')
+                            ->email()
+                            ->maxLength(255),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Media & Links')
+                    ->schema([
+                        Forms\Components\Toggle::make('pic')
+                            ->label('Has Pictures'),
+                        Forms\Components\TextInput::make('pic_count')
+                            ->label('Picture Count')
+                            ->numeric()
+                            ->minValue(0),
+                        Forms\Components\TextInput::make('youtube_link')
+                            ->label('YouTube Link')
+                            ->url()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('video_link')
+                            ->label('Video Link')
+                            ->url()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('image_360')
+                            ->label('360° Image Link')
+                            ->url()
+                            ->maxLength(255),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Status & Settings')
+                    ->schema([
+                        Forms\Components\Select::make('status')
+                            ->label('Lead Status')
+                            ->options([
+                                'new' => 'New',
+                                'follow_up' => 'Follow Up',
+                                'system' => 'System',
+                                'to_be_expired' => 'To Be Expired',
+                                'expired' => 'Expired',
+                            ])
+                            ->default('new')
+                            ->required(),
+                        Forms\Components\Select::make('source')
+                            ->label('Lead Source')
+                            ->options([
+                                'pending_payments' => 'Pending Payments',
+                                'ikman' => 'IKMAN',
+                                'facebook' => 'Facebook',
+                                'other' => 'Other',
+                            ])
+                            ->searchable(),
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Active')
+                            ->default(true),
+                        Forms\Components\Toggle::make('is_trending')
+                            ->label('Trending'),
+                        Forms\Components\Toggle::make('blocked')
+                            ->label('Blocked')
+                            ->helperText('Block this listing from public view'),
+                    ])
+                    ->columns(3),
+
+                Forms\Components\Section::make('System Fields')
+                    ->schema([
+                        Forms\Components\TextInput::make('ad_id')
+                            ->label('Advertisement ID')
+                            ->numeric()
+                            ->required(),
+                        Forms\Components\TextInput::make('cust_id')
+                            ->label('Customer ID')
+                            ->numeric()
+                            ->required(),
+                        Forms\Components\TextInput::make('user_id')
+                            ->label('User ID')
+                            ->numeric(),
+                    ])
+                    ->columns(3)
+                    ->collapsed(),
             ]);
     }
 
-    public static function table(Tables\Table $table): Tables\Table
+    public static function table(Table $table): Table
     {
+        // Fetch API data for hunters
+        $apiService = new LpwApiService();
+        $pendingPayments = $apiService->getPendingPayments();
+        
+        // // Log the API data for debugging
+        // Log::info('Hunters API Data:', [
+        //     'count' => count($pendingPayments),
+        //     'sample' => !empty($pendingPayments) ? array_slice($pendingPayments, 0, 2) : []
+        // ]);
+        
         return $table
             ->columns([
-                // Display customer name from customer table
-                Tables\Columns\TextColumn::make('customer.name')
-                    ->label('Name')
+                // Print customer name and user name as new columns
+                Tables\Columns\TextColumn::make('customer.firstname')
+                    ->label('Customer Name')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('User Name')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('heading')
+                    ->label('Property Heading')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold')
+                    ->limit(50),
+
+                Tables\Columns\BadgeColumn::make('type')
+                    ->label('Listing Type')
+                    ->colors([
+                        'primary' => 'sell',
+                        'success' => 'rent',
+                        'warning' => 'lease',
+                    ])
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('posted_date')
-                    ->label('Posted Date')
-                    ->date()
-                    ->sortable()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('source')
-                    ->label('Source')
-                    ->sortable()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('user.name')
-                    ->label('AM')
-                    ->sortable()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
-                    ->sortable()
-                    ->searchable(),
-
-                // Tables\Columns\TextColumn::make('activities.notes')
-                //     ->label('Activity Notes')
-                //     ->sortable()
-                //     ->searchable(),
-
-                Tables\Columns\TextColumn::make('latest_comments')
-                    ->label('Latest Comments')
-                    ->limit(40)
-                    ->wrap()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('last_update_date')
-                    ->label('Last Update Date')
-                    ->date()
+                Tables\Columns\BadgeColumn::make('propty_type')
+                    ->label('Property Type')
+                    ->colors([
+                        'primary' => 'house',
+                        'success' => 'apartment',
+                        'warning' => 'land',
+                        'danger' => 'commercial',
+                        'info' => 'villa',
+                    ])
+                    ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('last_update_by')
-                    ->label('Last Update By')
-                    ->sortable(),
-
-                // Tables\Columns\TextColumn::make('tel')
-                //     ->label('Tel')
-                //     ->sortable()
-                //     ->searchable(),
+                Tables\Columns\TextColumn::make('city')
+                    ->label('City')
+                    ->searchable()
+                    ->sortable()
+                    ->icon('heroicon-o-map-pin'),
 
                 Tables\Columns\TextColumn::make('price')
                     ->label('Price')
                     ->money('LKR')
                     ->sortable()
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('contact_name')
+                    ->label('Contact')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('contact_type')
+                    ->label('Contact Type')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'owner',
+                        'success' => 'agent',
+                        'warning' => 'developer',
+                    ]),
+
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Status')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'new',
+                        'secondary' => 'follow_up',
+                        'success' => 'system',
+                        'warning' => 'to_be_expired',
+                        'danger' => 'expired',
+                    ])
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('source')
+                    ->label('Source')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'pending_payments',
+                        'success' => 'ikman',
+                        'warning' => 'facebook',
+                        'secondary' => 'other',
+                    ])
+                    ->sortable(),
+
+                // Tables\Columns\IconColumn::make('pic')
+                //     ->label('Has Pictures')
+                //     ->boolean()
+                //     ->trueIcon('heroicon-o-camera')
+                //     ->falseIcon('heroicon-o-x-mark'),
+
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label('Active')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger'),
+
+                // Tables\Columns\IconColumn::make('is_trending')
+                //     ->label('Trending')
+                //     ->boolean()
+                //     ->trueIcon('heroicon-o-fire')
+                //     ->falseIcon('heroicon-o-minus')
+                //     ->trueColor('warning'),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created')
+                    ->dateTime('M d, Y')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Updated')
+                    ->dateTime('M d, Y')
+                    ->sortable(),
             ])
             ->filters([
-                // Apply column filters and date filters
-                Tables\Filters\Filter::make('posted_date')
-                    ->form([
-                        Forms\Components\DatePicker::make('posted_date')
-                            ->label('Posted Date'),
-                    ])
-                    ->query(fn (Builder $query, array $data): Builder => 
-                        $query->when(
-                            $data['posted_date'],
-                            fn (Builder $query, $date): Builder => $query->whereDate('posted_date', $date),
-                        )
-                    ),
-                Tables\Filters\SelectFilter::make('source')
-                    // Dynamically get source names from lead table where not null or empty
-                    ->options(Lead::query()
-                        ->whereNotNull('source')
-                        ->where('source', '!=', '')
-                        ->pluck('source', 'source')
-                        ->toArray()),
-                // Tables\Filters\SelectFilter::make('am')
-                //     // Dynamically get AM names from user table where user_type <= 3 and not null or empty
-                //     ->options(\App\Models\User::query()
-                //         ->where('user_type', '<', 3)
-                //         ->whereNotNull('name')
-                //         ->where('name', '!=', '')
-                //         ->pluck('name', 'name')
-                //         ->toArray()),
-                Tables\Filters\SelectFilter::make('am')
-                    ->label('AM')
-                    // Dynamically get AM names from user table where user_type <= 3 and not null or empty
-                    ->options(\App\Models\User::query()
-                        ->where('user_type', '<=', 3)
-                        ->whereNotNull('name')
-                        ->where('name', '!=', '')
-                        ->pluck('name', 'name')
-                        ->toArray()),
+                // Add required filters
+                Tables\Filters\SelectFilter::make('type')
+                    ->label('Listing Type')
+                    ->options([
+                        'sell' => 'For Sale',
+                        'rent' => 'For Rent',
+                        'lease' => 'For Lease',
+                    ]),
+                Tables\Filters\SelectFilter::make('propty_type')
+                    ->label('Property Type')
+                    ->options([
+                        'house' => 'House',
+                        'apartment' => 'Apartment',
+                        'land' => 'Land',
+                        'commercial' => 'Commercial',
+                        'villa' => 'Villa',
+                        'townhouse' => 'Townhouse',
+                    ]),
                 Tables\Filters\SelectFilter::make('status')
+                    ->label('Status')
                     ->options([
                         'new' => 'New',
                         'follow_up' => 'Follow Up',
-                        'closed' => 'Closed',
-                        'rejected' => 'Rejected',
+                        'system' => 'System',
+                        'to_be_expired' => 'To Be Expired',
+                        'expired' => 'Expired',
                     ]),
-                Tables\Filters\Filter::make('last_update_date')
+                Tables\Filters\SelectFilter::make('source')
+                    ->label('Source')
+                    ->options([
+                        'pending_payments' => 'Pending Payments',
+                        'ikman' => 'IKMAN',
+                        'facebook' => 'Facebook',
+                        'other' => 'Other',
+                    ]),
+                // price range filter
+                Tables\Filters\Filter::make('price_range')
                     ->form([
-                        Forms\Components\DatePicker::make('last_update_date')
-                            ->label('Last Update Date'),
-                    ])
-                    ->query(fn (Builder $query, array $data): Builder => 
-                        $query->when(
-                            $data['last_update_date'],
-                            fn (Builder $query, $date): Builder => $query->whereDate('last_update_date', $date),
-                        )
-                    ),
-                Tables\Filters\SelectFilter::make('last_update_by'),
-                Tables\Filters\Filter::make('tel')
-                    ->form([
-                        Forms\Components\TextInput::make('tel')
-                            ->label('Telephone'),
-                    ])
-                    ->query(fn (Builder $query, array $data): Builder => 
-                        $query->when(
-                            $data['tel'],
-                            fn (Builder $query, $tel): Builder => $query->where('tel', 'like', "%{$tel}%"),
-                        )
-                    ),
-                Tables\Filters\Filter::make('price')
-                    ->form([
-                        Forms\Components\TextInput::make('min_price')
+                        Forms\Components\TextInput::make('price_min')
                             ->label('Min Price')
-                            ->numeric(),
-                        Forms\Components\TextInput::make('max_price')
+                            ->numeric()
+                            ->prefix('LKR'),
+                        Forms\Components\TextInput::make('price_max')
                             ->label('Max Price')
-                            ->numeric(),
+                            ->numeric()
+                            ->prefix('LKR'),
                     ])
-                    ->query(fn (Builder $query, array $data): Builder => 
-                        $query
-                            ->when(
-                                $data['min_price'],
-                                fn (Builder $query, $price): Builder => $query->where('price', '>=', $price),
-                            )
-                            ->when(
-                                $data['max_price'],
-                                fn (Builder $query, $price): Builder => $query->where('price', '<=', $price),
-                            )
-                    ),
-            ])
+                    ->query(function (Builder $query, array $data) {
+                        return $query
+                            ->when($data['price_min'], fn (Builder $query, $value) => $query->where('price', '>=', $value))
+                            ->when($data['price_max'], fn (Builder $query, $value) => $query->where('price', '<=', $value));
+                    })
+                    ->label('Price Range')
+                ])
+
             ->actions([
                 Tables\Actions\ViewAction::make()
-                    ->modalHeading(fn($record) => 'Hunter Details - ' . $record->name)
+                    ->modalHeading(fn($record) => 'Property Details - ' . $record->heading)
                     ->modalWidth('6xl')
                     ->infolist([
-                        Tabs::make('HunterTabs')
+                        Tabs::make('PropertyTabs')
                             ->tabs([
-                                Tab::make('Summary')
+                                Tab::make('Overview')
                                     ->icon('heroicon-o-information-circle')
                                     ->schema([
-                                        Section::make('Basic Information')
+                                        Section::make('Property Information')
                                             ->schema([
-                                                TextEntry::make('name')
-                                                    ->label('Name')
+                                                TextEntry::make('heading')
+                                                    ->label('Property Heading')
                                                     ->size('lg')
                                                     ->weight('bold'),
-                                                TextEntry::make('status')
-                                                    ->label('Status')
+                                                TextEntry::make('type')
+                                                    ->label('Listing Type')
                                                     ->badge()
                                                     ->color(fn (string $state): string => match ($state) {
-                                                        'new' => 'success',
-                                                        'follow_up' => 'warning',
-                                                        'closed' => 'primary',
-                                                        'rejected' => 'danger',
+                                                        'sell' => 'primary',
+                                                        'rent' => 'success',
+                                                        'lease' => 'warning',
                                                         default => 'gray',
                                                     }),
-                                                TextEntry::make('tel')
-                                                    ->label('Telephone')
-                                                    ->icon('heroicon-o-phone'),
+                                                TextEntry::make('propty_type')
+                                                    ->label('Property Type')
+                                                    ->badge()
+                                                    ->color('info'),
+                                                TextEntry::make('service_type')
+                                                    ->label('Service Type')
+                                                    ->badge(),
                                                 TextEntry::make('price')
-                                                    ->label('Amount')
+                                                    ->label('Price')
                                                     ->money('LKR')
                                                     ->size('lg')
                                                     ->weight('bold')
                                                     ->color('success'),
-                                                TextEntry::make('source')
-                                                    ->label('Source')
-                                                    ->badge()
-                                                    ->color('primary'),
-                                                TextEntry::make('am')
-                                                    ->label('Account Manager'),
+                                                TextEntry::make('price_type')
+                                                    ->label('Price Type'),
                                             ])
                                             ->columns(2),
                                         
-                                        Section::make('Property Information')
+                                        Section::make('Location')
                                             ->schema([
-                                                TextEntry::make('property_type')
-                                                    ->label('Property Type')
+                                                TextEntry::make('street')
+                                                    ->label('Street Address')
                                                     ->placeholder('Not specified'),
                                                 TextEntry::make('city')
                                                     ->label('City')
-                                                    ->icon('heroicon-o-map-pin')
+                                                    ->icon('heroicon-o-map-pin'),
+                                                TextEntry::make('lat')
+                                                    ->label('Latitude')
                                                     ->placeholder('Not specified'),
-                                                TextEntry::make('location')
-                                                    ->label('Location')
-                                                    ->placeholder('Not specified'),
-                                                TextEntry::make('duration')
-                                                    ->label('Duration')
-                                                    ->placeholder('Not specified'),
-                                                TextEntry::make('ad_type')
-                                                    ->label('Ad Type')
-                                                    ->badge()
+                                                TextEntry::make('lng')
+                                                    ->label('Longitude')
                                                     ->placeholder('Not specified'),
                                             ])
                                             ->columns(2),
                                         
-                                        Section::make('Latest Comments')
+                                        Section::make('Description')
                                             ->schema([
-                                                TextEntry::make('latest_comments')
-                                                    ->label('')
-                                                    ->placeholder('No comments available')
-                                                    ->columnSpanFull(),
+                                                TextEntry::make('desc')
+                                                    ->label('Property Description')
+                                                    ->placeholder('No description available')
+                                                    ->columnSpanFull()
+                                                    ->html(),
                                             ]),
                                     ]),
 
-                                Tab::make('Details')
-                                    ->icon('heroicon-o-document-text')
+                                Tab::make('Pricing')
+                                    ->icon('heroicon-o-currency-dollar')
                                     ->schema([
-                                        Actions::make([
-                                            // Add EditHunters.php design and logic into this
-                                            InfolistAction::make('edit')
-                                                ->label('Edit Hunter Details')
-                                                ->icon('heroicon-o-pencil')
-                                                ->action(fn ($record) => redirect()->route('hunters.edit', $record)),
-                                        ]),
-                                        
-                                        Section::make('Non-Editable Information')
-                                            ->description('These fields are system-managed and cannot be edited')
-                                            ->schema([
-                                                TextEntry::make('posted_date')
-                                                    ->label('Posted Date')
-                                                    ->date('M d, Y')
-                                                    ->icon('heroicon-o-calendar'),
-                                                TextEntry::make('last_update_date')
-                                                    ->label('Last Update Date')
-                                                    ->dateTime('M d, Y H:i')
-                                                    ->icon('heroicon-o-clock'),
-                                                TextEntry::make('user_type_id')
-                                                    ->label('User Type ID')
-                                                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                                                        '2' => 'Premium User',
-                                                        '3' => 'Standard User',
-                                                        default => 'Unknown Type',
-                                                    })
-                                                    ->badge(),
-                                                TextEntry::make('created_at')
-                                                    ->label('Created At')
-                                                    ->dateTime('M d, Y H:i')
-                                                    ->icon('heroicon-o-plus'),
-                                                TextEntry::make('updated_at')
-                                                    ->label('Updated At')
-                                                    ->dateTime('M d, Y H:i')
-                                                    ->icon('heroicon-o-pencil'),
-                                            ])
-                                            ->columns(2)
-                                            ->collapsed(),
-                                    ]),
-
-                    Tab::make('Activity')
-                        ->icon('heroicon-o-clock')
-                        ->schema([
-                            Section::make('Recent Activity')
-                                ->schema([
-                                    TextEntry::make('posted_date')
-                                        ->label('Posted Date')
-                                        ->date('M d, Y')
-                                        ->icon('heroicon-o-calendar'),
-                                    TextEntry::make('last_update_date')
-                                        ->label('Last Update Date')
-                                        ->dateTime('M d, Y H:i')
-                                        ->icon('heroicon-o-clock'),
-                                    TextEntry::make('last_update_by')
-                                        ->label('Last Updated By')
-                                        ->icon('heroicon-o-user'),
-                                    TextEntry::make('status')
-                                        ->label('Current Status')
-                                        ->badge(),
-                                ])
-                                ->columns(2),
-
-                            Section::make('Activity History')
-                                ->schema([
-                                    \Filament\Infolists\Components\RepeatableEntry::make('activities')
-                                        ->label('All Activities')
-                                        ->schema([
-                                            TextEntry::make('activity_type')
-                                                ->label('Activity Type')
-                                                ->badge()
-                                                ->color('info'),
-
-                                            TextEntry::make('notes')
-                                                ->label('Notes')
-                                                ->placeholder('No notes')
-                                                ->columnSpanFull(),
-
-                                            TextEntry::make('last_checked_at')
-                                                ->label('Last Checked At')
-                                                ->dateTime('M d, Y H:i'),
-
-                                            TextEntry::make('follow_up_time')
-                                                ->label('Follow Up Time')
-                                                ->dateTime('M d, Y H:i'),
-
-                                            TextEntry::make('status')
-                                                ->label('Status')
-                                                ->badge()
-                                                ->color(fn($state) => match ($state) {
-                                                    'completed' => 'success',
-                                                    'pending' => 'warning',
-                                                    'overdue' => 'danger',
-                                                    'canceled' => 'gray',
-                                                    default => 'primary',
-                                                }),
-
-                                            TextEntry::make('level_score')
-                                                ->label('Level Score')
-                                                ->formatStateUsing(
-                                                    fn($state, $record) =>
-                                                    "{$state}/" . ($record->max_score ?? 10)
-                                                )
-                                                ->badge()
-                                                ->color(fn($state) => $state >= 7 ? 'success' : ($state >= 4 ? 'warning' : 'danger'))
-                                                ->size('lg'),
-                                        ])
-                                        ->columns(2)
-                                        ->visible(fn($record) => $record->activities->count() > 0),
-
-                                    TextEntry::make('activities_count')
-                                        ->label('Total Activities')
-                                        ->formatStateUsing(fn($record) => $record->activities->count())
-                                        ->visible(fn($record) => $record->activities->count() > 0)
-                                        ->badge()
-                                        ->color('primary')
-                                        ->size('lg'),
-                                ])
-                                ->collapsible(),
-
-                            Section::make('Comments History')
-                                ->schema([
-                                    TextEntry::make('latest_comments')
-                                        ->label('Latest Comments')
-                                        ->placeholder('No comments available')
-                                        ->columnSpanFull(),
-                                ]),
-
-                            Section::make('System Information')
-                                ->schema([
-                                    TextEntry::make('user_type_id')
-                                        ->label('User Type ID'),
-                                    TextEntry::make('created_at')
-                                        ->label('Created At')
-                                        ->dateTime('M d, Y H:i'),
-                                    TextEntry::make('updated_at')
-                                        ->label('Updated At')
-                                        ->dateTime('M d, Y H:i'),
-                                ])
-                                ->columns(3),
-                        ]),
-
-                                Tab::make('Stats')
-                                    ->icon('heroicon-o-chart-bar')
-                                    ->schema([
-                                        Section::make('Lead Statistics')
+                                        Section::make('Price Information')
                                             ->schema([
                                                 TextEntry::make('price')
-                                                    ->label('Lead Value')
+                                                    ->label('Main Price')
                                                     ->money('LKR')
                                                     ->size('xl')
                                                     ->weight('bold')
                                                     ->color('success'),
-                                                TextEntry::make('status')
-                                                    ->label('Status Category')
-                                                    ->badge()
-                                                    ->size('lg'),
-                                                TextEntry::make('source')
-                                                    ->label('Lead Source')
-                                                    ->badge()
-                                                    ->color('info'),
-                                                TextEntry::make('user_type_id')
-                                                    ->label('User Type')
-                                                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                                                        '2' => 'Premium User',
-                                                        '3' => 'Standard User',
-                                                        default => 'Unknown Type',
-                                                    })
+                                                TextEntry::make('alt_price')
+                                                    ->label('Alternative Price')
+                                                    ->formatStateUsing(fn ($state, $record) => 
+                                                        $state ? number_format($state) . ' ' . ($record->alt_currency ?? '') : 'Not set'
+                                                    ),
+                                                TextEntry::make('price_monthly')
+                                                    ->label('Monthly Price')
+                                                    ->money('LKR'),
+                                                TextEntry::make('price_land_pp')
+                                                    ->label('Land Price per Perch')
+                                                    ->money('LKR'),
+                                                TextEntry::make('price_land_total')
+                                                    ->label('Total Land Price')
+                                                    ->money('LKR'),
+                                                TextEntry::make('price_type')
+                                                    ->label('Price Type')
                                                     ->badge(),
                                             ])
                                             ->columns(2),
-                                        
-                                        Section::make('Time Analysis')
+                                    ]),
+
+                                Tab::make('Contact')
+                                    ->icon('heroicon-o-phone')
+                                    ->schema([
+                                        Section::make('Contact Information')
                                             ->schema([
-                                                TextEntry::make('created_at')
-                                                    ->label('Days Since Created')
-                                                    ->formatStateUsing(fn ($state): string => 
-                                                        $state ? now()->diffInDays($state) . ' days ago' : 'N/A'
-                                                    )
-                                                    ->icon('heroicon-o-calendar'),
-                                                TextEntry::make('last_update_date')
-                                                    ->label('Days Since Last Update')
-                                                    ->formatStateUsing(fn ($state): string => 
-                                                        $state ? now()->diffInDays($state) . ' days ago' : 'N/A'
-                                                    )
-                                                    ->icon('heroicon-o-clock'),
-                                                TextEntry::make('duration')
-                                                    ->label('Project Duration')
-                                                    ->placeholder('Not specified')
-                                                    ->icon('heroicon-o-arrow-trending-up'),
+                                                TextEntry::make('contact_name')
+                                                    ->label('Contact Person')
+                                                    ->size('lg')
+                                                    ->weight('bold'),
+                                                TextEntry::make('contact_type')
+                                                    ->label('Contact Type')
+                                                    ->badge()
+                                                    ->color(fn (string $state): string => match ($state) {
+                                                        'owner' => 'primary',
+                                                        'agent' => 'success',
+                                                        'developer' => 'warning',
+                                                        default => 'gray',
+                                                    }),
+                                                TextEntry::make('email')
+                                                    ->label('Email')
+                                                    ->icon('heroicon-o-envelope'),
                                             ])
-                                            ->columns(1),
+                                            ->columns(2),
+                                    ]),
+
+                                Tab::make('Media')
+                                    ->icon('heroicon-o-camera')
+                                    ->schema([
+                                        Section::make('Media Information')
+                                            ->schema([
+                                                TextEntry::make('pic')
+                                                    ->label('Has Pictures')
+                                                    ->formatStateUsing(fn ($state) => $state ? 'Yes' : 'No')
+                                                    ->badge()
+                                                    ->color(fn ($state) => $state ? 'success' : 'danger'),
+                                                TextEntry::make('pic_count')
+                                                    ->label('Number of Pictures'),
+                                                TextEntry::make('youtube_link')
+                                                    ->label('YouTube Link')
+                                                    ->placeholder('No YouTube link')
+                                                    ->formatStateUsing(fn ($state) => $state ?: 'No YouTube link'),
+                                                TextEntry::make('video_link')
+                                                    ->label('Video Link')
+                                                    ->placeholder('No video link')
+                                                    ->formatStateUsing(fn ($state) => $state ?: 'No video link'),
+                                                TextEntry::make('image_360')
+                                                    ->label('360° Image')
+                                                    ->placeholder('No 360° image')
+                                                    ->formatStateUsing(fn ($state) => $state ?: 'No 360° image'),
+                                            ])
+                                            ->columns(2),
+                                    ]),
+
+                                Tab::make('Status')
+                                    ->icon('heroicon-o-cog')
+                                    ->schema([
+                                        Section::make('Status Information')
+                                            ->schema([
+                                                TextEntry::make('status')
+                                                    ->label('Lead Status')
+                                                    ->badge()
+                                                    ->color(fn (string $state): string => match ($state) {
+                                                        'new' => 'gray',
+                                                        'contacted' => 'info',
+                                                        'qualified' => 'warning',
+                                                        'proposal' => 'primary',
+                                                        'negotiation' => 'info',
+                                                        'closed_won' => 'success',
+                                                        'closed_lost' => 'danger',
+                                                        'follow_up' => 'warning',
+                                                        'on_hold' => 'gray',
+                                                        'rejected' => 'danger',
+                                                        default => 'gray',
+                                                    }),
+                                                TextEntry::make('source')
+                                                    ->label('Lead Source')
+                                                    ->badge()
+                                                    ->color(fn (string $state): string => match ($state) {
+                                                        'website' => 'primary',
+                                                        'api' => 'success',
+                                                        'referral' => 'info',
+                                                        'social_media' => 'warning',
+                                                        'advertisement' => 'secondary',
+                                                        'cold_call' => 'gray',
+                                                        'email' => 'info',
+                                                        'walk_in' => 'primary',
+                                                        'other' => 'gray',
+                                                        default => 'gray',
+                                                    }),
+                                                TextEntry::make('is_active')
+                                                    ->label('Active Status')
+                                                    ->formatStateUsing(fn ($state) => $state ? 'Active' : 'Inactive')
+                                                    ->badge()
+                                                    ->color(fn ($state) => $state ? 'success' : 'danger'),
+                                                TextEntry::make('is_trending')
+                                                    ->label('Trending')
+                                                    ->formatStateUsing(fn ($state) => $state ? 'Yes' : 'No')
+                                                    ->badge()
+                                                    ->color(fn ($state) => $state ? 'warning' : 'gray'),
+                                                TextEntry::make('blocked')
+                                                    ->label('Blocked')
+                                                    ->formatStateUsing(fn ($state) => $state ? 'Yes' : 'No')
+                                                    ->badge()
+                                                    ->color(fn ($state) => $state ? 'danger' : 'success'),
+                                                TextEntry::make('created_at')
+                                                    ->label('Created At')
+                                                    ->dateTime('M d, Y H:i'),
+                                                TextEntry::make('updated_at')
+                                                    ->label('Updated At')
+                                                    ->dateTime('M d, Y H:i'),
+                                            ])
+                                            ->columns(2),
+                                            
+                                        Section::make('System Information')
+                                            ->schema([
+                                                TextEntry::make('ad_id')
+                                                    ->label('Advertisement ID'),
+                                                TextEntry::make('cust_id')
+                                                    ->label('Customer ID'),
+                                                TextEntry::make('user_id')
+                                                    ->label('User ID')
+                                                    ->placeholder('Not assigned'),
+                                            ])
+                                            ->columns(3)
+                                            ->collapsed(),
                                     ]),
                             ])
                             ->columnSpanFull(),
                     ]),
-                    // Add separate edit action
-                    Tables\Actions\EditAction::make()
-                        ->slideOver(),
+
+                // Add edit action
+                Tables\Actions\EditAction::make()
+                    ->slideOver(),
+            ])
+            ->headerActions([
+                // Add button to sync all API data
+                // Tables\Actions\Action::make('sync_api_data')
+                //     ->label('Sync API Data')
+                //     ->icon('heroicon-o-arrow-path')
+                //     ->color('primary')
+                //     ->action(function () {
+                //         $apiService = new LpwApiService();
+                //         $pendingPayments = $apiService->getPendingPayments(); // Force refresh
+                //         dd($pendingPayments);
+                //         $created = 0;
+                //         $updated = 0;
+                        
+                //         foreach ($pendingPayments as $payment) {
+                //             if (!isset($payment['id'])) {
+                //                 continue;
+                //             }
+                            
+                //             $existingLead = Lead::where('external_id', $payment['id'])->first();
+                            
+                //             if ($existingLead) {
+                //                 $existingLead->update([
+                //                     'api_sync_date' => now(),
+                //                     'last_update_date' => now(),
+                //                     'last_update_by' => 'API Sync',
+                //                 ]);
+                //                 $updated++;
+                //             } else {
+                //                 Lead::create([
+                //                     'name' => $payment['name'] ?? 'Unknown',
+                //                     'tel' => $payment['phone'] ?? '',
+                //                     'price' => $payment['amount'] ?? 0,
+                //                     'source' => 'hunters',
+                //                     'status' => 'pending_payment',
+                //                     'external_id' => $payment['id'],
+                //                     'api_sync_date' => now(),
+                //                     'posted_date' => isset($payment['date']) ? Carbon::parse($payment['date']) : now(),
+                //                     'last_update_date' => now(),
+                //                     'last_update_by' => 'API Sync',
+                //                     'latest_comments' => 'Imported from API on ' . now()->format('Y-m-d H:i:s'),
+                //                 ]);
+                //                 $created++;
+                //             }
+                //         }
+                        
+                //         Notification::make()
+                //             ->title('API Sync Completed')
+                //             ->body("Created {$created} new records, updated {$updated} existing records.")
+                //             ->success()
+                //             ->send();
+                //     })
+            //     Tables\Actions\Action::make('sync_api_data')
+            //         ->label('Sync API Data')
+            //         ->icon('heroicon-o-arrow-path')
+            //         ->color('primary')
+            //         ->action(function () {
+            //             $apiService = new LpwApiService();
+            //             $apiResponse = $apiService->getPendingPayments(); // <-- you may need to rename this to your actual method
+            //             $results = $apiResponse['results'] ?? [];
+
+            //             $created = 0;
+            //             $updated = 0;
+
+            //             foreach ($results as $item) {
+            //                 if (!isset($item['ad']['ad_id'])) {
+            //                     continue;
+            //                 }
+
+            //                 $ad = $item['ad'];
+
+            //                 $existingLead = Lead::where('ad_id', $ad['ad_id'])->first();
+
+            //                 $payload = [
+            //                     'ad_id'          => $ad['ad_id'],
+            //                     'cust_id'        => $ad['UID'] ?? null,
+            //                     'type'           => $ad['type'] ?? null,
+            //                     'propty_type'    => $ad['propty_type'] ?? null,
+            //                     'service_type'   => $ad['service_type'] ?? null,
+            //                     'street'         => $ad['street'] ?? null,
+            //                     'city'           => $ad['city'] ?? null,
+            //                     'heading'        => $ad['heading'] ?? null,
+            //                     'desc'           => $ad['desc'] ?? null,
+            //                     'submit_date'    => $ad['submit_date'] ?? null,
+            //                     'posted_date'    => $ad['posted_date'] ?? null,
+            //                     'price'          => $ad['price'] ?? null,
+            //                     'alt_price'      => $ad['alt_price'] ?? null,
+            //                     'alt_currency'   => $ad['alt_currency'] ?? null,
+            //                     'price_type'     => $ad['price_type'] ?? null,
+            //                     'price_monthly'  => $ad['price_monthly'] ?? null,
+            //                     'price_land_pp'  => $ad['price_land_pp'] ?? null,
+            //                     'price_land_pa'  => $ad['price_land_pa'] ?? null,
+            //                     'price_land_total' => $ad['price_land_total'] ?? null,
+            //                     'price_sqft'     => $ad['price_sqft'] ?? null,
+            //                     'land_s_l'       => $ad['land_s_l'] ?? null,
+            //                     'comm_type'      => $ad['comm_type'] ?? null,
+            //                     'contact_type'   => $ad['contact_type'] ?? null,
+            //                     'contact_name'   => $ad['contact_name'] ?? null,
+            //                     'email'          => $ad['email'] ?? null,
+            //                     'avail'          => $ad['avail'] ?? null,
+            //                     'lat'            => $ad['lat'] ?? null,
+            //                     'lng'            => $ad['lng'] ?? null,
+            //                     'blocked'    => ($ad['blocked'] ?? 'N') === 'Y' ? 1 : 0,
+            //                     'is_active'  => is_numeric($ad['is_active']) ? (int)$ad['is_active'] : 0,
+            //                     'source'         => $ad['source'] ?? 'API',
+            //                     'house_post_url' => $ad['house_post_url'] ?? null,
+            //                     'api_sync_date'  => now(),
+            //                     'last_update_date' => now(),
+            //                     'last_update_by' => 'API Sync',
+            //                 ];
+
+            //                 if ($existingLead) {
+            //                     $existingLead->update($payload);
+            //                     $updated++;
+            //                 } else {
+            //                     Lead::create($payload);
+            //                     $created++;
+            //                 }
+            //             }
+
+            //             Notification::make()
+            //                 ->title('API Sync Completed')
+            //                 ->body("Created {$created} new ads, updated {$updated} existing ads.")
+            //                 ->success()
+            //                 ->send();
+            //         }),
+
+            // ])
+            Tables\Actions\Action::make('sync_api_data')
+            ->label('Sync API Data')
+            ->icon('heroicon-o-arrow-path')
+            ->color('primary')
+            ->action(function () {
+                $apiService = new LpwApiService();
+                $apiResponse = $apiService->getPendingPayments(); // or your actual API method
+                $results = $apiResponse['results'] ?? [];
+
+                $created = 0;
+                $updated = 0;
+                $customerCreated = 0;
+                $customerUpdated = 0;
+
+                foreach ($results as $item) {
+                    if (!isset($item['ad']['ad_id'])) {
+                        continue;
+                    }
+
+                    $ad = $item['ad'];
+                    $user = $item['user'] ?? null;
+
+                    /**
+                     * --- Sync Customer First ---
+                     */
+                    $customerId = null;
+                    if ($user) {
+                        $customerPayload = [
+                            'id'     => $user['uid'] ?? null,
+                            'firstname'        => $user['firstname'] ?? null,
+                            'surname'          => $user['surname'] ?? null,
+                            'phone_number'     => $user['mobile'] ?? null,
+                            'phone_number_alt' => $user['mobile_alt'] ?? null,
+                            'email'            => $user['email'] ?? null,
+                            'name'             => trim(($user['firstname'] ?? '') . ' ' . ($user['surname'] ?? '')),
+                        ];
+
+                        $customer = Customer::updateOrCreate(
+                            ['id' => $user['uid']],
+                            $customerPayload
+                        );
+
+                        $customerId = $customer->id;
+
+                        if ($customer->wasRecentlyCreated) {
+                            $customerCreated++;
+                        } else {
+                            $customerUpdated++;
+                        }
+                    }
+
+                    /**
+                     * --- Sync Lead (Ad) ---
+                     */
+                    $existingLead = Lead::where('ad_id', $ad['ad_id'])->first();
+
+                    $payload = [
+                        'ad_id'          => $ad['ad_id'],
+                        'cust_id'        => $customerId, // <-- use synced customer ID
+                        'type'           => $ad['type'] ?? null,
+                        'propty_type'    => $ad['propty_type'] ?? null,
+                        'service_type'   => $ad['service_type'] ?? null,
+                        'street'         => $ad['street'] ?? null,
+                        'city'           => $ad['city'] ?? null,
+                        'heading'        => $ad['heading'] ?? null,
+                        'desc'           => $ad['desc'] ?? null,
+                        'submit_date'    => $ad['submit_date'] ?? null,
+                        'posted_date'    => $ad['posted_date'] ?? null,
+                        'price'          => $ad['price'] ?? null,
+                        'alt_price'      => $ad['alt_price'] ?? null,
+                        'alt_currency'   => $ad['alt_currency'] ?? null,
+                        'price_type'     => $ad['price_type'] ?? null,
+                        'price_monthly'  => $ad['price_monthly'] ?? null,
+                        'price_land_pp'  => $ad['price_land_pp'] ?? null,
+                        'price_land_pa'  => $ad['price_land_pa'] ?? null,
+                        'price_land_total' => $ad['price_land_total'] ?? null,
+                        'price_sqft'     => $ad['price_sqft'] ?? null,
+                        'land_s_l'       => $ad['land_s_l'] ?? null,
+                        'comm_type'      => $ad['comm_type'] ?? null,
+                        'contact_type'   => $ad['contact_type'] ?? null,
+                        'contact_name'   => $ad['contact_name'] ?? null,
+                        'email'          => $ad['email'] ?? null,
+                        'avail'          => $ad['avail'] ?? null,
+                        'lat'            => $ad['lat'] ?? null,
+                        'lng'            => $ad['lng'] ?? null,
+                        'blocked'        => ($ad['blocked'] ?? 'N') === 'Y' ? 1 : 0,
+                        'is_active'      => is_numeric($ad['is_active']) ? (int)$ad['is_active'] : 0,
+                        'source'         => $ad['source'] ?? 'API',
+                        'house_post_url' => $ad['house_post_url'] ?? null,
+                        'api_sync_date'  => now(),
+                        'last_update_date' => now(),
+                        'last_update_by' => 'API Sync',
+                    ];
+
+                    if ($existingLead) {
+                        $existingLead->update($payload);
+                        $updated++;
+                    } else {
+                        Lead::create($payload);
+                        $created++;
+                    }
+                }
+
+        Notification::make()
+            ->title('API Sync Completed')
+            ->body("Leads: Created {$created}, Updated {$updated}\nCustomers: Created {$customerCreated}, Updated {$customerUpdated}")
+            ->success()
+            ->send();
+    }),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->label('Delete Selected')
+                        ->requiresConfirmation()
+                        ->modalHeading('Delete Property Leads')
+                        ->modalDescription('Are you sure you want to delete these property leads? This action cannot be undone.')
+                        ->modalSubmitActionLabel('Yes, delete them'),
+                    
+                    Tables\Actions\BulkAction::make('mark_as_active')
+                        ->label('Mark as Active')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function (Collection $records) {
+                            $records->each(function ($record) {
+                                $record->update(['is_active' => true]);
+                            });
+                            
+                            Notification::make()
+                                ->title('Leads Updated')
+                                ->body('Selected leads have been marked as active.')
+                                ->success()
+                                ->send();
+                        }),
+                    
+                    Tables\Actions\BulkAction::make('mark_as_inactive')
+                        ->label('Mark as Inactive')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->action(function (Collection $records) {
+                            $records->each(function ($record) {
+                                $record->update(['is_active' => false]);
+                            });
+                            
+                            Notification::make()
+                                ->title('Leads Updated')
+                                ->body('Selected leads have been marked as inactive.')
+                                ->success()
+                                ->send();
+                        }),
+                        
+                    Tables\Actions\BulkAction::make('export_selected')
+                        ->label('Export Selected')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('info')
+                        ->action(function (Collection $records) {
+                            // Export functionality can be implemented here
+                            Notification::make()
+                                ->title('Export Started')
+                                ->body('Export of selected leads has been initiated.')
+                                ->info()
+                                ->send();
+                        }),
+                ]),
             ])
             ->recordUrl(null); // disable row click
     }

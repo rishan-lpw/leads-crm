@@ -18,7 +18,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class NotInterestedResource extends Resource
 {
@@ -33,7 +32,7 @@ class NotInterestedResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->where('status', 'Not Interested');
+            ->where('status', 'not_interested');
     }
 
     public static function form(Form $form): Form
@@ -48,136 +47,184 @@ class NotInterestedResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('customer.name')
-                    ->label('Name')
+                // Print customer name and user name as new columns
+                Tables\Columns\TextColumn::make('customer.firstname')
+                    ->label('Customer Name')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('User Name')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('heading')
+                    ->label('Property Heading')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold')
+                    ->limit(50),
+
+                Tables\Columns\BadgeColumn::make('type')
+                    ->label('Listing Type')
+                    ->colors([
+                        'primary' => 'sell',
+                        'success' => 'rent',
+                        'warning' => 'lease',
+                    ])
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('posted_date')
-                    ->label('Posted Date')
-                    ->date()
-                    ->sortable()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('source')
-                    ->label('Source')
-                    ->sortable()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('user.name')
-                    ->label('AM')
-                    ->sortable()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
-                    ->sortable()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('latest_comments')
-                    ->label('Latest Comments')
-                    ->limit(40)
-                    ->wrap()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('last_update_date')
-                    ->label('Last Update Date')
-                    ->date()
+                Tables\Columns\BadgeColumn::make('propty_type')
+                    ->label('Property Type')
+                    ->colors([
+                        'primary' => 'house',
+                        'success' => 'apartment',
+                        'warning' => 'land',
+                        'danger' => 'commercial',
+                        'info' => 'villa',
+                    ])
+                    ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('last_update_by')
-                    ->label('Last Update By')
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('tel')
-                    ->label('Tel')
+                Tables\Columns\TextColumn::make('city')
+                    ->label('City')
+                    ->searchable()
                     ->sortable()
-                    ->searchable(),
+                    ->icon('heroicon-o-map-pin'),
 
                 Tables\Columns\TextColumn::make('price')
                     ->label('Price')
                     ->money('LKR')
                     ->sortable()
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('contact_name')
+                    ->label('Contact')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('contact_type')
+                    ->label('Contact Type')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'owner',
+                        'success' => 'agent',
+                        'warning' => 'developer',
+                    ]),
+
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Status')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'new',
+                        'secondary' => 'follow_up',
+                        'success' => 'system',
+                        'warning' => 'to_be_expired',
+                        'danger' => 'expired',
+                    ])
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('source')
+                    ->label('Source')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'pending_payments',
+                        'success' => 'ikman',
+                        'warning' => 'facebook',
+                        'secondary' => 'other',
+                    ])
+                    ->sortable(),
+
+                // Tables\Columns\IconColumn::make('pic')
+                //     ->label('Has Pictures')
+                //     ->boolean()
+                //     ->trueIcon('heroicon-o-camera')
+                //     ->falseIcon('heroicon-o-x-mark'),
+
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label('Active')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger'),
+
+                // Tables\Columns\IconColumn::make('is_trending')
+                //     ->label('Trending')
+                //     ->boolean()
+                //     ->trueIcon('heroicon-o-fire')
+                //     ->falseIcon('heroicon-o-minus')
+                //     ->trueColor('warning'),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created')
+                    ->dateTime('M d, Y')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Updated')
+                    ->dateTime('M d, Y')
+                    ->sortable(),
             ])
             ->filters([
-                // Apply column filters and date filters
-                Tables\Filters\Filter::make('posted_date')
-                    ->form([
-                        Forms\Components\DatePicker::make('posted_date')
-                            ->label('Posted Date'),
-                    ])
-                    ->query(fn (Builder $query, array $data): Builder => 
-                        $query->when(
-                            $data['posted_date'],
-                            fn (Builder $query, $date): Builder => $query->whereDate('posted_date', $date),
-                        )
-                    ),
+                // Tables\Filters\TrashedFilter::make(),
                 Tables\Filters\SelectFilter::make('source')
+                    ->label('Source')
                     ->options([
                         'ikman' => 'Ikman',
                         'facebook' => 'Facebook',
-                        'website' => 'Website',
-                        'referral' => 'Referral',
-                    ]),
-                Tables\Filters\SelectFilter::make('am')
-                    ->options([
-                        'john' => 'John',
-                        'jane' => 'Jane',
-                        'mike' => 'Mike',
-                    ]),
-                Tables\Filters\SelectFilter::make('status')
-                    ->options([
-                        'new' => 'New',
-                        'follow_up' => 'Follow Up',
-                        'upsell' => 'Upsell',
-                        'expired' => 'Expired',
-                        'not_interested' => 'Not Interested',
-                        'renew' => 'Renew',
-                    ]),
-                Tables\Filters\Filter::make('last_update_date')
-                    ->form([
-                        Forms\Components\DatePicker::make('last_update_date')
-                            ->label('Last Update Date'),
+                        'other' => 'Other',
                     ])
-                    ->query(fn (Builder $query, array $data): Builder => 
-                        $query->when(
-                            $data['last_update_date'],
-                            fn (Builder $query, $date): Builder => $query->whereDate('last_update_date', $date),
-                        )
-                    ),
-                Tables\Filters\SelectFilter::make('last_update_by'),
-                Tables\Filters\Filter::make('tel')
-                    ->form([
-                        Forms\Components\TextInput::make('tel')
-                            ->label('Telephone'),
+                    ->placeholder('All Sources'),
+                Tables\Filters\SelectFilter::make('type')
+                    ->label('Listing Type')
+                    ->options([
+                        'sell' => 'Sell',
+                        'rent' => 'Rent',
+                        'lease' => 'Lease',
                     ])
-                    ->query(fn (Builder $query, array $data): Builder => 
-                        $query->when(
-                            $data['tel'],
-                            fn (Builder $query, $tel): Builder => $query->where('tel', 'like', "%{$tel}%"),
-                        )
-                    ),
-                Tables\Filters\Filter::make('price')
+                    ->placeholder('All Types'),
+                Tables\Filters\SelectFilter::make('propty_type')
+                    ->label('Property Type')
+                    ->options([
+                        'house' => 'House',
+                        'apartment' => 'Apartment',
+                        'land' => 'Land',
+                        'commercial' => 'Commercial',
+                        'villa' => 'Villa',
+                    ])
+                    ->placeholder('All Property Types'),
+                // Price range filter
+                Tables\Filters\Filter::make('price_range')
                     ->form([
                         Forms\Components\TextInput::make('min_price')
                             ->label('Min Price')
-                            ->numeric(),
+                            ->numeric()
+                            ->prefix('LKR'),
                         Forms\Components\TextInput::make('max_price')
                             ->label('Max Price')
-                            ->numeric(),
+                            ->numeric()
+                            ->prefix('LKR'),
                     ])
-                    ->query(fn (Builder $query, array $data): Builder => 
-                        $query
-                            ->when(
-                                $data['min_price'],
-                                fn (Builder $query, $price): Builder => $query->where('price', '>=', $price),
-                            )
-                            ->when(
-                                $data['max_price'],
-                                fn (Builder $query, $price): Builder => $query->where('price', '<=', $price),
-                            )
-                    ),
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['min_price'], fn (Builder $query, $value) => $query->where('price', '>=', $value))
+                            ->when($data['max_price'], fn (Builder $query, $value) => $query->where('price', '<=', $value));
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if ($data['min_price'] && $data['max_price']) {
+                            return 'Price: ' . 'LKR' . number_format($data['min_price']) . ' - LKR' . number_format($data['max_price']);
+                        }
+
+                        if ($data['min_price']) {
+                            return 'Price: ' . 'LKR' . number_format($data['min_price']) . ' and up';
+                        }
+
+                        if ($data['max_price']) {
+                            return 'Price: ' . 'LKR' . number_format($data['max_price']) . ' and below';
+                        }
+
+                        return null;
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()

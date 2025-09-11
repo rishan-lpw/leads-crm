@@ -20,8 +20,5 @@ class CategorySeeder extends Seeder
             );
         }
 
-        // Category::factory()
-        //     ->count(4)
-        //     ->create();
     }
 }
