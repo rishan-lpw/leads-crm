@@ -367,18 +367,20 @@ class HuntersResource extends Resource
                 //     ->falseIcon('heroicon-o-minus')
                 //     ->trueColor('warning'),
 
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
-                    ->dateTime('M d, Y')
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Updated')
-                    ->dateTime('M d, Y')
+                // Add the column posted_date
+                
+                Tables\Columns\TextColumn::make('posted_date')
+                    ->label('Posted Date')
+                    ->dateTime('M d, Y')    
                     ->sortable(),
             ])
             ->filters([
                 // Add required filters
+                // Add user name filter
+                Tables\Filters\SelectFilter::make('user_id')
+                    ->label('User')
+                    ->relationship('user', 'name')
+                    ->searchable(),
                 Tables\Filters\SelectFilter::make('type')
                     ->label('Listing Type')
                     ->options([
@@ -413,6 +415,21 @@ class HuntersResource extends Resource
                         'facebook' => 'Facebook',
                         'other' => 'Other',
                     ]),
+                // posted_date filter
+                Tables\Filters\Filter::make('posted_date')
+                    ->form([
+                        Forms\Components\DatePicker::make('posted_date_from')
+                            ->label('Posted Date From'),
+                        Forms\Components\DatePicker::make('posted_date_to')
+                            ->label('Posted Date To'),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        return $query
+                            ->when($data['posted_date_from'], fn (Builder $query, $value) => $query->whereDate('posted_date', '>=', $value))
+                            ->when($data['posted_date_to'], fn (Builder $query, $value) => $query->whereDate('posted_date', '<=', $value));
+                    })
+                    ->label('Posted Date Range'),
+                
                 // price range filter
                 Tables\Filters\Filter::make('price_range')
                     ->form([

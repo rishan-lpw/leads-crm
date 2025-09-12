@@ -28,57 +28,47 @@ class LeadStatusManageCron extends Command
 
         /**
          * Rule 1: New -> upsell
-         * If activity.notes = 'payment_completed' within 3 days from assigned into new
+         * If note = 'payment_completed' within 3 days from assigned into new
          */
         Lead::where('status', 'new')
             ->whereDate('posted_date', '>=', $now->copy()->subDays(3))
-            ->whereHas('activities', function ($query) {
-                $query->where('notes', 'payment_completed');
-            })
+            ->where('note', 'payment_completed')        
             ->update(['status' => 'upsell']);
 
         /**
          * Rule 2: New -> follow_up
-         * If activity.notes != 'payment_completed' within rule_1_days
+         * If note = NULL within rule_1_days
          */
         Lead::where('status', 'new')
             ->whereDate('posted_date', '<=', $now->copy()->subDays($rule1Days))
-            ->whereDoesntHave('activities', function ($query) {
-                $query->where('notes', 'payment_completed');
-            })
+            ->whereNull('note')
             ->update(['status' => 'follow_up']);
 
         /**
          * Rule 3: follow_up -> system
-         * If activity.notes != 'payment_completed' within rule_2_days
+         * If note = NULL within rule_2_days
          */
         Lead::where('status', 'follow_up')
             ->whereDate('posted_date', '<=', $now->copy()->subDays($rule2Days))
-            ->whereDoesntHave('activities', function ($query) {
-                $query->where('notes', 'payment_completed');
-            })
+            ->whereNull('note')
             ->update(['status' => 'system']);
 
         /**
          * Rule 4: system -> to_be_expired
-         * If activity.notes != 'payment_completed' within 29 days
+         * If note = NULL within 29 days
          */
         Lead::where('status', 'upsell')
             ->whereDate('posted_date', '<=', $now->copy()->subDays(29))
-            ->whereDoesntHave('activities', function ($query) {
-                $query->where('notes', 'payment_completed');
-            })
+            ->whereNull('note')
             ->update(['status' => 'to_be_expired']);
 
         /**
          * Rule 5: to_be_expired -> expired
-         * If activity.notes != 'payment_completed' within 1 day
+         * If note = NULL within 1 day
          */
         Lead::where('status', 'to_be_expired')
             ->whereDate('posted_date', '<=', $now->copy()->subDay())
-            ->whereDoesntHave('activities', function ($query) {
-                $query->where('notes', 'payment_completed');
-            })
+            ->whereNull('note')
             ->update(['status' => 'expired']);
 
         $this->info("Lead status management cron executed successfully at " . $now);

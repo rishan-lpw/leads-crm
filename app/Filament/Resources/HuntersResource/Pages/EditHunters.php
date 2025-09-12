@@ -33,6 +33,7 @@ class EditHunters extends EditRecord
                 ->action(function () {
                     $this->record->update([
                         'status' => 'upsell',
+                        'note' => 'payment_completed',
                         'last_update_date' => now(),
                         'last_update_by' => auth()->user()->name ?? 'System',
                         'latest_comments' => ($this->record->latest_comments ? $this->record->latest_comments . "\n\n" : '') . 
