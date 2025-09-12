@@ -23,7 +23,7 @@ class AssignNewLeadsCron extends Command
      *
      * @var string
      */
-    protected $description = 'Automatically assign Account Managers to new leads using round robin method';
+    protected $description = 'Automatically assign Account Managers to unassigned leads (new, follow_up, system, to_be_expired, expired) using round robin method';
 
     /**
      * Execute the console command.
@@ -52,14 +52,14 @@ class AssignNewLeadsCron extends Command
                 return Command::FAILURE;
             }
 
-            // Get all leads with 'new' status and no assigned user
-            $unassignedLeads = Lead::where('status', 'new')
+            // Get all leads with multiple statuses and no assigned user
+            $unassignedLeads = Lead::whereIn('status', ['new', 'follow_up', 'system', 'to_be_expired', 'expired'])
                 ->whereNull('user_id')
                 ->orderBy('created_at', 'asc')
                 ->get();
 
             if ($unassignedLeads->isEmpty()) {
-                $this->info('✅ No unassigned leads with "new" status found.');
+                $this->info('✅ No unassigned leads found.');
                 Log::info('AssignNewLeadsCron: No unassigned leads found');
                 return Command::SUCCESS;
             }
@@ -181,7 +181,9 @@ class AssignNewLeadsCron extends Command
         $this->info("   Last Assigned Index: {$lastIndex}");
         $this->info("   Next Assignment: {$nextIndex} - {$nextAM->name}");
 
-        $unassignedCount = Lead::where('status', 'new')->whereNull('user_id')->count();
-        $this->info("📋 Unassigned 'new' leads: {$unassignedCount}");
+        $unassignedCount = Lead::whereIn('status', ['new', 'follow_up', 'system', 'to_be_expired', 'expired'])
+            ->whereNull('user_id')
+            ->count();
+        $this->info("📋 Unassigned leads (all statuses): {$unassignedCount}");
     }
 }

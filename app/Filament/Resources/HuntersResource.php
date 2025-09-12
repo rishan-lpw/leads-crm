@@ -687,240 +687,114 @@ class HuntersResource extends Resource
                     ->slideOver(),
             ])
             ->headerActions([
-                // Add button to sync all API data
-                // Tables\Actions\Action::make('sync_api_data')
-                //     ->label('Sync API Data')
-                //     ->icon('heroicon-o-arrow-path')
-                //     ->color('primary')
-                //     ->action(function () {
-                //         $apiService = new LpwApiService();
-                //         $pendingPayments = $apiService->getPendingPayments(); // Force refresh
-                //         dd($pendingPayments);
-                //         $created = 0;
-                //         $updated = 0;
-                        
-                //         foreach ($pendingPayments as $payment) {
-                //             if (!isset($payment['id'])) {
-                //                 continue;
-                //             }
-                            
-                //             $existingLead = Lead::where('external_id', $payment['id'])->first();
-                            
-                //             if ($existingLead) {
-                //                 $existingLead->update([
-                //                     'api_sync_date' => now(),
-                //                     'last_update_date' => now(),
-                //                     'last_update_by' => 'API Sync',
-                //                 ]);
-                //                 $updated++;
-                //             } else {
-                //                 Lead::create([
-                //                     'name' => $payment['name'] ?? 'Unknown',
-                //                     'tel' => $payment['phone'] ?? '',
-                //                     'price' => $payment['amount'] ?? 0,
-                //                     'source' => 'hunters',
-                //                     'status' => 'pending_payment',
-                //                     'external_id' => $payment['id'],
-                //                     'api_sync_date' => now(),
-                //                     'posted_date' => isset($payment['date']) ? Carbon::parse($payment['date']) : now(),
-                //                     'last_update_date' => now(),
-                //                     'last_update_by' => 'API Sync',
-                //                     'latest_comments' => 'Imported from API on ' . now()->format('Y-m-d H:i:s'),
-                //                 ]);
-                //                 $created++;
-                //             }
-                //         }
-                        
-                //         Notification::make()
-                //             ->title('API Sync Completed')
-                //             ->body("Created {$created} new records, updated {$updated} existing records.")
-                //             ->success()
-                //             ->send();
-                //     })
-            //     Tables\Actions\Action::make('sync_api_data')
-            //         ->label('Sync API Data')
-            //         ->icon('heroicon-o-arrow-path')
-            //         ->color('primary')
-            //         ->action(function () {
-            //             $apiService = new LpwApiService();
-            //             $apiResponse = $apiService->getPendingPayments(); // <-- you may need to rename this to your actual method
-            //             $results = $apiResponse['results'] ?? [];
+                Tables\Actions\Action::make('sync_api_data')
+                ->label('Sync API Data')
+                ->icon('heroicon-o-arrow-path')
+                ->color('primary')
+                ->action(function () {
+                    $apiService = new LpwApiService();
+                    $apiResponse = $apiService->getPendingPayments(); // or your actual API method
+                    $results = $apiResponse['results'] ?? [];
 
-            //             $created = 0;
-            //             $updated = 0;
+                    $created = 0;
+                    $updated = 0;
+                    $customerCreated = 0;
+                    $customerUpdated = 0;
 
-            //             foreach ($results as $item) {
-            //                 if (!isset($item['ad']['ad_id'])) {
-            //                     continue;
-            //                 }
+                    foreach ($results as $item) {
+                        if (!isset($item['ad']['ad_id'])) {
+                            continue;
+                        }
 
-            //                 $ad = $item['ad'];
+                        $ad = $item['ad'];
+                        $user = $item['user'] ?? null;
 
-            //                 $existingLead = Lead::where('ad_id', $ad['ad_id'])->first();
+                        /**
+                         * --- Sync Customer First ---
+                         */
+                        $customerId = null;
+                        if ($user) {
+                            $customerPayload = [
+                                'id'     => $user['uid'] ?? null,
+                                'firstname'        => $user['firstname'] ?? null,
+                                'surname'          => $user['surname'] ?? null,
+                                'phone_number'     => $user['mobile'] ?? null,
+                                'phone_number_alt' => $user['mobile_alt'] ?? null,
+                                'email'            => $user['email'] ?? null,
+                                'name'             => trim(($user['firstname'] ?? '') . ' ' . ($user['surname'] ?? '')),
+                            ];
 
-            //                 $payload = [
-            //                     'ad_id'          => $ad['ad_id'],
-            //                     'cust_id'        => $ad['UID'] ?? null,
-            //                     'type'           => $ad['type'] ?? null,
-            //                     'propty_type'    => $ad['propty_type'] ?? null,
-            //                     'service_type'   => $ad['service_type'] ?? null,
-            //                     'street'         => $ad['street'] ?? null,
-            //                     'city'           => $ad['city'] ?? null,
-            //                     'heading'        => $ad['heading'] ?? null,
-            //                     'desc'           => $ad['desc'] ?? null,
-            //                     'submit_date'    => $ad['submit_date'] ?? null,
-            //                     'posted_date'    => $ad['posted_date'] ?? null,
-            //                     'price'          => $ad['price'] ?? null,
-            //                     'alt_price'      => $ad['alt_price'] ?? null,
-            //                     'alt_currency'   => $ad['alt_currency'] ?? null,
-            //                     'price_type'     => $ad['price_type'] ?? null,
-            //                     'price_monthly'  => $ad['price_monthly'] ?? null,
-            //                     'price_land_pp'  => $ad['price_land_pp'] ?? null,
-            //                     'price_land_pa'  => $ad['price_land_pa'] ?? null,
-            //                     'price_land_total' => $ad['price_land_total'] ?? null,
-            //                     'price_sqft'     => $ad['price_sqft'] ?? null,
-            //                     'land_s_l'       => $ad['land_s_l'] ?? null,
-            //                     'comm_type'      => $ad['comm_type'] ?? null,
-            //                     'contact_type'   => $ad['contact_type'] ?? null,
-            //                     'contact_name'   => $ad['contact_name'] ?? null,
-            //                     'email'          => $ad['email'] ?? null,
-            //                     'avail'          => $ad['avail'] ?? null,
-            //                     'lat'            => $ad['lat'] ?? null,
-            //                     'lng'            => $ad['lng'] ?? null,
-            //                     'blocked'    => ($ad['blocked'] ?? 'N') === 'Y' ? 1 : 0,
-            //                     'is_active'  => is_numeric($ad['is_active']) ? (int)$ad['is_active'] : 0,
-            //                     'source'         => $ad['source'] ?? 'API',
-            //                     'house_post_url' => $ad['house_post_url'] ?? null,
-            //                     'api_sync_date'  => now(),
-            //                     'last_update_date' => now(),
-            //                     'last_update_by' => 'API Sync',
-            //                 ];
+                            $customer = Customer::updateOrCreate(
+                                ['id' => $user['uid']],
+                                $customerPayload
+                            );
 
-            //                 if ($existingLead) {
-            //                     $existingLead->update($payload);
-            //                     $updated++;
-            //                 } else {
-            //                     Lead::create($payload);
-            //                     $created++;
-            //                 }
-            //             }
+                            $customerId = $customer->id;
 
-            //             Notification::make()
-            //                 ->title('API Sync Completed')
-            //                 ->body("Created {$created} new ads, updated {$updated} existing ads.")
-            //                 ->success()
-            //                 ->send();
-            //         }),
+                            if ($customer->wasRecentlyCreated) {
+                                $customerCreated++;
+                            } else {
+                                $customerUpdated++;
+                            }
+                        }
 
-            // ])
-            Tables\Actions\Action::make('sync_api_data')
-            ->label('Sync API Data')
-            ->icon('heroicon-o-arrow-path')
-            ->color('primary')
-            ->action(function () {
-                $apiService = new LpwApiService();
-                $apiResponse = $apiService->getPendingPayments(); // or your actual API method
-                $results = $apiResponse['results'] ?? [];
+                        /**
+                         * --- Sync Lead (Ad) ---
+                         */
+                        $existingLead = Lead::where('ad_id', $ad['ad_id'])->first();
 
-                $created = 0;
-                $updated = 0;
-                $customerCreated = 0;
-                $customerUpdated = 0;
-
-                foreach ($results as $item) {
-                    if (!isset($item['ad']['ad_id'])) {
-                        continue;
-                    }
-
-                    $ad = $item['ad'];
-                    $user = $item['user'] ?? null;
-
-                    /**
-                     * --- Sync Customer First ---
-                     */
-                    $customerId = null;
-                    if ($user) {
-                        $customerPayload = [
-                            'id'     => $user['uid'] ?? null,
-                            'firstname'        => $user['firstname'] ?? null,
-                            'surname'          => $user['surname'] ?? null,
-                            'phone_number'     => $user['mobile'] ?? null,
-                            'phone_number_alt' => $user['mobile_alt'] ?? null,
-                            'email'            => $user['email'] ?? null,
-                            'name'             => trim(($user['firstname'] ?? '') . ' ' . ($user['surname'] ?? '')),
+                        $payload = [
+                            'ad_id'          => $ad['ad_id'],
+                            'cust_id'        => $customerId, // <-- use synced customer ID
+                            'type'           => $ad['type'] ?? null,
+                            'propty_type'    => $ad['propty_type'] ?? null,
+                            'service_type'   => $ad['service_type'] ?? null,
+                            'street'         => $ad['street'] ?? null,
+                            'city'           => $ad['city'] ?? null,
+                            'heading'        => $ad['heading'] ?? null,
+                            'desc'           => $ad['desc'] ?? null,
+                            'submit_date'    => $ad['submit_date'] ?? null,
+                            'posted_date'    => $ad['posted_date'] ?? null,
+                            'price'          => $ad['price'] ?? null,
+                            'alt_price'      => $ad['alt_price'] ?? null,
+                            'alt_currency'   => $ad['alt_currency'] ?? null,
+                            'price_type'     => $ad['price_type'] ?? null,
+                            'price_monthly'  => $ad['price_monthly'] ?? null,
+                            'price_land_pp'  => $ad['price_land_pp'] ?? null,
+                            'price_land_pa'  => $ad['price_land_pa'] ?? null,
+                            'price_land_total' => $ad['price_land_total'] ?? null,
+                            'price_sqft'     => $ad['price_sqft'] ?? null,
+                            'land_s_l'       => $ad['land_s_l'] ?? null,
+                            'comm_type'      => $ad['comm_type'] ?? null,
+                            'contact_type'   => $ad['contact_type'] ?? null,
+                            'contact_name'   => $ad['contact_name'] ?? null,
+                            'email'          => $ad['email'] ?? null,
+                            'avail'          => $ad['avail'] ?? null,
+                            'lat'            => $ad['lat'] ?? null,
+                            'lng'            => $ad['lng'] ?? null,
+                            'blocked'        => ($ad['blocked'] ?? 'N') === 'Y' ? 1 : 0,
+                            'is_active'      => is_numeric($ad['is_active']) ? (int)$ad['is_active'] : 0,
+                            'source'         => $ad['source'] ?? 'API',
+                            'house_post_url' => $ad['house_post_url'] ?? null,
+                            'api_sync_date'  => now(),
+                            'last_update_date' => now(),
+                            'last_update_by' => 'API Sync',
                         ];
 
-                        $customer = Customer::updateOrCreate(
-                            ['id' => $user['uid']],
-                            $customerPayload
-                        );
-
-                        $customerId = $customer->id;
-
-                        if ($customer->wasRecentlyCreated) {
-                            $customerCreated++;
+                        if ($existingLead) {
+                            $existingLead->update($payload);
+                            $updated++;
                         } else {
-                            $customerUpdated++;
+                            Lead::create($payload);
+                            $created++;
                         }
                     }
 
-                    /**
-                     * --- Sync Lead (Ad) ---
-                     */
-                    $existingLead = Lead::where('ad_id', $ad['ad_id'])->first();
-
-                    $payload = [
-                        'ad_id'          => $ad['ad_id'],
-                        'cust_id'        => $customerId, // <-- use synced customer ID
-                        'type'           => $ad['type'] ?? null,
-                        'propty_type'    => $ad['propty_type'] ?? null,
-                        'service_type'   => $ad['service_type'] ?? null,
-                        'street'         => $ad['street'] ?? null,
-                        'city'           => $ad['city'] ?? null,
-                        'heading'        => $ad['heading'] ?? null,
-                        'desc'           => $ad['desc'] ?? null,
-                        'submit_date'    => $ad['submit_date'] ?? null,
-                        'posted_date'    => $ad['posted_date'] ?? null,
-                        'price'          => $ad['price'] ?? null,
-                        'alt_price'      => $ad['alt_price'] ?? null,
-                        'alt_currency'   => $ad['alt_currency'] ?? null,
-                        'price_type'     => $ad['price_type'] ?? null,
-                        'price_monthly'  => $ad['price_monthly'] ?? null,
-                        'price_land_pp'  => $ad['price_land_pp'] ?? null,
-                        'price_land_pa'  => $ad['price_land_pa'] ?? null,
-                        'price_land_total' => $ad['price_land_total'] ?? null,
-                        'price_sqft'     => $ad['price_sqft'] ?? null,
-                        'land_s_l'       => $ad['land_s_l'] ?? null,
-                        'comm_type'      => $ad['comm_type'] ?? null,
-                        'contact_type'   => $ad['contact_type'] ?? null,
-                        'contact_name'   => $ad['contact_name'] ?? null,
-                        'email'          => $ad['email'] ?? null,
-                        'avail'          => $ad['avail'] ?? null,
-                        'lat'            => $ad['lat'] ?? null,
-                        'lng'            => $ad['lng'] ?? null,
-                        'blocked'        => ($ad['blocked'] ?? 'N') === 'Y' ? 1 : 0,
-                        'is_active'      => is_numeric($ad['is_active']) ? (int)$ad['is_active'] : 0,
-                        'source'         => $ad['source'] ?? 'API',
-                        'house_post_url' => $ad['house_post_url'] ?? null,
-                        'api_sync_date'  => now(),
-                        'last_update_date' => now(),
-                        'last_update_by' => 'API Sync',
-                    ];
-
-                    if ($existingLead) {
-                        $existingLead->update($payload);
-                        $updated++;
-                    } else {
-                        Lead::create($payload);
-                        $created++;
-                    }
-                }
-
-        Notification::make()
-            ->title('API Sync Completed')
-            ->body("Leads: Created {$created}, Updated {$updated}\nCustomers: Created {$customerCreated}, Updated {$customerUpdated}")
-            ->success()
-            ->send();
+            Notification::make()
+                ->title('API Sync Completed')
+                ->body("Leads: Created {$created}, Updated {$updated}\nCustomers: Created {$customerCreated}, Updated {$customerUpdated}")
+                ->success()
+                ->send();
     }),
             ])
             ->bulkActions([
