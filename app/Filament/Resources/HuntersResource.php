@@ -265,7 +265,7 @@ class HuntersResource extends Resource
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('User Name')
+                    ->label('AM Name')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('heading')

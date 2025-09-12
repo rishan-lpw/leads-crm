@@ -3,6 +3,7 @@
 namespace App\Console;
 
 use App\Console\Commands\AssignLeadsCron;
+use App\Console\Commands\AssignNewLeadsCron;
 use App\Console\Commands\UpdateLeadStatuses;
 use App\Console\Commands\LeadStatusManageCron;
 use Illuminate\Console\Scheduling\Schedule;
@@ -14,6 +15,7 @@ class Kernel extends ConsoleKernel
 {
     protected $commands = [
         AssignLeadsCron::class,
+        AssignNewLeadsCron::class,
         UpdateLeadStatuses::class,
         LeadStatusManageCron::class,
     ];
@@ -23,6 +25,9 @@ class Kernel extends ConsoleKernel
         // $schedule->command('assign:leads')->dailyAt('09:00');
         // $schedule->command('update:lead-status')->dailyAt('10:00');
         $schedule->command('cron:lead-status-manage')->dailyAt('08:00');
+
+        // Auto-assign new leads to Account Managers every day at midnight
+        $schedule->command('cron:assign-new-leads')->dailyAt('00:00');
     }
 
 }
