@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('action', 100)->nullable();
             $table->integer('qty')->nullable();
             $table->decimal('value', 10, 2)->nullable();
-            $table->bigInteger('ad_id')->unsigned()->nullable();
+            $table->uuid('ad_id')->nullable();
             $table->text('comments')->nullable();
             $table->dateTime('date_time')->nullable();
             $table->bigInteger('assigned_by')->unsigned()->nullable();

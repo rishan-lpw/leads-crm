@@ -74,17 +74,24 @@ class CronResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')->label('Cron Name')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('category')->label('Channel')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('member')
-                    ->label('Members')
-                    ->formatStateUsing(fn ($state) => implode(', ', json_decode($state, true) ?? []))
-                    ->sortable()
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('member')->label('Members')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('rule_1_days')->label('Days (Rule 1)')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('rule_2_days')->label('Days (Rule 2)')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created At')
+                    ->dateTime('d-M-Y H:i')
+                    ->sortable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Updated At')
+                    ->dateTime('d-M-Y H:i')
+                    ->sortable()
+                    ->searchable(),
+                
                 // is_active, last_run_at, last_run_result
-                Tables\Columns\BooleanColumn::make('is_active')->label('Is Active')->sortable(),
-                Tables\Columns\TextColumn::make('last_run_at')->label('Last Run At')->sortable(),
-                Tables\Columns\TextColumn::make('last_run_result')->label('Last Run Result')->sortable(),
+                // Tables\Columns\BooleanColumn::make('is_active')->label('Is Active')->sortable(),
+                // Tables\Columns\TextColumn::make('last_run_at')->label('Last Run At')->sortable(),
+                // Tables\Columns\TextColumn::make('last_run_result')->label('Last Run Result')->sortable(),
                 ])
             ->filters([
                 //

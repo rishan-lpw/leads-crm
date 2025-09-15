@@ -7,13 +7,13 @@ use App\Filament\Resources\ActivityResource\RelationManagers;
 use App\Models\Activity;
 use App\Models\ActivityFollowUp;
 use Filament\Forms;
-use Filament\Forms\Components\Builder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 
 class ActivityResource extends Resource
@@ -30,68 +30,91 @@ class ActivityResource extends Resource
     {
         return $form
             ->schema([
-                Select::make('lead_id')
-                    ->label('Lead')
-                    ->relationship('lead', 'heading')
-                    ->searchable()
-                    ->required()
-                    ->preload()
-                    ->placeholder('Select Lead')
-                    ->columnSpanFull(),
-                Select::make('activity_type')
-                    ->options([
-                        'call' => 'Call',
-                        'email' => 'Email',
-                        'meeting' => 'Meeting',
-                        'whatsapp' => 'WhatsApp',
-                        'sms' => 'SMS',
-                        'payment' => 'Payment',
-                        // 'follow_up' => 'Follow Up',
-                        'site_visit' => 'Site Visit',
-                        'other' => 'Other',
-                    ])
-                    ->required()
-                    ->placeholder('Select Activity Type')
-                    ->columnSpanFull(),
-                Forms\Components\Textarea::make('notes')
-                    ->label('Notes')
-                    ->rows(3)
-                    ->maxLength(65535)
-                    ->columnSpanFull(),
-                Forms\Components\DateTimePicker::make('scheduled_at')
-                    ->label('Scheduled At')
-                    ->columnSpanFull(),
-                Forms\Components\DateTimePicker::make('due_at')
-                    ->label('Due At')
-                    ->columnSpanFull(),
-                Forms\Components\DateTimePicker::make('last_checked_at')
-                    ->label('Last Checked At')
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('action')
-                    ->maxLength(255)
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('qty')
-                    ->numeric()
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('value')
-                    ->maxLength(255)
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('ad_id')
-                    ->maxLength(255)
-                    ->columnSpanFull(),
-                Forms\Components\Textarea::make('comments')
-                    ->rows(3)
-                    ->maxLength(65535)
-                    ->columnSpanFull(),
-                Forms\Components\DateTimePicker::make('date_time')
-                    ->label('Date & Time')
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('assigned_by')
-                    ->maxLength(255)
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('old_am')
-                    ->maxLength(255)
-                    ->columnSpanFull(),
+                Tab::make('Activity Details')
+                    ->schema([
+                        Forms\Components\TextInput::make('lead_id')
+                            ->label('Lead ID')
+                            ->required()
+                            ->numeric()
+                            ->placeholder('Enter Lead ID'),
+                        Forms\Components\Select::make('activity_type')
+                            ->label('Activity Type')
+                            ->options([
+                                'call' => 'Call',
+                                'email' => 'Email',
+                                'meeting' => 'Meeting',
+                                'whatsapp' => 'WhatsApp',
+                                'sms' => 'SMS',
+                                'payment' => 'Payment',
+                                // 'follow_up' => 'Follow Up',
+                                'site_visit' => 'Site Visit',
+                                'other' => 'Other',
+                            ])
+                            ->required()
+                            ->placeholder('Select Activity Type'),
+                        Forms\Components\Textarea::make('notes')
+                            ->label('Notes')
+                            ->rows(3)
+                            ->placeholder('Enter notes about the activity'),
+                        Forms\Components\DateTimePicker::make('scheduled_at')
+                            ->label('Scheduled At')
+                            ->placeholder('Select scheduled date and time'),
+                        Forms\Components\DateTimePicker::make('due_at')
+                            ->label('Due At')
+                            ->placeholder('Select due date and time'),
+                        Forms\Components\DateTimePicker::make('last_checked_at')
+                            ->label('Last Checked At')
+                            ->placeholder('Select last checked date and time'),
+                        Forms\Components\TextInput::make('action')
+                            ->label('Action')
+                            ->maxLength(255)
+                            ->placeholder('Enter action taken'),
+                        Forms\Components\TextInput::make('qty')
+                            ->label('Quantity')
+                            ->numeric()
+                            ->placeholder('Enter quantity'),
+                        Forms\Components\TextInput::make('value')
+                            ->label('Value')
+                            ->maxLength(255)
+                            ->placeholder('Enter value'),
+                        Forms\Components\TextInput::make('ad_id')
+                            ->label('Ad ID')
+                            ->maxLength(255)
+                            ->placeholder('Enter Ad ID'),
+                        Forms\Components\Textarea::make('comments')
+                            ->label('Comments')
+                            ->rows(3)
+                            ->placeholder('Enter additional comments'),
+                        Forms\Components\DateTimePicker::make('date_time')
+                            ->label('Date & Time')
+                            ->placeholder('Select date and time of the activity'),
+                        Forms\Components\TextInput::make('assigned_by')
+                            ->label('Assigned By (User ID)')
+                            ->numeric()
+                            ->placeholder('Enter User ID who assigned the activity'),
+                        Forms\Components\TextInput::make('old_am')
+                            ->label('Old AM (Customer ID)')
+                            ->numeric()
+                            ->placeholder('Enter Old Account Manager Customer ID'),
+                    ]),
+                Tab::make('Follow-Up Details')
+                    ->schema([
+                        Forms\Components\TextInput::make('activity_follow_up_id')
+                            ->label('Follow-Up Activity ID')
+                            ->numeric()
+                            ->placeholder('Enter Follow-Up Activity ID')
+                            ->nullable(),
+                        Forms\Components\Textarea::make('follow_up_notes')
+                            ->label('Follow-Up Notes')
+                            ->rows(3)
+                            ->placeholder('Enter notes about the follow-up activity'),
+                        Forms\Components\DateTimePicker::make('follow_up_scheduled_at')
+                            ->label('Follow-Up Scheduled At')
+                            ->placeholder('Select follow-up scheduled date and time'),
+                        Forms\Components\DateTimePicker::make('follow_up_due_at')
+                            ->label('Follow-Up Due At')
+                            ->placeholder('Select follow-up due date and time'),
+                    ]),
             ]);
     }
 
@@ -99,18 +122,23 @@ class ActivityResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
+                // Tables\Columns\TextColumn::make('id')
+                //     ->label('ID')
+                //     ->sortable(),
+                // Lead ID
+                Tables\Columns\TextColumn::make('lead_id')
+                    ->label('Lead ID')
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('activity_type')
                     ->label('Activity Type')
                     ->searchable()
                     ->sortable()
                     ->limit(20),
-                Tables\Columns\TextColumn::make('notes')
-                    ->label('Notes')
-                    ->limit(50)
-                    ->wrap(),
+                // Tables\Columns\TextColumn::make('notes')
+                //     ->label('Notes')
+                //     ->limit(50)
+                //     ->wrap(),
                 Tables\Columns\TextColumn::make('scheduled_at')
                     ->label('Scheduled At')
                     ->dateTime('d/m/Y H:i')
@@ -119,10 +147,10 @@ class ActivityResource extends Resource
                     ->label('Due At')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('last_checked_at')
-                    ->label('Last Checked At')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                // Tables\Columns\TextColumn::make('last_checked_at')
+                //     ->label('Last Checked At')
+                //     ->dateTime('d/m/Y H:i')
+                //     ->sortable(),
                 Tables\Columns\TextColumn::make('action')
                     ->label('Action')
                     ->limit(20)

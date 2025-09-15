@@ -17,11 +17,24 @@ class LeadStatusManageCron extends Command
         $now = Carbon::now();
 
         // Fetch active cron rules
-        $cronRules = Cron::where('is_active', true)->first();
-        if (!$cronRules) {
-            $this->info("No active cron rules found.");
-            return;
-        }
+        // is_active column meaning has changed
+        // Select::make('is_active')
+        //                         ->label('Active Status')
+        //                         ->options([
+        //                             0 => 'Inactive',
+        //                             1 => 'Active',
+        //                             2 => 'Special',
+        //                             3 => 'Pending'
+        //                         ])
+        //                         ->default(1)
+        //                         ->native(false)
+        //                         ->required(),
+        
+        // $cronRules = Cron::where('is_active', 1)->first();
+        // if (!$cronRules) {
+        //     $this->info("No active cron rules found.");
+        //     return;
+        // }
 
         $rule1Days = $cronRules->rule_1_days ?? 7; 
         $rule2Days = $cronRules->rule_2_days ?? 14;

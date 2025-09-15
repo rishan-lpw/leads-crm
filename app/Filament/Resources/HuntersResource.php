@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Lead;
 use App\Services\LpwApiService;
 use Filament\Forms;
+use Filament\Forms\Components\Select;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\Tabs;
 use Filament\Infolists\Components\Tabs\Tab;
@@ -226,9 +227,17 @@ class HuntersResource extends Resource
                             ->disabled() // Make it read-only as it's auto-calculated
                             ->dehydrated(false), // Don't include in form submission
                             
-                        Forms\Components\Toggle::make('is_active')
-                            ->label('Active')
-                            ->default(true),
+                        Select::make('is_active')
+                                ->label('Active Status')
+                                ->options([
+                                    0 => 'Inactive',
+                                    1 => 'Active',
+                                    2 => 'Special',
+                                    3 => 'Pending'
+                                ])
+                                ->default(1)
+                                ->native(false)
+                                ->required(),
                         Forms\Components\Toggle::make('is_trending')
                             ->label('Trending'),
                         Forms\Components\Toggle::make('blocked')
@@ -369,13 +378,23 @@ class HuntersResource extends Resource
                 //     ->trueIcon('heroicon-o-camera')
                 //     ->falseIcon('heroicon-o-x-mark'),
 
-                Tables\Columns\IconColumn::make('is_active')
-                    ->label('Active')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
+                Tables\Columns\TextColumn::make('is_active')
+                    ->label('Status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        '0' => 'danger',
+                        '1' => 'success',
+                        '2' => 'warning',
+                        '3' => 'info',
+                        default => 'gray'
+                    })
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        '0' => 'Inactive',
+                        '1' => 'Active',
+                        '2' => 'Special',
+                        '3' => 'Pending',
+                        default => 'Unknown'
+                    }),
 
                 // Tables\Columns\IconColumn::make('is_trending')
                 //     ->label('Trending')
@@ -431,6 +450,15 @@ class HuntersResource extends Resource
                         'ikman' => 'IKMAN',
                         'facebook' => 'Facebook',
                         'other' => 'Other',
+                    ]),
+                
+                Tables\Filters\SelectFilter::make('is_active')
+                    ->label('Status')
+                    ->options([
+                        0 => 'Inactive',
+                        1 => 'Active',
+                        2 => 'Special',
+                        3 => 'Pending',
                     ]),
                 // posted_date filter
                 Tables\Filters\Filter::make('posted_date')
@@ -660,9 +688,21 @@ class HuntersResource extends Resource
                                                     }),
                                                 TextEntry::make('is_active')
                                                     ->label('Active Status')
-                                                    ->formatStateUsing(fn ($state) => $state ? 'Active' : 'Inactive')
+                                                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                                                        '0' => 'Inactive',
+                                                        '1' => 'Active',
+                                                        '2' => 'Special',
+                                                        '3' => 'Pending',
+                                                        default => 'Unknown'
+                                                    })
                                                     ->badge()
-                                                    ->color(fn ($state) => $state ? 'success' : 'danger'),
+                                                    ->color(fn (string $state): string => match ($state) {
+                                                        '0' => 'danger',
+                                                        '1' => 'success',
+                                                        '2' => 'warning',
+                                                        '3' => 'info',
+                                                        default => 'gray'
+                                                    }),
                                                 TextEntry::make('is_trending')
                                                     ->label('Trending')
                                                     ->formatStateUsing(fn ($state) => $state ? 'Yes' : 'No')
@@ -870,7 +910,7 @@ class HuntersResource extends Resource
                         ->requiresConfirmation()
                         ->action(function (Collection $records) {
                             $records->each(function ($record) {
-                                $record->update(['is_active' => true]);
+                                $record->update(['is_active' => 1]);
                             });
                             
                             Notification::make()
@@ -887,7 +927,7 @@ class HuntersResource extends Resource
                         ->requiresConfirmation()
                         ->action(function (Collection $records) {
                             $records->each(function ($record) {
-                                $record->update(['is_active' => false]);
+                                $record->update(['is_active' => 0]);
                             });
                             
                             Notification::make()

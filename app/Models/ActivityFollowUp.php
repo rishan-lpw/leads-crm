@@ -35,8 +35,8 @@ class ActivityFollowUp extends Model
         'updated_at',
     ];
 
-    public function activities()
+    public function activity()
     {
-        return $this->hasMany(Activity::class);
+        return $this->belongsTo(Activity::class, 'activity_id');
     }
 }

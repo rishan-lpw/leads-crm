@@ -21,6 +21,9 @@ class Lead extends Model
 
     protected $casts = [
         'posted_date' => 'date',
+        'is_active' => 'integer',
+        'is_trending' => 'integer', 
+        'blocked' => 'integer',
     ];
 
     // belongs to user

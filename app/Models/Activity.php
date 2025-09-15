@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Customer;
 use App\Models\User;
+use App\Models\Lead;
 
 class Activity extends Model
 {
@@ -28,6 +29,7 @@ class Activity extends Model
         'date_time',
         'assigned_by',
         'old_am',
+        'activity_follow_up_id',
     ];
 
     public function lead()
@@ -45,8 +47,9 @@ class Activity extends Model
     //     return $this->belongsTo(User::class, 'user_id');
     // }
     
-    public function activityFollowUp()
+    // An activity has one follow-up
+    public function followUp()
     {
-        return $this->belongsTo(ActivityFollowUp::class, 'activity_follow_up_id');
+        return $this->hasOne(ActivityFollowUp::class, 'activity_id');
     }
 }

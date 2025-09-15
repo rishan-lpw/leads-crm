@@ -11,7 +11,7 @@ return new class extends Migration
         if (! Schema::hasColumn('lead', 'posted_date')) {
             Schema::table('lead', function (Blueprint $table) {
                 $table->date('posted_date')->nullable();
-                $table->string('note')->nullable();
+                // $table->string('note')->nullable();
             });
         }
     }
@@ -21,7 +21,7 @@ return new class extends Migration
         if (Schema::hasColumn('lead', 'posted_date')) {
             Schema::table('lead', function (Blueprint $table) {
                 $table->dropColumn('posted_date');
-                $table->dropColumn('note');
+                // $table->dropColumn('note');
             });
         }
     }

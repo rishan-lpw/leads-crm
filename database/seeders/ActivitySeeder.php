@@ -13,7 +13,7 @@ class ActivitySeeder extends Seeder
      */
     public function run(): void
     {
-        // Create 20 activities with random data
-        Activity::factory()->count(20)->create();
+        // Create 5 simple activities instead of 20 to avoid memory issues
+        Activity::factory()->count(5)->create();
     }
 }
