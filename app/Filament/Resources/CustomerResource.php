@@ -35,49 +35,109 @@ class CustomerResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('name')
+                TextInput::make('firstname')
                     ->required()
-                    ->maxLength(255),
-                TextInput::make('phone_number')
+                    ->maxLength(255)
+                    ->label('First Name'),
+                TextInput::make('surname')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->label('Surname'),
+                TextInput::make('mobile')
+                    ->required()
+                    ->maxLength(15)
+                    ->label('Mobile Number'),
+                TextInput::make('mobile_alt')
+                    ->maxLength(15)
+                    ->label('Alternative Mobile Number'),
                 TextInput::make('email')
-                    ->required()
                     ->email()
-                    ->maxLength(255),
-                // Add password field
-                TextInput::make('password')
                     ->required()
-                    ->password()
-                    ->minLength(8)
                     ->maxLength(255),
                 TextInput::make('address')
-                    ->required()
-                    ->maxLength(255),
-                Select::make('add_id')
-                    // ->required()
-                    // ->options(User::all()->pluck('name', 'id'))
-                    ->label('User'),
+                    ->maxLength(255)
+                    ->label('Address'),
                 Select::make('role_id')
+                    ->relationship('role', 'role_name')
                     // ->required()
-                    ->options(Role::all()->pluck('role_name'))
                     ->label('Role'),
-            ]);
+            ])->columns(2); // Display form fields in 2 columns
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                TextColumn::make('name'),
-                TextColumn::make('phone_number'),
-                TextColumn::make('email'),
-                TextColumn::make('address'),
-                TextColumn::make('user.name')->label('User'),
-                TextColumn::make('role.role_name')->label('Role'),
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->sortable(),
+                TextColumn::make('firstname')
+                    ->label('First Name')
+                    ->searchable()
+                    ->sortable()
+                    ->limit(50),
+                TextColumn::make('surname')
+                    ->label('Surname')
+                    ->searchable()
+                    ->sortable()
+                    ->limit(50),
+                TextColumn::make('mobile')
+                    ->label('Mobile Number')
+                    ->searchable()
+                    ->sortable()
+                    ->limit(15),
+                TextColumn::make('email')
+                    ->label('Email')
+                    ->searchable()
+                    ->sortable()
+                    ->limit(50),
+                TextColumn::make('role.role_name')
+                    ->label('Role')
+                    ->searchable()
+                    ->sortable()
+                    ->limit(50),
             ])
             ->filters([
-                //
+                // Add name, email, id filters
+                Tables\Filters\Filter::make('name')
+                    ->label('Name')
+                    ->form([
+                        TextInput::make('name')
+                            ->label('Name')
+                            ->placeholder('Search by First or Surname'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when($data['name'], function (Builder $query, $value) {
+                            $query->where(function (Builder $query) use ($value) {
+                                $query->where('firstname', 'like', "%{$value}%")
+                                      ->orWhere('surname', 'like', "%{$value}%");
+                            });
+                        });
+                    }),
+                Tables\Filters\Filter::make('email')
+                    ->label('Email')
+                    ->form([
+                        TextInput::make('email')
+                            ->label('Email')
+                            ->placeholder('Search by Email'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when($data['email'], function (Builder $query, $value) {
+                            $query->where('email', 'like', "%{$value}%");
+                        });
+                    }),
+                Tables\Filters\Filter::make('id')
+                    ->label('ID')
+                    ->form([
+                        TextInput::make('id')
+                            ->label('ID')
+                            ->placeholder('Search by ID'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when($data['id'], function (Builder $query, $value) {
+                            $query->where('id', 'like', "%{$value}%");
+                        });
+                    }),
             ])
             ->actions([
                 EditAction::make(),

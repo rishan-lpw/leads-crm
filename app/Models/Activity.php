@@ -20,7 +20,14 @@ class Activity extends Model
         'scheduled_at',
         'due_at',
         'last_checked_at',
-        'auto_status_updated',
+        'action',
+        'qty',
+        'value',
+        'ad_id',
+        'comments',
+        'date_time',
+        'assigned_by',
+        'old_am',
     ];
 
     public function lead()
@@ -28,15 +35,15 @@ class Activity extends Model
         return $this->belongsTo(Lead::class, 'lead_id');
     }
 
-    public function customer()
-    {
-        return $this->belongsTo(Customer::class, 'customer_id');
-    }
+    // public function customer()
+    // {
+    //     return $this->belongsTo(Customer::class, 'customer_id');
+    // }
 
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
+    // public function user()
+    // {
+    //     return $this->belongsTo(User::class, 'user_id');
+    // }
     
     public function activityFollowUp()
     {

@@ -14,7 +14,7 @@ class Customer extends Model
     use HasFactory;
     
     protected $fillable = [
-        'firstname', 'surname', 'mobile', 'mobile_alt', 'email',
+        'id', 'firstname', 'surname', 'mobile', 'mobile_alt', 'email',
         'address', 'add_id', 'role_id', 'membership_exp_date', 'payment_exp_date', 'membership_status',
         'last_boost_added_date'
     ];
@@ -28,6 +28,9 @@ class Customer extends Model
     ];
 
     protected $table = 'customer';
+    
+    // Allow setting custom ID values (from API uid)
+    public $incrementing = false;
 
     public function role()
     {

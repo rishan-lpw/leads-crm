@@ -215,6 +215,17 @@ class HuntersResource extends Resource
                                 'other' => 'Other',
                             ])
                             ->searchable(),
+                            
+                        Forms\Components\TextInput::make('weight')
+                            ->label('Priority Weight')
+                            ->numeric()
+                            ->default(0)
+                            ->minValue(0)
+                            ->maxValue(1000)
+                            ->helperText('Auto-calculated based on keywords and criteria. Higher = Higher Priority')
+                            ->disabled() // Make it read-only as it's auto-calculated
+                            ->dehydrated(false), // Don't include in form submission
+                            
                         Forms\Components\Toggle::make('is_active')
                             ->label('Active')
                             ->default(true),
@@ -272,8 +283,14 @@ class HuntersResource extends Resource
                     ->label('Property Heading')
                     ->searchable()
                     ->sortable()
-                    ->weight('bold')
                     ->limit(50),
+                    
+                Tables\Columns\TextColumn::make('weight')
+                    ->label('Priority Weight')
+                    ->sortable()
+                    ->badge(),
+                    // ->formatStateUsing(fn ($record) => $record->weight . ' (' . \App\Services\LeadWeightService::getWeightLevel($record->weight) . ')')
+                    // ->color(fn ($record) => \App\Services\LeadWeightService::getWeightColor($record->weight)),
 
                 Tables\Columns\BadgeColumn::make('type')
                     ->label('Listing Type')
@@ -713,28 +730,68 @@ class HuntersResource extends Resource
                          * --- Sync Customer First ---
                          */
                         $customerId = null;
-                        if ($user) {
-                            $customerPayload = [
-                                'id'     => $user['uid'] ?? null,
-                                'firstname'        => $user['firstname'] ?? null,
-                                'surname'          => $user['surname'] ?? null,
-                                'phone_number'     => $user['mobile'] ?? null,
-                                'phone_number_alt' => $user['mobile_alt'] ?? null,
-                                'email'            => $user['email'] ?? null,
-                                'name'             => trim(($user['firstname'] ?? '') . ' ' . ($user['surname'] ?? '')),
-                            ];
+                        if ($user && isset($user['uid'])) {
+                            // Check if customer already exists by uid (external ID from API)
+                            $existingCustomer = Customer::where('id', $user['uid'])->first();
+                            
+                            if (!$existingCustomer) {
+                                // Double-check by mobile number to prevent duplicates
+                                $mobileCheck = null;
+                                if (!empty($user['mobile'])) {
+                                    $mobileCheck = Customer::where('mobile', $user['mobile'])->first();
+                                }
+                                
+                                if ($mobileCheck) {
+                                    // Customer exists with same mobile but different ID
+                                    $customerId = $mobileCheck->id;
+                                    $this->info("Found existing customer with mobile {$user['mobile']}, using ID: {$customerId}");
+                                } else {
+                                    // Create new customer using the uid as the primary key
+                                    $customerPayload = [
+                                        'id'               => $user['uid'],
+                                        'firstname'        => $user['firstname'] ?? null,
+                                        'surname'          => $user['surname'] ?? null,
+                                        'mobile'           => $user['mobile'] ?? null,
+                                        'mobile_alt'       => $user['mobile_alt'] ?? null,
+                                        'email'            => $user['email'] ?? null,
+                                    ];
 
-                            $customer = Customer::updateOrCreate(
-                                ['id' => $user['uid']],
-                                $customerPayload
-                            );
-
-                            $customerId = $customer->id;
-
-                            if ($customer->wasRecentlyCreated) {
-                                $customerCreated++;
+                                    try {
+                                        $customer = Customer::create($customerPayload);
+                                        $customerId = $customer->id;
+                                        $customerCreated++;
+                                    } catch (\Exception $e) {
+                                        // If creation fails (e.g., duplicate ID), try to find existing
+                                        $customer = Customer::where('id', $user['uid'])->first();
+                                        $customerId = $customer ? $customer->id : null;
+                                        $this->warn("Failed to create customer {$user['uid']}: " . $e->getMessage());
+                                    }
+                                }
                             } else {
-                                $customerUpdated++;
+                                // Use existing customer
+                                $customerId = $existingCustomer->id;
+                                
+                                // Check if customer data has changed and update if needed
+                                $newData = [
+                                    'firstname'        => $user['firstname'] ?? null,
+                                    'surname'          => $user['surname'] ?? null,
+                                    'mobile'           => $user['mobile'] ?? null,
+                                    'mobile_alt'       => $user['mobile_alt'] ?? null,
+                                    'email'            => $user['email'] ?? null,
+                                ];
+                                
+                                $hasChanges = false;
+                                foreach ($newData as $key => $value) {
+                                    if ($existingCustomer->$key !== $value) {
+                                        $hasChanges = true;
+                                        break;
+                                    }
+                                }
+                                
+                                if ($hasChanges) {
+                                    $existingCustomer->update($newData);
+                                    $customerUpdated++;
+                                }
                             }
                         }
 

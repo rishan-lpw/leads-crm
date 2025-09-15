@@ -52,19 +52,26 @@ class AssignNewLeadsCron extends Command
                 return Command::FAILURE;
             }
 
-            // Get all leads with multiple statuses and no assigned user
-            $unassignedLeads = Lead::whereIn('status', ['new', 'follow_up', 'system', 'to_be_expired', 'expired'])
+            // Get all leads with specific statuses that need assignment
+            $targetStatuses = ['new', 'follow_up', 'system', 'to_be_expired', 'expired'];
+            $unassignedLeads = Lead::whereIn('status', $targetStatuses)
                 ->whereNull('user_id')
                 ->orderBy('created_at', 'asc')
                 ->get();
 
             if ($unassignedLeads->isEmpty()) {
-                $this->info('✅ No unassigned leads found.');
+                $this->info('✅ No unassigned leads found in target statuses.');
+                $this->info('   Target statuses: ' . implode(', ', $targetStatuses));
                 Log::info('AssignNewLeadsCron: No unassigned leads found');
                 return Command::SUCCESS;
             }
 
-            $this->info("📋 Found {$unassignedLeads->count()} unassigned leads to process.");
+            // Show breakdown by status
+            $statusBreakdown = $unassignedLeads->groupBy('status')->map->count();
+            $this->info("📋 Found {$unassignedLeads->count()} unassigned leads to process:");
+            foreach ($statusBreakdown as $status => $count) {
+                $this->line("   • {$status}: {$count} leads");
+            }
             $this->info("👥 Available Account Managers: {$accountManagers->count()}");
             $this->newLine();
 
@@ -85,7 +92,7 @@ class AssignNewLeadsCron extends Command
                         'updated_at' => now()
                     ]);
 
-                    $this->line("✅ Assigned Lead #{$lead->id} ({$lead->heading}) to {$assignedUser->name}");
+                    $this->line("✅ Assigned Lead #{$lead->id} [{$lead->status}] ({$lead->heading}) → {$assignedUser->name}");
                     
                     $assignedCount++;
                     
@@ -131,11 +138,27 @@ class AssignNewLeadsCron extends Command
         $this->info("   • Total AMs Available: {$accountManagers->count()}");
         $this->info("   • Leads Assigned: {$assignedCount}");
         
+        // Show assignment breakdown by status for just assigned leads
+        if ($assignedCount > 0) {
+            $recentlyAssigned = Lead::whereNotNull('user_id')
+                ->whereIn('status', ['new', 'follow_up', 'system', 'to_be_expired', 'expired'])
+                ->where('updated_at', '>=', now()->subMinutes(5))
+                ->get();
+                
+            if ($recentlyAssigned->isNotEmpty()) {
+                $statusBreakdown = $recentlyAssigned->groupBy('status')->map->count();
+                $this->info("📋 Assignment by Status (this run):");
+                foreach ($statusBreakdown as $status => $count) {
+                    $this->line("   • {$status}: {$count} leads assigned");
+                }
+            }
+        }
+        
         // Show current assignment counts for each AM
-        $this->info("📈 Current Lead Distribution:");
+        $this->info("📈 Current Lead Distribution (All Leads):");
         foreach ($accountManagers as $am) {
             $leadCount = Lead::where('user_id', $am->id)->count();
-            $this->line("   • {$am->name}: {$leadCount} leads");
+            $this->line("   • {$am->name}: {$leadCount} total leads");
         }
 
         $nextIndex = Cache::get('am_assignment_last_index', -1);
@@ -184,6 +207,23 @@ class AssignNewLeadsCron extends Command
         $unassignedCount = Lead::whereIn('status', ['new', 'follow_up', 'system', 'to_be_expired', 'expired'])
             ->whereNull('user_id')
             ->count();
-        $this->info("📋 Unassigned leads (all statuses): {$unassignedCount}");
+        $this->info("📋 Unassigned leads (all target statuses): {$unassignedCount}");
+        
+        // Show breakdown by status
+        $targetStatuses = ['new', 'follow_up', 'system', 'to_be_expired', 'expired'];
+        $statusBreakdown = [];
+        foreach ($targetStatuses as $status) {
+            $count = Lead::where('status', $status)->whereNull('user_id')->count();
+            if ($count > 0) {
+                $statusBreakdown[$status] = $count;
+            }
+        }
+        
+        if (!empty($statusBreakdown)) {
+            $this->info("📊 Breakdown by Status:");
+            foreach ($statusBreakdown as $status => $count) {
+                $this->line("   • {$status}: {$count} unassigned leads");
+            }
+        }
     }
 }
