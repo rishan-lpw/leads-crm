@@ -443,6 +443,16 @@ class HuntersResource extends Resource
                         'to_be_expired' => 'To Be Expired',
                         'expired' => 'Expired',
                     ]),
+
+                // Weight filter for low, high, medium
+                Tables\Filters\SelectFilter::make('weight')
+                    ->label('Weight')
+                    ->options([
+                        'low' => 'Low',
+                        'medium' => 'Medium',
+                        'high' => 'High',
+                    ]),
+
                 Tables\Filters\SelectFilter::make('source')
                     ->label('Source')
                     ->options([
