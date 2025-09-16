@@ -14,6 +14,6 @@ class ActivitySeeder extends Seeder
     public function run(): void
     {
         // Create 5 simple activities instead of 20 to avoid memory issues
-        Activity::factory()->count(5)->create();
+        Activity::factory()->count(50)->create();
     }
 }

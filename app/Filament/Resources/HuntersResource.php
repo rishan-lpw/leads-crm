@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Lead;
 use App\Services\LpwApiService;
 use Filament\Forms;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Select;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\Tabs;
@@ -20,6 +21,7 @@ use Illuminate\Support\Collection;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Infolists\Components\Actions\Action as InfolistAction;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Enums\FiltersLayout;
@@ -575,7 +577,39 @@ class HuntersResource extends Resource
                                             ]),
                                     ]),
 
-                                Tab::make('Pricing')
+                                    Tab::make('Activities')
+                                        ->icon('heroicon-o-clipboard-document-list')
+                                        ->schema([
+                                            RepeatableEntry::make('activities')
+                                                // ->relationship('activities')
+                                                // uses Lead::activities()
+                                                ->schema([
+                                                    Section::make()
+                                                        ->collapsible()
+                                                        ->collapsed()
+                                                        ->heading(fn ($record) => $record->activity_type ?? 'Activity')
+                                                        ->description(fn ($record) => $record->created_at?->format('Y-m-d H:i:s'))
+                                                        ->schema([
+                                                            TextEntry::make('status')
+                                                                ->badge()
+                                                                ->color(fn ($state) => match ($state) {
+                                                                    'Success' => 'success',
+                                                                    'Failed' => 'danger',
+                                                                    'Pending' => 'warning',
+                                                                    default => 'gray',
+                                                                }),
+                                                            TextEntry::make('description')
+                                                                ->label('Details')
+                                                                ->columnSpanFull(),
+                                                            TextEntry::make('created_by')
+                                                                ->label('By')
+                                                                ->placeholder('System'),
+                                                        ]),
+                                                ])
+                                                // ->orderable(false),
+                                        ]),
+
+                    Tab::make('Pricing')
                                     ->icon('heroicon-o-currency-dollar')
                                     ->schema([
                                         Section::make('Price Information')

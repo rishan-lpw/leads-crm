@@ -9,4 +9,5 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateActivity extends CreateRecord
 {
     protected static string $resource = ActivityResource::class;
+    // Add activity form interface 
 }
