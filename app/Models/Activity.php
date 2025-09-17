@@ -37,15 +37,15 @@ class Activity extends Model
         return $this->belongsTo(Lead::class, 'lead_id');
     }
 
-    // public function customer()
-    // {
-    //     return $this->belongsTo(Customer::class, 'customer_id');
-    // }
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
 
-    // public function user()
-    // {
-    //     return $this->belongsTo(User::class, 'user_id');
-    // }
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
     
     // An activity has one follow-up
     public function followUp()

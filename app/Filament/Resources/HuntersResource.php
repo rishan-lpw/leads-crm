@@ -218,7 +218,7 @@ class HuntersResource extends Resource
                                 'other' => 'Other',
                             ])
                             ->searchable(),
-                            
+
                         Forms\Components\TextInput::make('weight')
                             ->label('Priority Weight')
                             ->numeric()
@@ -228,18 +228,18 @@ class HuntersResource extends Resource
                             ->helperText('Auto-calculated based on keywords and criteria. Higher = Higher Priority')
                             ->disabled() // Make it read-only as it's auto-calculated
                             ->dehydrated(false), // Don't include in form submission
-                            
+
                         Select::make('is_active')
-                                ->label('Active Status')
-                                ->options([
-                                    0 => 'Inactive',
-                                    1 => 'Active',
-                                    2 => 'Special',
-                                    3 => 'Pending'
-                                ])
-                                ->default(1)
-                                ->native(false)
-                                ->required(),
+                            ->label('Active Status')
+                            ->options([
+                                0 => 'Inactive',
+                                1 => 'Active',
+                                2 => 'Special',
+                                3 => 'Pending'
+                            ])
+                            ->default(1)
+                            ->native(false)
+                            ->required(),
                         Forms\Components\Toggle::make('is_trending')
                             ->label('Trending'),
                         Forms\Components\Toggle::make('blocked')
@@ -272,13 +272,13 @@ class HuntersResource extends Resource
         // Fetch API data for hunters
         $apiService = new LpwApiService();
         $pendingPayments = $apiService->getPendingPayments();
-        
-        // // Log the API data for debugging
+
+        // Log the API data for debugging
         // Log::info('Hunters API Data:', [
         //     'count' => count($pendingPayments),
         //     'sample' => !empty($pendingPayments) ? array_slice($pendingPayments, 0, 2) : []
         // ]);
-        
+
         return $table
             ->columns([
                 // Print customer name and user name as new columns
@@ -295,13 +295,13 @@ class HuntersResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->limit(50),
-                    
+
                 Tables\Columns\TextColumn::make('weight')
                     ->label('Priority Weight')
                     ->sortable()
                     ->badge(),
-                    // ->formatStateUsing(fn ($record) => $record->weight . ' (' . \App\Services\LeadWeightService::getWeightLevel($record->weight) . ')')
-                    // ->color(fn ($record) => \App\Services\LeadWeightService::getWeightColor($record->weight)),
+                // ->formatStateUsing(fn ($record) => $record->weight . ' (' . \App\Services\LeadWeightService::getWeightLevel($record->weight) . ')')
+                // ->color(fn ($record) => \App\Services\LeadWeightService::getWeightColor($record->weight)),
 
                 Tables\Columns\BadgeColumn::make('type')
                     ->label('Listing Type')
@@ -383,14 +383,14 @@ class HuntersResource extends Resource
                 Tables\Columns\TextColumn::make('is_active')
                     ->label('Status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         '0' => 'danger',
                         '1' => 'success',
                         '2' => 'warning',
                         '3' => 'info',
                         default => 'gray'
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         '0' => 'Inactive',
                         '1' => 'Active',
                         '2' => 'Special',
@@ -406,10 +406,10 @@ class HuntersResource extends Resource
                 //     ->trueColor('warning'),
 
                 // Add the column posted_date
-                
+
                 Tables\Columns\TextColumn::make('posted_date')
                     ->label('Posted Date')
-                    ->dateTime('M d, Y')    
+                    ->dateTime('M d, Y')
                     ->sortable(),
             ])
             ->filters([
@@ -463,7 +463,7 @@ class HuntersResource extends Resource
                         'facebook' => 'Facebook',
                         'other' => 'Other',
                     ]),
-                
+
                 Tables\Filters\SelectFilter::make('is_active')
                     ->label('Status')
                     ->options([
@@ -482,11 +482,11 @@ class HuntersResource extends Resource
                     ])
                     ->query(function (Builder $query, array $data) {
                         return $query
-                            ->when($data['posted_date_from'], fn (Builder $query, $value) => $query->whereDate('posted_date', '>=', $value))
-                            ->when($data['posted_date_to'], fn (Builder $query, $value) => $query->whereDate('posted_date', '<=', $value));
+                            ->when($data['posted_date_from'], fn(Builder $query, $value) => $query->whereDate('posted_date', '>=', $value))
+                            ->when($data['posted_date_to'], fn(Builder $query, $value) => $query->whereDate('posted_date', '<=', $value));
                     })
                     ->label('Posted Date Range'),
-                
+
                 // price range filter
                 Tables\Filters\Filter::make('price_range')
                     ->form([
@@ -501,11 +501,11 @@ class HuntersResource extends Resource
                     ])
                     ->query(function (Builder $query, array $data) {
                         return $query
-                            ->when($data['price_min'], fn (Builder $query, $value) => $query->where('price', '>=', $value))
-                            ->when($data['price_max'], fn (Builder $query, $value) => $query->where('price', '<=', $value));
+                            ->when($data['price_min'], fn(Builder $query, $value) => $query->where('price', '>=', $value))
+                            ->when($data['price_max'], fn(Builder $query, $value) => $query->where('price', '<=', $value));
                     })
                     ->label('Price Range')
-                ])
+            ])
 
             ->actions([
                 Tables\Actions\ViewAction::make()
@@ -526,7 +526,7 @@ class HuntersResource extends Resource
                                                 TextEntry::make('type')
                                                     ->label('Listing Type')
                                                     ->badge()
-                                                    ->color(fn (string $state): string => match ($state) {
+                                                    ->color(fn(string $state): string => match ($state) {
                                                         'sell' => 'primary',
                                                         'rent' => 'success',
                                                         'lease' => 'warning',
@@ -549,7 +549,7 @@ class HuntersResource extends Resource
                                                     ->label('Price Type'),
                                             ])
                                             ->columns(2),
-                                        
+
                                         Section::make('Location')
                                             ->schema([
                                                 TextEntry::make('street')
@@ -566,7 +566,7 @@ class HuntersResource extends Resource
                                                     ->placeholder('Not specified'),
                                             ])
                                             ->columns(2),
-                                        
+
                                         Section::make('Description')
                                             ->schema([
                                                 TextEntry::make('desc')
@@ -577,39 +577,39 @@ class HuntersResource extends Resource
                                             ]),
                                     ]),
 
-                                    Tab::make('Activities')
-                                        ->icon('heroicon-o-clipboard-document-list')
-                                        ->schema([
-                                            RepeatableEntry::make('activities')
-                                                // ->relationship('activities')
-                                                // uses Lead::activities()
-                                                ->schema([
-                                                    Section::make()
-                                                        ->collapsible()
-                                                        ->collapsed()
-                                                        ->heading(fn ($record) => $record->activity_type ?? 'Activity')
-                                                        ->description(fn ($record) => $record->created_at?->format('Y-m-d H:i:s'))
-                                                        ->schema([
-                                                            TextEntry::make('status')
-                                                                ->badge()
-                                                                ->color(fn ($state) => match ($state) {
-                                                                    'Success' => 'success',
-                                                                    'Failed' => 'danger',
-                                                                    'Pending' => 'warning',
-                                                                    default => 'gray',
-                                                                }),
-                                                            TextEntry::make('description')
-                                                                ->label('Details')
-                                                                ->columnSpanFull(),
-                                                            TextEntry::make('created_by')
-                                                                ->label('By')
-                                                                ->placeholder('System'),
-                                                        ]),
-                                                ])
-                                                // ->orderable(false),
-                                        ]),
+                                Tab::make('Activities')
+                                    ->icon('heroicon-o-clipboard-document-list')
+                                    ->schema([
+                                        RepeatableEntry::make('activities')
+                                            // ->relationship('activities')
+                                            // uses Lead::activities()
+                                            ->schema([
+                                                Section::make()
+                                                    ->collapsible()
+                                                    ->collapsed()
+                                                    ->heading(fn($record) => $record->activity_type ?? 'Activity')
+                                                    ->description(fn($record) => $record->created_at?->format('Y-m-d H:i:s'))
+                                                    ->schema([
+                                                        TextEntry::make('status')
+                                                            ->badge()
+                                                            ->color(fn($state) => match ($state) {
+                                                                'Success' => 'success',
+                                                                'Failed' => 'danger',
+                                                                'Pending' => 'warning',
+                                                                default => 'gray',
+                                                            }),
+                                                        TextEntry::make('description')
+                                                            ->label('Details')
+                                                            ->columnSpanFull(),
+                                                        TextEntry::make('created_by')
+                                                            ->label('By')
+                                                            ->placeholder('System'),
+                                                    ]),
+                                            ])
+                                        // ->orderable(false),
+                                    ]),
 
-                    Tab::make('Pricing')
+                                Tab::make('Pricing')
                                     ->icon('heroicon-o-currency-dollar')
                                     ->schema([
                                         Section::make('Price Information')
@@ -622,7 +622,8 @@ class HuntersResource extends Resource
                                                     ->color('success'),
                                                 TextEntry::make('alt_price')
                                                     ->label('Alternative Price')
-                                                    ->formatStateUsing(fn ($state, $record) => 
+                                                    ->formatStateUsing(
+                                                        fn($state, $record) =>
                                                         $state ? number_format($state) . ' ' . ($record->alt_currency ?? '') : 'Not set'
                                                     ),
                                                 TextEntry::make('price_monthly')
@@ -653,7 +654,7 @@ class HuntersResource extends Resource
                                                 TextEntry::make('contact_type')
                                                     ->label('Contact Type')
                                                     ->badge()
-                                                    ->color(fn (string $state): string => match ($state) {
+                                                    ->color(fn(string $state): string => match ($state) {
                                                         'owner' => 'primary',
                                                         'agent' => 'success',
                                                         'developer' => 'warning',
@@ -673,23 +674,23 @@ class HuntersResource extends Resource
                                             ->schema([
                                                 TextEntry::make('pic')
                                                     ->label('Has Pictures')
-                                                    ->formatStateUsing(fn ($state) => $state ? 'Yes' : 'No')
+                                                    ->formatStateUsing(fn($state) => $state ? 'Yes' : 'No')
                                                     ->badge()
-                                                    ->color(fn ($state) => $state ? 'success' : 'danger'),
+                                                    ->color(fn($state) => $state ? 'success' : 'danger'),
                                                 TextEntry::make('pic_count')
                                                     ->label('Number of Pictures'),
                                                 TextEntry::make('youtube_link')
                                                     ->label('YouTube Link')
                                                     ->placeholder('No YouTube link')
-                                                    ->formatStateUsing(fn ($state) => $state ?: 'No YouTube link'),
+                                                    ->formatStateUsing(fn($state) => $state ?: 'No YouTube link'),
                                                 TextEntry::make('video_link')
                                                     ->label('Video Link')
                                                     ->placeholder('No video link')
-                                                    ->formatStateUsing(fn ($state) => $state ?: 'No video link'),
+                                                    ->formatStateUsing(fn($state) => $state ?: 'No video link'),
                                                 TextEntry::make('image_360')
                                                     ->label('360° Image')
                                                     ->placeholder('No 360° image')
-                                                    ->formatStateUsing(fn ($state) => $state ?: 'No 360° image'),
+                                                    ->formatStateUsing(fn($state) => $state ?: 'No 360° image'),
                                             ])
                                             ->columns(2),
                                     ]),
@@ -702,7 +703,7 @@ class HuntersResource extends Resource
                                                 TextEntry::make('status')
                                                     ->label('Lead Status')
                                                     ->badge()
-                                                    ->color(fn (string $state): string => match ($state) {
+                                                    ->color(fn(string $state): string => match ($state) {
                                                         'new' => 'gray',
                                                         'contacted' => 'info',
                                                         'qualified' => 'warning',
@@ -718,7 +719,7 @@ class HuntersResource extends Resource
                                                 TextEntry::make('source')
                                                     ->label('Lead Source')
                                                     ->badge()
-                                                    ->color(fn (string $state): string => match ($state) {
+                                                    ->color(fn(string $state): string => match ($state) {
                                                         'website' => 'primary',
                                                         'api' => 'success',
                                                         'referral' => 'info',
@@ -732,7 +733,7 @@ class HuntersResource extends Resource
                                                     }),
                                                 TextEntry::make('is_active')
                                                     ->label('Active Status')
-                                                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                                                    ->formatStateUsing(fn(string $state): string => match ($state) {
                                                         '0' => 'Inactive',
                                                         '1' => 'Active',
                                                         '2' => 'Special',
@@ -740,7 +741,7 @@ class HuntersResource extends Resource
                                                         default => 'Unknown'
                                                     })
                                                     ->badge()
-                                                    ->color(fn (string $state): string => match ($state) {
+                                                    ->color(fn(string $state): string => match ($state) {
                                                         '0' => 'danger',
                                                         '1' => 'success',
                                                         '2' => 'warning',
@@ -749,14 +750,14 @@ class HuntersResource extends Resource
                                                     }),
                                                 TextEntry::make('is_trending')
                                                     ->label('Trending')
-                                                    ->formatStateUsing(fn ($state) => $state ? 'Yes' : 'No')
+                                                    ->formatStateUsing(fn($state) => $state ? 'Yes' : 'No')
                                                     ->badge()
-                                                    ->color(fn ($state) => $state ? 'warning' : 'gray'),
+                                                    ->color(fn($state) => $state ? 'warning' : 'gray'),
                                                 TextEntry::make('blocked')
                                                     ->label('Blocked')
-                                                    ->formatStateUsing(fn ($state) => $state ? 'Yes' : 'No')
+                                                    ->formatStateUsing(fn($state) => $state ? 'Yes' : 'No')
                                                     ->badge()
-                                                    ->color(fn ($state) => $state ? 'danger' : 'success'),
+                                                    ->color(fn($state) => $state ? 'danger' : 'success'),
                                                 TextEntry::make('created_at')
                                                     ->label('Created At')
                                                     ->dateTime('M d, Y H:i'),
@@ -765,7 +766,7 @@ class HuntersResource extends Resource
                                                     ->dateTime('M d, Y H:i'),
                                             ])
                                             ->columns(2),
-                                            
+
                                         Section::make('System Information')
                                             ->schema([
                                                 TextEntry::make('ad_id')
@@ -789,50 +790,74 @@ class HuntersResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\Action::make('sync_api_data')
-                ->label('Sync API Data')
-                ->icon('heroicon-o-arrow-path')
-                ->color('primary')
-                ->action(function () {
-                    $apiService = new LpwApiService();
-                    $apiResponse = $apiService->getPendingPayments(); // or your actual API method
-                    $results = $apiResponse['results'] ?? [];
+                    ->label('Sync API Data')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('primary')
+                    ->action(function () {
+                        $apiService = new LpwApiService();
+                        $apiResponse = $apiService->getPendingPayments(); // or your actual API method
+                        $results = $apiResponse['results'] ?? [];
 
-                    $created = 0;
-                    $updated = 0;
-                    $customerCreated = 0;
-                    $customerUpdated = 0;
+                        $created = 0;
+                        $updated = 0;
+                        $customerCreated = 0;
+                        $customerUpdated = 0;
 
-                    foreach ($results as $item) {
-                        if (!isset($item['ad']['ad_id'])) {
-                            continue;
-                        }
+                        foreach ($results as $item) {
+                            if (!isset($item['ad']['ad_id'])) {
+                                continue;
+                            }
 
-                        $ad = $item['ad'];
-                        $user = $item['user'] ?? null;
+                            $ad = $item['ad'];
+                            $user = $item['user'] ?? null;
 
-                        /**
-                         * --- Sync Customer First ---
-                         */
-                        $customerId = null;
-                        if ($user && isset($user['uid'])) {
-                            // Check if customer already exists by uid (external ID from API)
-                            $existingCustomer = Customer::where('id', $user['uid'])->first();
-                            
-                            if (!$existingCustomer) {
-                                // Double-check by mobile number to prevent duplicates
-                                $mobileCheck = null;
-                                if (!empty($user['mobile'])) {
-                                    $mobileCheck = Customer::where('mobile', $user['mobile'])->first();
-                                }
-                                
-                                if ($mobileCheck) {
-                                    // Customer exists with same mobile but different ID
-                                    $customerId = $mobileCheck->id;
-                                    $this->info("Found existing customer with mobile {$user['mobile']}, using ID: {$customerId}");
+                            /**
+                             * --- Sync Customer First ---
+                             */
+                            $customerId = null;
+                            if ($user && isset($user['uid'])) {
+                                // Check if customer already exists by uid (external ID from API)
+                                $existingCustomer = Customer::where('id', $user['uid'])->first();
+
+                                if (!$existingCustomer) {
+                                    // Double-check by mobile number to prevent duplicates
+                                    $mobileCheck = null;
+                                    if (!empty($user['mobile'])) {
+                                        $mobileCheck = Customer::where('mobile', $user['mobile'])->first();
+                                    }
+
+                                    if ($mobileCheck) {
+                                        // Customer exists with same mobile but different ID
+                                        $customerId = $mobileCheck->id;
+                                        $this->info("Found existing customer with mobile {$user['mobile']}, using ID: {$customerId}");
+                                    } else {
+                                        // Create new customer using the uid as the primary key
+                                        $customerPayload = [
+                                            'id'               => $user['uid'],
+                                            'firstname'        => $user['firstname'] ?? null,
+                                            'surname'          => $user['surname'] ?? null,
+                                            'mobile'           => $user['mobile'] ?? null,
+                                            'mobile_alt'       => $user['mobile_alt'] ?? null,
+                                            'email'            => $user['email'] ?? null,
+                                        ];
+
+                                        try {
+                                            $customer = Customer::create($customerPayload);
+                                            $customerId = $customer->id;
+                                            $customerCreated++;
+                                        } catch (\Exception $e) {
+                                            // If creation fails (e.g., duplicate ID), try to find existing
+                                            $customer = Customer::where('id', $user['uid'])->first();
+                                            $customerId = $customer ? $customer->id : null;
+                                            $this->warn("Failed to create customer {$user['uid']}: " . $e->getMessage());
+                                        }
+                                    }
                                 } else {
-                                    // Create new customer using the uid as the primary key
-                                    $customerPayload = [
-                                        'id'               => $user['uid'],
+                                    // Use existing customer
+                                    $customerId = $existingCustomer->id;
+
+                                    // Check if customer data has changed and update if needed
+                                    $newData = [
                                         'firstname'        => $user['firstname'] ?? null,
                                         'surname'          => $user['surname'] ?? null,
                                         'mobile'           => $user['mobile'] ?? null,
@@ -840,103 +865,79 @@ class HuntersResource extends Resource
                                         'email'            => $user['email'] ?? null,
                                     ];
 
-                                    try {
-                                        $customer = Customer::create($customerPayload);
-                                        $customerId = $customer->id;
-                                        $customerCreated++;
-                                    } catch (\Exception $e) {
-                                        // If creation fails (e.g., duplicate ID), try to find existing
-                                        $customer = Customer::where('id', $user['uid'])->first();
-                                        $customerId = $customer ? $customer->id : null;
-                                        $this->warn("Failed to create customer {$user['uid']}: " . $e->getMessage());
+                                    $hasChanges = false;
+                                    foreach ($newData as $key => $value) {
+                                        if ($existingCustomer->$key !== $value) {
+                                            $hasChanges = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if ($hasChanges) {
+                                        $existingCustomer->update($newData);
+                                        $customerUpdated++;
                                     }
                                 }
+                            }
+
+                            /**
+                             * --- Sync Lead (Ad) ---
+                             */
+                            $existingLead = Lead::where('ad_id', $ad['ad_id'])->first();
+
+                            $payload = [
+                                'ad_id'          => $ad['ad_id'],
+                                'cust_id'        => $customerId, // <-- use synced customer ID
+                                'type'           => $ad['type'] ?? null,
+                                'propty_type'    => $ad['propty_type'] ?? null,
+                                'service_type'   => $ad['service_type'] ?? null,
+                                'street'         => $ad['street'] ?? null,
+                                'city'           => $ad['city'] ?? null,
+                                'heading'        => $ad['heading'] ?? null,
+                                'desc'           => $ad['desc'] ?? null,
+                                'submit_date'    => $ad['submit_date'] ?? null,
+                                'posted_date'    => $ad['posted_date'] ?? null,
+                                'price'          => $ad['price'] ?? null,
+                                'alt_price'      => $ad['alt_price'] ?? null,
+                                'alt_currency'   => $ad['alt_currency'] ?? null,
+                                'price_type'     => $ad['price_type'] ?? null,
+                                'price_monthly'  => $ad['price_monthly'] ?? null,
+                                'price_land_pp'  => $ad['price_land_pp'] ?? null,
+                                'price_land_pa'  => $ad['price_land_pa'] ?? null,
+                                'price_land_total' => $ad['price_land_total'] ?? null,
+                                'price_sqft'     => $ad['price_sqft'] ?? null,
+                                'land_s_l'       => $ad['land_s_l'] ?? null,
+                                'comm_type'      => $ad['comm_type'] ?? null,
+                                'contact_type'   => $ad['contact_type'] ?? null,
+                                'contact_name'   => $ad['contact_name'] ?? null,
+                                'email'          => $ad['email'] ?? null,
+                                'avail'          => $ad['avail'] ?? null,
+                                'lat'            => $ad['lat'] ?? null,
+                                'lng'            => $ad['lng'] ?? null,
+                                'blocked'        => ($ad['blocked'] ?? 'N') === 'Y' ? 1 : 0,
+                                'is_active'      => is_numeric($ad['is_active']) ? (int)$ad['is_active'] : 0,
+                                'source'         => $ad['source'] ?? 'API',
+                                'house_post_url' => $ad['house_post_url'] ?? null,
+                                'api_sync_date'  => now(),
+                                'last_update_date' => now(),
+                                'last_update_by' => 'API Sync',
+                            ];
+
+                            if ($existingLead) {
+                                $existingLead->update($payload);
+                                $updated++;
                             } else {
-                                // Use existing customer
-                                $customerId = $existingCustomer->id;
-                                
-                                // Check if customer data has changed and update if needed
-                                $newData = [
-                                    'firstname'        => $user['firstname'] ?? null,
-                                    'surname'          => $user['surname'] ?? null,
-                                    'mobile'           => $user['mobile'] ?? null,
-                                    'mobile_alt'       => $user['mobile_alt'] ?? null,
-                                    'email'            => $user['email'] ?? null,
-                                ];
-                                
-                                $hasChanges = false;
-                                foreach ($newData as $key => $value) {
-                                    if ($existingCustomer->$key !== $value) {
-                                        $hasChanges = true;
-                                        break;
-                                    }
-                                }
-                                
-                                if ($hasChanges) {
-                                    $existingCustomer->update($newData);
-                                    $customerUpdated++;
-                                }
+                                Lead::create($payload);
+                                $created++;
                             }
                         }
 
-                        /**
-                         * --- Sync Lead (Ad) ---
-                         */
-                        $existingLead = Lead::where('ad_id', $ad['ad_id'])->first();
-
-                        $payload = [
-                            'ad_id'          => $ad['ad_id'],
-                            'cust_id'        => $customerId, // <-- use synced customer ID
-                            'type'           => $ad['type'] ?? null,
-                            'propty_type'    => $ad['propty_type'] ?? null,
-                            'service_type'   => $ad['service_type'] ?? null,
-                            'street'         => $ad['street'] ?? null,
-                            'city'           => $ad['city'] ?? null,
-                            'heading'        => $ad['heading'] ?? null,
-                            'desc'           => $ad['desc'] ?? null,
-                            'submit_date'    => $ad['submit_date'] ?? null,
-                            'posted_date'    => $ad['posted_date'] ?? null,
-                            'price'          => $ad['price'] ?? null,
-                            'alt_price'      => $ad['alt_price'] ?? null,
-                            'alt_currency'   => $ad['alt_currency'] ?? null,
-                            'price_type'     => $ad['price_type'] ?? null,
-                            'price_monthly'  => $ad['price_monthly'] ?? null,
-                            'price_land_pp'  => $ad['price_land_pp'] ?? null,
-                            'price_land_pa'  => $ad['price_land_pa'] ?? null,
-                            'price_land_total' => $ad['price_land_total'] ?? null,
-                            'price_sqft'     => $ad['price_sqft'] ?? null,
-                            'land_s_l'       => $ad['land_s_l'] ?? null,
-                            'comm_type'      => $ad['comm_type'] ?? null,
-                            'contact_type'   => $ad['contact_type'] ?? null,
-                            'contact_name'   => $ad['contact_name'] ?? null,
-                            'email'          => $ad['email'] ?? null,
-                            'avail'          => $ad['avail'] ?? null,
-                            'lat'            => $ad['lat'] ?? null,
-                            'lng'            => $ad['lng'] ?? null,
-                            'blocked'        => ($ad['blocked'] ?? 'N') === 'Y' ? 1 : 0,
-                            'is_active'      => is_numeric($ad['is_active']) ? (int)$ad['is_active'] : 0,
-                            'source'         => $ad['source'] ?? 'API',
-                            'house_post_url' => $ad['house_post_url'] ?? null,
-                            'api_sync_date'  => now(),
-                            'last_update_date' => now(),
-                            'last_update_by' => 'API Sync',
-                        ];
-
-                        if ($existingLead) {
-                            $existingLead->update($payload);
-                            $updated++;
-                        } else {
-                            Lead::create($payload);
-                            $created++;
-                        }
-                    }
-
-            Notification::make()
-                ->title('API Sync Completed')
-                ->body("Leads: Created {$created}, Updated {$updated}\nCustomers: Created {$customerCreated}, Updated {$customerUpdated}")
-                ->success()
-                ->send();
-    }),
+                        Notification::make()
+                            ->title('API Sync Completed')
+                            ->body("Leads: Created {$created}, Updated {$updated}\nCustomers: Created {$customerCreated}, Updated {$customerUpdated}")
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -946,7 +947,7 @@ class HuntersResource extends Resource
                         ->modalHeading('Delete Property Leads')
                         ->modalDescription('Are you sure you want to delete these property leads? This action cannot be undone.')
                         ->modalSubmitActionLabel('Yes, delete them'),
-                    
+
                     Tables\Actions\BulkAction::make('mark_as_active')
                         ->label('Mark as Active')
                         ->icon('heroicon-o-check-circle')
@@ -956,14 +957,14 @@ class HuntersResource extends Resource
                             $records->each(function ($record) {
                                 $record->update(['is_active' => 1]);
                             });
-                            
+
                             Notification::make()
                                 ->title('Leads Updated')
                                 ->body('Selected leads have been marked as active.')
                                 ->success()
                                 ->send();
                         }),
-                    
+
                     Tables\Actions\BulkAction::make('mark_as_inactive')
                         ->label('Mark as Inactive')
                         ->icon('heroicon-o-x-circle')
@@ -973,14 +974,14 @@ class HuntersResource extends Resource
                             $records->each(function ($record) {
                                 $record->update(['is_active' => 0]);
                             });
-                            
+
                             Notification::make()
                                 ->title('Leads Updated')
                                 ->body('Selected leads have been marked as inactive.')
                                 ->success()
                                 ->send();
                         }),
-                        
+
                     Tables\Actions\BulkAction::make('export_selected')
                         ->label('Export Selected')
                         ->icon('heroicon-o-document-arrow-down')

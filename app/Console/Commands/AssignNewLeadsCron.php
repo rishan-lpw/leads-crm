@@ -30,21 +30,13 @@ class AssignNewLeadsCron extends Command
      */
     public function handle()
     {
-        $this->info('🚀 Starting new lead assignment process...');
+        $this->info('🚀 Starting unassigned lead assignment process...');
 
         try {
-            // Get all available Account Managers (users who can be assigned to leads)
-            // Assuming Account Managers have a specific user_type_id or role
-            $accountManagers = User::where(function($query) {
-                // Add your criteria for Account Managers here
-                // For example, if they have a specific user_type_id:
-                // $query->where('user_type_id', 3); // Assuming 3 is for Account Managers
-                
-                // Or if you have a role/status field:
-                $query->whereNotNull('name'); // Adjust based on your user table structure
-            })
-            ->orderBy('id')
-            ->get();
+            // Get all available Account Managers
+            $accountManagers = User::whereNotNull('name') // adjust with your AM criteria
+                ->orderBy('id')
+                ->get();
 
             if ($accountManagers->isEmpty()) {
                 $this->warn('⚠️ No active account managers found.');
@@ -52,30 +44,22 @@ class AssignNewLeadsCron extends Command
                 return Command::FAILURE;
             }
 
-            // Get all leads with specific statuses that need assignment
-            $targetStatuses = ['new', 'follow_up', 'system', 'to_be_expired', 'expired'];
-            $unassignedLeads = Lead::whereIn('status', $targetStatuses)
-                ->whereNull('user_id')
+            // Get ALL unassigned leads (no status filter)
+            $unassignedLeads = Lead::whereNull('user_id')
                 ->orderBy('created_at', 'asc')
                 ->get();
 
             if ($unassignedLeads->isEmpty()) {
-                $this->info('✅ No unassigned leads found in target statuses.');
-                $this->info('   Target statuses: ' . implode(', ', $targetStatuses));
+                $this->info('✅ No unassigned leads found.');
                 Log::info('AssignNewLeadsCron: No unassigned leads found');
                 return Command::SUCCESS;
             }
 
-            // Show breakdown by status
-            $statusBreakdown = $unassignedLeads->groupBy('status')->map->count();
-            $this->info("📋 Found {$unassignedLeads->count()} unassigned leads to process:");
-            foreach ($statusBreakdown as $status => $count) {
-                $this->line("   • {$status}: {$count} leads");
-            }
+            $this->info("📋 Found {$unassignedLeads->count()} unassigned leads to process.");
             $this->info("👥 Available Account Managers: {$accountManagers->count()}");
             $this->newLine();
 
-            // Get the last assigned user index from cache for round robin
+            // Round robin logic
             $cacheKey = 'am_assignment_last_index';
             $lastIndex = Cache::get($cacheKey, -1);
             $currentIndex = ($lastIndex + 1) % $accountManagers->count();
@@ -85,35 +69,35 @@ class AssignNewLeadsCron extends Command
             DB::transaction(function () use ($unassignedLeads, $accountManagers, &$currentIndex, &$assignedCount, $cacheKey) {
                 foreach ($unassignedLeads as $lead) {
                     $assignedUser = $accountManagers[$currentIndex];
-                    
-                    // Assign the lead to the current AM
+
                     $lead->update([
-                        'user_id' => $assignedUser->id,
-                        'updated_at' => now()
+                        'user_id'    => $assignedUser->id,
+                        'updated_at' => now(),
                     ]);
 
-                    $this->line("✅ Assigned Lead #{$lead->id} [{$lead->status}] ({$lead->heading}) → {$assignedUser->name}");
-                    
+                    $this->line("✅ Assigned Lead #{$lead->id} ({$lead->heading}) → {$assignedUser->name}");
+
                     $assignedCount++;
-                    
-                    // Move to next AM in round robin
+
+                    // Next AM
                     $currentIndex = ($currentIndex + 1) % $accountManagers->count();
                 }
 
-                // Store the last used index in cache
-                Cache::put($cacheKey, ($currentIndex - 1 + $accountManagers->count()) % $accountManagers->count(), now()->addDays(30));
+                // Save round robin index
+                Cache::put(
+                    $cacheKey,
+                    ($currentIndex - 1 + $accountManagers->count()) % $accountManagers->count(),
+                    now()->addDays(30)
+                );
             });
 
             $this->newLine();
             $this->info("🎯 Successfully assigned {$assignedCount} leads to account managers.");
-            
-            // Show round robin status
-            $this->showAssignmentSummary($accountManagers, $assignedCount);
-            
-            Log::info("AssignNewLeadsCron: Successfully assigned {$assignedCount} leads", [
+
+            Log::info("AssignNewLeadsCron: Assigned {$assignedCount} unassigned leads", [
                 'assigned_count' => $assignedCount,
-                'total_ams' => $accountManagers->count(),
-                'next_index' => $currentIndex % $accountManagers->count()
+                'total_ams'      => $accountManagers->count(),
+                'next_index'     => $currentIndex % $accountManagers->count(),
             ]);
 
             return Command::SUCCESS;
@@ -122,9 +106,9 @@ class AssignNewLeadsCron extends Command
             $this->error('❌ Error during lead assignment: ' . $e->getMessage());
             Log::error('AssignNewLeadsCron failed: ' . $e->getMessage(), [
                 'exception' => $e,
-                'trace' => $e->getTraceAsString()
+                'trace'     => $e->getTraceAsString(),
             ]);
-            
+
             return Command::FAILURE;
         }
     }
