@@ -49,17 +49,17 @@ class EditHunters extends EditRecord
                     return redirect()->to(HuntersResource::getUrl('index'));
                 }),
 
-            Actions\Action::make('mark_pending_payment')
-                ->label('Mark Pending Payment')
+            Actions\Action::make('mark_renew')
+                ->label('Mark as Renew')
                 ->icon('heroicon-o-credit-card')
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading('Mark as Pending Payment')
-                ->modalDescription('Are you sure you want to mark this hunter as pending payment?')
-                ->modalSubmitActionLabel('Mark Pending')
+                ->modalHeading('Mark as Renew')
+                ->modalDescription('Are you sure you want to mark this hunter as renew?')
+                ->modalSubmitActionLabel('Mark Renew')
                 ->action(function () {
                     $this->record->update([
-                        'status' => 'pending payments',
+                        'status' => 'renew',
                         'source' => 'pending payments',
                         'last_update_date' => now(),
                         'last_update_by' => auth()->user()->name ?? 'System',
@@ -68,8 +68,8 @@ class EditHunters extends EditRecord
                     ]);
 
                     Notification::make()
-                        ->title('Moved to Pending Payments')
-                        ->body('The hunter has been moved to pending payments.')
+                        ->title('Moved to Renew')
+                        ->body('The hunter has been moved to renew.')
                         ->success()
                         ->send();
                 }),

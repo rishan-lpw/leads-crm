@@ -14,24 +14,29 @@ class Activity extends Model
 
     protected $table = 'activity';
 
+    // $table->id();
+    // $table->unsignedBigInteger('lead_id')->nullable();
+    // $table->unsignedBigInteger('user_id')->nullable();
+    // $table->string('action')->nullable();
+    // $table->integer('qty')->nullable();
+    // $table->decimal('value', 10, 2)->nullable();
+    // $table->unsignedBigInteger('ad_id')->nullable();
+    // $table->text('comments')->nullable();
+    // $table->date('reminder')->nullable();
+    // $table->dateTime('date_time')->nullable();
+    // $table->string('old_am')->nullable();
+    // $table->timestamps();
+
     protected $fillable = [
-        'lead_id',
-        'activity_type',
-        'notes',
-        'scheduled_at',
-        'due_at',
-        'last_checked_at',
-        'action',
-        'qty',
-        'value',
-        'ad_id',
-        'comments',
-        'date_time',
-        'assigned_by',
-        'old_am',
-        'activity_follow_up_id',
+        'lead_id', 'user_id', 'action', 'qty', 'value', 'ad_id', 'comments', 'reminder', 'date_time', 'old_am'
     ];
 
+    protected $casts = [
+        'date_time' => 'datetime',
+        'reminder' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
     public function lead()
     {
         return $this->belongsTo(Lead::class, 'lead_id');
@@ -47,11 +52,6 @@ class Activity extends Model
     }
     
         return $query;
-    }
-
-    public function customer()
-    {
-        return $this->belongsTo(Customer::class, 'customer_id');
     }
 
     public function user()

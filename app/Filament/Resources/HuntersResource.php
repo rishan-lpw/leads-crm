@@ -594,6 +594,53 @@ class HuntersResource extends Resource
                                 Tab::make('Activities')
                                     ->icon('heroicon-o-clipboard-document-list')
                                     ->schema([
+
+                                        // Add new activity button and call the EditActivity.php file and its action into that.
+                                        // Actions\Action::make('add_activity')
+                                        //     ->label('Add Activity')
+                                        //     ->button()
+                                        //     ->color('primary')
+                                        //     ->icon('heroicon-o-plus')
+                                        //     ->action(function (Lead $record, array $data): void {
+                                        //         // Create a new activity related to this lead
+                                        //         $record->activities()->create([
+                                        //             'activity_type' => $data['activity_type'],
+                                        //             'description' => $data['description'],
+                                        //             'status' => $data['status'],
+                                        //             'created_by' => auth()->user()->name,
+                                        //         ]);
+
+                                        //         Notification::make()
+                                        //             ->title('Activity Added')
+                                        //             ->success()
+                                        //             ->send();
+                                        //     })
+                                        //     ->form([
+                                        //         Forms\Components\Select::make('activity_type')
+                                        //             ->label('Activity Type')
+                                        //             ->options([
+                                        //                 'call' => 'Call',
+                                        //                 'email' => 'Email',
+                                        //                 'meeting' => 'Meeting',
+                                        //                 'note' => 'Note',
+                                        //                 'other' => 'Other',
+                                        //             ])
+                                        //             ->required(),
+                                        //         Forms\Components\Textarea::make('description')
+                                        //             ->label('Description')
+                                        //             ->rows(3)
+                                        //             ->required(),
+                                        //         Forms\Components\Select::make('status')
+                                        //             ->label('Status')
+                                        //             ->options([
+                                        //                 'Pending' => 'Pending',
+                                        //                 'Success' => 'Success',
+                                        //                 'Failed' => 'Failed',
+                                        //             ])
+                                        //             ->required(),
+                                        //     ])
+                                        //     ->modalWidth('md'),
+
                                         RepeatableEntry::make('activities')
                                             // ->relationship('activities')
                                             // uses Lead::activities()

@@ -28,7 +28,7 @@ class PendingPaymentResource extends Resource
 
     protected static ?string $navigationGroup = 'Private Sellers';
 
-    protected static ?string $navigationIcon = 'heroicon-o-arrows-up-down';
+    protected static ?string $navigationIcon = 'fas-hand-holding-hand';
 
     // Override the Eloquent query to filter pending payments
     public static function getEloquentQuery(): Builder
