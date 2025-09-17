@@ -37,6 +37,18 @@ class Activity extends Model
         return $this->belongsTo(Lead::class, 'lead_id');
     }
 
+    public function scopeForUser($query, $user)
+{
+    if ($user->user_level_id == 1) {
+        // Only show activities for leads assigned to this user
+        return $query->whereHas('lead', function($q) use ($user) {
+            $q->where('user_id', $user->id);
+        });
+    }
+    
+        return $query;
+    }
+
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id');

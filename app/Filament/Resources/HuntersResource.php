@@ -7,6 +7,9 @@ use App\Filament\Resources\HuntersResource\RelationManagers;
 use App\Models\Customer;
 use App\Models\Lead;
 use App\Services\LpwApiService;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Select;
@@ -19,6 +22,7 @@ use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Illuminate\Support\Collection;
 use Filament\Resources\Resource;
+use Illuminate\Support\Facades\Gate;
 use Filament\Tables;
 use Filament\Infolists\Components\Actions\Action as InfolistAction;
 use Filament\Infolists\Components\ViewEntry;
@@ -44,7 +48,17 @@ class HuntersResource extends Resource
     // Show all leads since there's no source field in the new structure
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery();
+        $query = parent::getEloquentQuery();
+    
+        // Check if current user has restricted access (user_level_id = 1)
+        $user = auth()->user();
+        
+        if ($user && $user->user_level_id == 1) {
+            // Restrict to only leads assigned to this user
+            $query->where('user_id', $user->id);
+        }
+        
+        return $query;
     }
 
     public static function form(Form $form): Form
@@ -781,11 +795,13 @@ class HuntersResource extends Resource
                                             ->collapsed(),
                                     ]),
                             ])
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->visible(fn ($record) => Gate::allows('view', $record)),
                     ]),
 
                 // Add edit action
                 Tables\Actions\EditAction::make()
+                    ->visible(fn ($record) => Gate::allows('update', $record))
                     ->slideOver(),
             ])
             ->headerActions([
@@ -946,7 +962,8 @@ class HuntersResource extends Resource
                         ->requiresConfirmation()
                         ->modalHeading('Delete Property Leads')
                         ->modalDescription('Are you sure you want to delete these property leads? This action cannot be undone.')
-                        ->modalSubmitActionLabel('Yes, delete them'),
+                        ->modalSubmitActionLabel('Yes, delete them')
+                        ->visible(fn () => auth()->user()->user_level_id != 1),
 
                     Tables\Actions\BulkAction::make('mark_as_active')
                         ->label('Mark as Active')

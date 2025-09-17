@@ -34,9 +34,7 @@ class AssignNewLeadsCron extends Command
 
         try {
             // Get all available Account Managers
-            $accountManagers = User::whereNotNull('name') // adjust with your AM criteria
-                ->orderBy('id')
-                ->get();
+            $accountManagers = $this->getAccountManagers();
 
             if ($accountManagers->isEmpty()) {
                 $this->warn('⚠️ No active account managers found.');
@@ -209,5 +207,20 @@ class AssignNewLeadsCron extends Command
                 $this->line("   • {$status}: {$count} unassigned leads");
             }
         }
+    }
+
+    /**
+     * Get active account managers excluding level 1 users
+     */
+    private function getAccountManagers()
+    {
+        return User::where(function($query) {
+            $query->whereNotNull('name')
+                  ->where('active', true)
+                  // Only assign to users who can handle leads (not level 1 users)
+                  ->where('user_level_id', '!=', 1); // Exclude level 1 users from automatic assignment
+        })
+        ->orderBy('id')
+        ->get();
     }
 }

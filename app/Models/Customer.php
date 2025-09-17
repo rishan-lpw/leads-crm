@@ -41,10 +41,12 @@ class Customer extends Model
     {
         return $this->hasMany(Activity::class);
     }
+    
     public function user()
     {
         return $this->belongsTo(User::class, 'add_id');
     }
+
     public function addOns()
     {
         return $this->hasMany(AddOn::class, 'customer_id', 'id');
