@@ -29,16 +29,20 @@ class CustomerMergeResource extends Resource
             ->schema([
                 // Primary and secondary customers can be select from customer table.
                 Forms\Components\Select::make('primary_customer_id')
-                    ->relationship('customer', 'name')
+                    ->label('Primary Customer')
+                    ->relationship('primaryCustomer', 'firstname')
                     ->required(),
                 Forms\Components\Select::make('secondary_customer_id')
-                    ->relationship('customer', 'name')
+                    ->label('Secondary Customer')
+                    ->relationship('secondaryCustomer', 'firstname')
                     ->required(),
                 Forms\Components\DatePicker::make('merge_at')
+                    ->label('Merge Date')
                     ->required()
                     ->default(now()),
                 // Merged By select the user.name from user table
                 Forms\Components\Select::make('merged_by')
+                    ->label('Merged By')
                     ->relationship('user', 'name')
                     ->required()
             ]);
@@ -48,14 +52,19 @@ class CustomerMergeResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('customer.name')
-                    ->label('Primary Customer'),
-                Tables\Columns\TextColumn::make('customer.name')
-                    ->label('Secondary Customer'),
-                Tables\Columns\TextColumn::make('merge_at')
-                    ->label('Merge Date'),
+                Tables\Columns\TextColumn::make('primaryCustomer.firstname')
+                    ->label('Primary Customer')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('secondaryCustomer.firstname')
+                    ->label('Secondary Customer')
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Merged By'),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created At')
+                    ->dateTime(),
             ])
             ->filters([
                 //

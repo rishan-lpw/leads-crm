@@ -15,9 +15,14 @@ class CustomerMerge extends Model
         'merged_by',
     ];
 
-    public function customer()
+    public function primaryCustomer()
     {
         return $this->belongsTo(Customer::class, 'primary_customer_id');
+    }
+
+    public function secondaryCustomer()
+    {
+        return $this->belongsTo(Customer::class, 'secondary_customer_id');
     }
 
     public function user()
