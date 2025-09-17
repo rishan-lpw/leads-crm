@@ -17,7 +17,7 @@ class BulkUploadResource extends Resource
 {
     protected static ?string $model = BulkUpload::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'ri-upload-cloud-2-fill';
 
     protected static ?string $navigationLabel = 'Bulk Upload';
 

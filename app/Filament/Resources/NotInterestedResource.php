@@ -27,7 +27,7 @@ class NotInterestedResource extends Resource
 
     protected static ?string $navigationLabel = 'Not Interested';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-c-eye-slash';
 
     public static function getEloquentQuery(): Builder
     {

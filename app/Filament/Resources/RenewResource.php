@@ -28,7 +28,7 @@ class RenewResource extends Resource
 
     protected static ?string $navigationGroup = 'Private Sellers';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'fas-share-from-square';
 
     public static function getEloquentQuery(): Builder
     {

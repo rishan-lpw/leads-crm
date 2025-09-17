@@ -21,7 +21,7 @@ class CronResource extends Resource
 {
     protected static ?string $model = Cron::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-m-arrow-up-on-square-stack';
 
     protected static ?string $navigationGroup = 'Admin';
 

@@ -29,7 +29,7 @@ class UpsellResource extends Resource
 
     protected static ?string $navigationGroup = 'Private Sellers';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-c-arrow-trending-up';
 
     public static function getEloquentQuery(): Builder
     {
