@@ -58,8 +58,5 @@ class Activity extends Model
         return $this->belongsTo(Customer::class, 'customer_id');
     }
 
-    public function getCustomerAttribute()
-    {
-        return $this->lead?->customer;
-    }
+    
 }

@@ -591,65 +591,89 @@ class HuntersResource extends Resource
                                             ]),
                                     ]),
 
-                                Tab::make('Activities')
-                                    ->icon('heroicon-o-clipboard-document-list')
-                                    ->schema([
-                                        RepeatableEntry::make('activities')
-                                            // ->relationship('activities')
-                                            // uses Lead::activities()
-                                            ->schema([
-                                                Section::make()
-                                                    ->collapsible()
-                                                    ->collapsed()
-                                                    ->heading(fn($record) => $record->activity_type ?? 'Activity')
-                                                    ->description(fn($record) => $record->created_at?->format('Y-m-d H:i:s'))
-                                                    ->schema([
-                                                        // Display data: activity_type, action, activity_follow_up.status, activity_follow_up.level_score, comments, assigned_by, created_at
-                                                        TextEntry::make('activity_type')
-                                                            ->label('Activity Type')
-                                                            ->badge()
-                                                            ->color(fn(string $state): string => match ($state) {
-                                                                'call' => 'primary',
-                                                                'email' => 'success',
-                                                                'meeting' => 'warning',
-                                                                'note' => 'info',
-                                                                'other' => 'secondary',
-                                                                default => 'gray',
-                                                            }),
-                                                        TextEntry::make('action')
-                                                            ->label('Action')
-                                                            ->placeholder('No action specified'),
-                                                        TextEntry::make('comments')
-                                                            ->label('Comments')
-                                                            ->placeholder('No comments')
-                                                            ->columnSpanFull()
-                                                            ->html(),
-                                                        TextEntry::make('assigned_by')
-                                                            ->label('Assigned By')
-                                                            ->placeholder('Unknown'),
-                                                        TextEntry::make('created_at')
-                                                            ->label('Created At')
-                                                            ->dateTime('M d, Y H:i:s')
-                                                            ->placeholder('Unknown'),
-                                                        TextEntry::make('activity_follow_up.status')
-                                                            ->label('Follow Up Status')
-                                                            ->placeholder('No follow-up')
-                                                            ->badge()
-                                                            ->color(fn(string $state): string => match ($state) {
-                                                                'Pending' => 'warning',
-                                                                'Success' => 'success',
-                                                                'Failed' => 'danger',
-                                                                default => 'gray',
-                                                            }),
-                                                        TextEntry::make('activity_follow_up.level_score')
-                                                            ->label('Level Score')
-                                                            // Display the score out of 10 using dots
-                                                            ->formatStateUsing(fn($state) => $state ? str_repeat('●', $state) . str_repeat('○', 10 - $state) : 'No score')
-                                                            ->placeholder('No score'),
-                                                    ]),
-                                            ])
-                                        // ->orderable(false),
-                                    ]),
+                            Tab::make('Activities')
+                                ->icon('heroicon-o-clipboard-document-list')
+                                ->schema([
+                                    // Add Activity button
+
+                                    // Sub-tabs for Activity Log and Call Log
+                                    Tabs::make('ActivitySubTabs')
+                                        ->tabs([
+                                            Tab::make('Activity Log')
+                                                ->icon('heroicon-o-document-text')
+                                                ->schema([
+                                                    RepeatableEntry::make('activities')
+                                                        ->schema([
+                                                            Section::make()
+                                                                ->collapsible()
+                                                                ->collapsed()
+                                                                ->heading(fn($record) => ucfirst($record->activity_type ?? 'Activity'))
+                                                                ->description(fn($record) => $record->created_at?->format('M d, Y h:i A'))
+                                                                ->schema([
+                                                                    TextEntry::make('description')
+                                                                        ->label('Details')
+                                                                        ->columnSpanFull(),
+                                                                    TextEntry::make('notes')
+                                                                        ->label('Notes')
+                                                                        ->columnSpanFull(),
+                                                                    TextEntry::make('assigned_by')
+                                                                        ->label('By'),
+                                                                    TextEntry::make('created_at')
+                                                                        ->label('Created At')
+                                                                        ->dateTime(),
+                                                                    TextEntry::make('followUp.status')
+                                                                        ->label('Follow-up')
+                                                                        ->badge(),
+                                                                    TextEntry::make('followUp.level_score')
+                                                                        ->label('Lead Score'),
+                                                                ])
+                                                                ->columns(2),
+                                                        ])
+                                                        ->contained(false)
+                                                        //->emptyStateHeading('No activities yet'),
+                                                ]),
+                                                
+                                            Tab::make('Call Log')
+                                                ->icon('heroicon-o-phone')
+                                                ->schema([
+                                                    RepeatableEntry::make('call_activities')
+                                                        ->schema([
+                                                            Section::make()
+                                                                ->collapsible()
+                                                                ->collapsed()
+                                                                ->heading(fn($record) => "📞 Call - " . ($record->status ?? 'Unknown'))
+                                                                ->description(fn($record) => $record->created_at?->format('M d, Y h:i A'))
+                                                                ->schema([
+                                                                    TextEntry::make('status')
+                                                                        ->label('Call Status')
+                                                                        ->badge(),
+                                                                    TextEntry::make('duration')
+                                                                        ->label('Duration')
+                                                                        ->formatStateUsing(fn($state) => $state ? "{$state} min" : 'N/A'),
+                                                                    TextEntry::make('description')
+                                                                        ->label('Summary')
+                                                                        ->columnSpanFull(),
+                                                                    TextEntry::make('notes')
+                                                                        ->label('Notes')
+                                                                        ->columnSpanFull(),
+                                                                    TextEntry::make('assigned_by')
+                                                                        ->label('Called By'),
+                                                                    TextEntry::make('created_at')
+                                                                        ->label('Date')
+                                                                        ->dateTime(),
+                                                                    TextEntry::make('followUp.status')
+                                                                        ->label('Follow-up')
+                                                                        ->badge(),
+                                                                    TextEntry::make('followUp.level_score')
+                                                                        ->label('Level Score'),
+                                                                ])
+                                                                ->columns(2),
+                                                        ])
+                                                        ->contained(false)
+                                                        //->emptyStateHeading('No calls yet'),
+                                                ]),
+                                        ]),
+                                ]),
 
                                 Tab::make('Pricing')
                                     ->icon('heroicon-o-currency-dollar')
