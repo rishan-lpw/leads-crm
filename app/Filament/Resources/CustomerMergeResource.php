@@ -9,6 +9,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -31,10 +32,14 @@ class CustomerMergeResource extends Resource
                 Forms\Components\Select::make('primary_customer_id')
                     ->label('Primary Customer')
                     ->relationship('primaryCustomer', 'firstname')
+                    ->searchable()
+                    ->preload()
                     ->required(),
                 Forms\Components\Select::make('secondary_customer_id')
                     ->label('Secondary Customer')
                     ->relationship('secondaryCustomer', 'firstname')
+                    ->searchable()
+                    ->preload()
                     ->required(),
                 Forms\Components\DatePicker::make('merge_at')
                     ->label('Merge Date')
@@ -44,6 +49,9 @@ class CustomerMergeResource extends Resource
                 Forms\Components\Select::make('merged_by')
                     ->label('Merged By')
                     ->relationship('user', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->default(auth()->id())
                     ->required()
             ]);
     }
@@ -64,10 +72,14 @@ class CustomerMergeResource extends Resource
                     ->label('Merged By'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created At')
+                    ->sortable()
                     ->dateTime(),
             ])
             ->filters([
-                //
+                SelectFilter::make('merged_by')
+                ->label('Merged By')
+                ->relationship('user', 'name'),
+                
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

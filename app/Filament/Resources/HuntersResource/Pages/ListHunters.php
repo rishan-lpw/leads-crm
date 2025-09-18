@@ -23,15 +23,15 @@ class ListHunters extends ListRecords
     public function getTabs(): array
     {
         return [
-            'new' => Tab::make('New Leads')
+            'new' => Tab::make('New')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'new'))
                 ->badge(Lead::where('status', 'new')->count())
                 ->badgeColor('success'),
-            'follow_up' => Tab::make('Follow-Up Leads')
+            'follow_up' => Tab::make('Follow-Up')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'follow_up'))
                 ->badge(Lead::where('status', 'follow_up')->count())
                 ->badgeColor('warning'),
-            'system' => Tab::make('System Leads')
+            'system' => Tab::make('System')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'system'))
                 ->badge(Lead::where('status', 'system')->count())
                 ->badgeColor('info'),
@@ -45,7 +45,7 @@ class ListHunters extends ListRecords
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'expired'))
                 ->badge(Lead::where('status', 'expired')->count())
                 ->badgeColor('danger'),
-            'all' => Tab::make('All Leads')
+            'all' => Tab::make('All')
                 ->badge(Lead::count())
                 ->badgeColor('primary'),
         ];

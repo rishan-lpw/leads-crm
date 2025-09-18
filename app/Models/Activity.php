@@ -7,25 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Customer;
 use App\Models\User;
 use App\Models\Lead;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Activity extends Model
 {
     use HasFactory;
 
     protected $table = 'activity';
-
-    // $table->id();
-    // $table->unsignedBigInteger('lead_id')->nullable();
-    // $table->unsignedBigInteger('user_id')->nullable();
-    // $table->string('action')->nullable();
-    // $table->integer('qty')->nullable();
-    // $table->decimal('value', 10, 2)->nullable();
-    // $table->unsignedBigInteger('ad_id')->nullable();
-    // $table->text('comments')->nullable();
-    // $table->date('reminder')->nullable();
-    // $table->dateTime('date_time')->nullable();
-    // $table->string('old_am')->nullable();
-    // $table->timestamps();
 
     protected $fillable = [
         'lead_id', 'user_id', 'action', 'qty', 'value', 'ad_id', 'comments', 'reminder', 'date_time', 'old_am'
@@ -63,5 +51,15 @@ class Activity extends Model
     public function followUp()
     {
         return $this->hasOne(ActivityFollowUp::class, 'activity_id');
+    }
+    
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    public function getCustomerAttribute()
+    {
+        return $this->lead?->customer;
     }
 }

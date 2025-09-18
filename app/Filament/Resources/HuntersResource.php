@@ -594,53 +594,6 @@ class HuntersResource extends Resource
                                 Tab::make('Activities')
                                     ->icon('heroicon-o-clipboard-document-list')
                                     ->schema([
-
-                                        // Add new activity button and call the EditActivity.php file and its action into that.
-                                        // Actions\Action::make('add_activity')
-                                        //     ->label('Add Activity')
-                                        //     ->button()
-                                        //     ->color('primary')
-                                        //     ->icon('heroicon-o-plus')
-                                        //     ->action(function (Lead $record, array $data): void {
-                                        //         // Create a new activity related to this lead
-                                        //         $record->activities()->create([
-                                        //             'activity_type' => $data['activity_type'],
-                                        //             'description' => $data['description'],
-                                        //             'status' => $data['status'],
-                                        //             'created_by' => auth()->user()->name,
-                                        //         ]);
-
-                                        //         Notification::make()
-                                        //             ->title('Activity Added')
-                                        //             ->success()
-                                        //             ->send();
-                                        //     })
-                                        //     ->form([
-                                        //         Forms\Components\Select::make('activity_type')
-                                        //             ->label('Activity Type')
-                                        //             ->options([
-                                        //                 'call' => 'Call',
-                                        //                 'email' => 'Email',
-                                        //                 'meeting' => 'Meeting',
-                                        //                 'note' => 'Note',
-                                        //                 'other' => 'Other',
-                                        //             ])
-                                        //             ->required(),
-                                        //         Forms\Components\Textarea::make('description')
-                                        //             ->label('Description')
-                                        //             ->rows(3)
-                                        //             ->required(),
-                                        //         Forms\Components\Select::make('status')
-                                        //             ->label('Status')
-                                        //             ->options([
-                                        //                 'Pending' => 'Pending',
-                                        //                 'Success' => 'Success',
-                                        //                 'Failed' => 'Failed',
-                                        //             ])
-                                        //             ->required(),
-                                        //     ])
-                                        //     ->modalWidth('md'),
-
                                         RepeatableEntry::make('activities')
                                             // ->relationship('activities')
                                             // uses Lead::activities()
@@ -651,20 +604,48 @@ class HuntersResource extends Resource
                                                     ->heading(fn($record) => $record->activity_type ?? 'Activity')
                                                     ->description(fn($record) => $record->created_at?->format('Y-m-d H:i:s'))
                                                     ->schema([
-                                                        TextEntry::make('status')
+                                                        // Display data: activity_type, action, activity_follow_up.status, activity_follow_up.level_score, comments, assigned_by, created_at
+                                                        TextEntry::make('activity_type')
+                                                            ->label('Activity Type')
                                                             ->badge()
-                                                            ->color(fn($state) => match ($state) {
-                                                                'Success' => 'success',
-                                                                'Failed' => 'danger',
-                                                                'Pending' => 'warning',
+                                                            ->color(fn(string $state): string => match ($state) {
+                                                                'call' => 'primary',
+                                                                'email' => 'success',
+                                                                'meeting' => 'warning',
+                                                                'note' => 'info',
+                                                                'other' => 'secondary',
                                                                 default => 'gray',
                                                             }),
-                                                        TextEntry::make('description')
-                                                            ->label('Details')
-                                                            ->columnSpanFull(),
-                                                        TextEntry::make('created_by')
-                                                            ->label('By')
-                                                            ->placeholder('System'),
+                                                        TextEntry::make('action')
+                                                            ->label('Action')
+                                                            ->placeholder('No action specified'),
+                                                        TextEntry::make('comments')
+                                                            ->label('Comments')
+                                                            ->placeholder('No comments')
+                                                            ->columnSpanFull()
+                                                            ->html(),
+                                                        TextEntry::make('assigned_by')
+                                                            ->label('Assigned By')
+                                                            ->placeholder('Unknown'),
+                                                        TextEntry::make('created_at')
+                                                            ->label('Created At')
+                                                            ->dateTime('M d, Y H:i:s')
+                                                            ->placeholder('Unknown'),
+                                                        TextEntry::make('activity_follow_up.status')
+                                                            ->label('Follow Up Status')
+                                                            ->placeholder('No follow-up')
+                                                            ->badge()
+                                                            ->color(fn(string $state): string => match ($state) {
+                                                                'Pending' => 'warning',
+                                                                'Success' => 'success',
+                                                                'Failed' => 'danger',
+                                                                default => 'gray',
+                                                            }),
+                                                        TextEntry::make('activity_follow_up.level_score')
+                                                            ->label('Level Score')
+                                                            // Display the score out of 10 using dots
+                                                            ->formatStateUsing(fn($state) => $state ? str_repeat('●', $state) . str_repeat('○', 10 - $state) : 'No score')
+                                                            ->placeholder('No score'),
                                                     ]),
                                             ])
                                         // ->orderable(false),
