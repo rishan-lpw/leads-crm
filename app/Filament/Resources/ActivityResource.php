@@ -2,6 +2,15 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\ActivityResource\Pages\ListActivities;
+use App\Filament\Resources\ActivityResource\Pages\CreateActivity;
+use App\Filament\Resources\ActivityResource\Pages\EditActivity;
 use App\Filament\Resources\ActivityResource\Pages;
 use App\Filament\Resources\ActivityResource\RelationManagers;
 use App\Models\Activity;
@@ -9,7 +18,6 @@ use App\Models\ActivityFollowUp;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Tabs\Tab;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -20,16 +28,16 @@ class ActivityResource extends Resource
 {
     protected static ?string $model = Activity::class;
 
-    protected static ?string $navigationIcon = 'lucide-activity';
+    protected static string | \BackedEnum | null $navigationIcon = 'lucide-activity';
 
     protected static ?string $navigationLabel = 'Agent\'s Activities';
 
-    protected static ?string $navigationGroup = 'Agents';
+    protected static string | \UnitEnum | null $navigationGroup = 'Agents';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 // protected $fillable = [
                 //     'lead_id', 'user_id', 'action', 'qty', 'value', 'ad_id', 'comments', 'reminder', 'date_time', 'old_am'
                 // ];
@@ -42,21 +50,21 @@ class ActivityResource extends Resource
         return $table
             ->columns([
                 // Add the Columns: 'lead_id', 'user_id', 'action', 'qty', 'value', 'ad_id', 'comments', 'reminder', 'date_time', 'old_am'
-                Tables\Columns\TextColumn::make('user.name')->label('Agent')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('lead.customer.firstname')->label('Customer')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('action')->label('Action')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('qty')->label('Quantity')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('value')->label('Value')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('comments')->label('Comments')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('date_time')->label('Date & Time')->dateTime()->searchable()->sortable(),
+                TextColumn::make('user.name')->label('Agent')->searchable()->sortable(),
+                TextColumn::make('lead.customer.firstname')->label('Customer')->searchable()->sortable(),
+                TextColumn::make('action')->label('Action')->searchable()->sortable(),
+                TextColumn::make('qty')->label('Quantity')->searchable()->sortable(),
+                TextColumn::make('value')->label('Value')->searchable()->sortable(),
+                TextColumn::make('comments')->label('Comments')->searchable()->sortable(),
+                TextColumn::make('date_time')->label('Date & Time')->dateTime()->searchable()->sortable(),
                 ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -94,9 +102,9 @@ class ActivityResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListActivities::route('/'),
-            'create' => Pages\CreateActivity::route('/create'),
-            'edit' => Pages\EditActivity::route('/{record}/edit'),
+            'index' => ListActivities::route('/'),
+            'create' => CreateActivity::route('/create'),
+            'edit' => EditActivity::route('/{record}/edit'),
         ];
     }
 }

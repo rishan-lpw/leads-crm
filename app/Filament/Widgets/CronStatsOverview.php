@@ -24,7 +24,7 @@ class CronStatsOverview extends BaseWidget
     protected function getWidgets(): array
     {
         return [
-            \App\Filament\Widgets\CronRunsChart::class,
+            CronRunsChart::class,
         ];
     }
 }

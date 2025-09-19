@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AgentDashboardResource\Pages;
 
+use Filament\Actions\DeleteAction;
 use App\Filament\Resources\AgentDashboardResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -13,7 +14,7 @@ class EditAgentDashboard extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

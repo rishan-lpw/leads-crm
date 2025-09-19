@@ -2,11 +2,17 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\AssignManageResource\Pages\ListAssignManages;
+use App\Filament\Resources\AssignManageResource\Pages\CreateAssignManage;
+use App\Filament\Resources\AssignManageResource\Pages\EditAssignManage;
 use App\Filament\Resources\AssignManageResource\Pages;
 use App\Filament\Resources\AssignManageResource\RelationManagers;
 use App\Models\AssignManage;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,14 +25,14 @@ class AssignManageResource extends Resource
 
     protected static ?string $navigationLabel = 'Manage Assigns';
 
-    protected static ?string $navigationGroup = 'Admin';
+    protected static string | \UnitEnum | null $navigationGroup = 'Admin';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -40,12 +46,12 @@ class AssignManageResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -60,9 +66,9 @@ class AssignManageResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAssignManages::route('/'),
-            'create' => Pages\CreateAssignManage::route('/create'),
-            'edit' => Pages\EditAssignManage::route('/{record}/edit'),
+            'index' => ListAssignManages::route('/'),
+            'create' => CreateAssignManage::route('/create'),
+            'edit' => EditAssignManage::route('/{record}/edit'),
         ];
     }
 }

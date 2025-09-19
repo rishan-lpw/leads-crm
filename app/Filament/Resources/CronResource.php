@@ -2,12 +2,22 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\EditAction;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\CronResource\Pages\ListCrons;
+use App\Filament\Resources\CronResource\Pages\CreateCron;
+use App\Filament\Resources\CronResource\Pages\EditCron;
 use App\Filament\Resources\CronResource\Pages;
 use App\Filament\Resources\CronResource\RelationManagers;
 use App\Models\Cron;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -21,20 +31,20 @@ class CronResource extends Resource
 {
     protected static ?string $model = Cron::class;
 
-    protected static ?string $navigationIcon = 'heroicon-m-arrow-up-on-square-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-m-arrow-up-on-square-stack';
 
-    protected static ?string $navigationGroup = 'Admin';
+    protected static string | \UnitEnum | null $navigationGroup = 'Admin';
 
     protected static ?string $navigationLabel = 'Assign Rules';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('name')
+        return $schema
+            ->components([
+                TextInput::make('name')
                     ->label('Cron Name')
                     ->required(),
-                Forms\Components\Select::make('category')
+                Select::make('category')
                     ->label('Select Channel')
                     ->options([
                         'Pending Payment' => 'Pending Payment',
@@ -44,7 +54,7 @@ class CronResource extends Resource
                     ->required(),
 
                 // Select multiple options as user names in user table. User can be able to select many choices here.
-                Forms\Components\Select::make('member')
+                Select::make('member')
                     ->label('Select Member/Members')
                     ->multiple()
                     // Give options as user names from user table whose user_type <= 3
@@ -56,12 +66,12 @@ class CronResource extends Resource
                         ->toArray())
                     ->required(),
 
-                Forms\Components\Select::make('rule_1_days')
+                Select::make('rule_1_days')
                     ->label('No. of Days Assigned (Rule 1)')
                     ->options(array_combine(range(1, 30), range(1, 30)))
                     ->required(),
 
-                Forms\Components\Select::make('rule_2_days')
+                Select::make('rule_2_days')
                     ->label('No. of Days Assigned (Rule 2)')
                     ->options(array_combine(range(1, 30), range(1, 30)))
                     ->required(),
@@ -72,17 +82,17 @@ class CronResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->label('Cron Name')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('category')->label('Channel')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('member')->label('Members')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('rule_1_days')->label('Days (Rule 1)')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('rule_2_days')->label('Days (Rule 2)')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('name')->label('Cron Name')->sortable()->searchable(),
+                TextColumn::make('category')->label('Channel')->sortable()->searchable(),
+                TextColumn::make('member')->label('Members')->sortable()->searchable(),
+                TextColumn::make('rule_1_days')->label('Days (Rule 1)')->sortable()->searchable(),
+                TextColumn::make('rule_2_days')->label('Days (Rule 2)')->sortable()->searchable(),
+                TextColumn::make('created_at')
                     ->label('Created At')
                     ->dateTime('d-M-Y H:i')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Updated At')
                     ->dateTime('d-M-Y H:i')
                     ->sortable()
@@ -96,10 +106,10 @@ class CronResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
                 // Add a run now action
-                Tables\Actions\Action::make('run_now')
+                Action::make('run_now')
                     ->label('Run Now')
                     ->icon('heroicon-o-play')
                     ->color('success')
@@ -110,9 +120,9 @@ class CronResource extends Resource
                     )
                     ->modalSubmitActionLabel('Execute Now') 
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -127,9 +137,9 @@ class CronResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCrons::route('/'),
-            'create' => Pages\CreateCron::route('/create'),
-            'edit' => Pages\EditCron::route('/{record}/edit'),
+            'index' => ListCrons::route('/'),
+            'create' => CreateCron::route('/create'),
+            'edit' => EditCron::route('/{record}/edit'),
         ];
     }
 }

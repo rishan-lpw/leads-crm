@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerGrowthChart extends ChartWidget
 {
-    protected static ?string $heading = 'Customer Growth';
+    protected ?string $heading = 'Customer Growth';
     protected static ?int $sort = 4;
-    protected static ?string $pollingInterval = '15s';
+    protected ?string $pollingInterval = '15s';
     
     protected function getData(): array
     {

@@ -2,11 +2,17 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\BulkUploadResource\Pages\ListBulkUploads;
+use App\Filament\Resources\BulkUploadResource\Pages\CreateBulkUpload;
+use App\Filament\Resources\BulkUploadResource\Pages\EditBulkUpload;
 use App\Filament\Resources\BulkUploadResource\Pages;
 use App\Filament\Resources\BulkUploadResource\RelationManagers;
 use App\Models\BulkUpload;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -17,16 +23,16 @@ class BulkUploadResource extends Resource
 {
     protected static ?string $model = BulkUpload::class;
 
-    protected static ?string $navigationIcon = 'ri-upload-cloud-2-fill';
+    protected static string | \BackedEnum | null $navigationIcon = 'ri-upload-cloud-2-fill';
 
     protected static ?string $navigationLabel = 'Bulk Upload';
 
-    protected static ?string $navigationGroup = 'Customers';
+    protected static string | \UnitEnum | null $navigationGroup = 'Customers';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -40,12 +46,12 @@ class BulkUploadResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -60,9 +66,9 @@ class BulkUploadResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListBulkUploads::route('/'),
-            'create' => Pages\CreateBulkUpload::route('/create'),
-            'edit' => Pages\EditBulkUpload::route('/{record}/edit'),
+            'index' => ListBulkUploads::route('/'),
+            'create' => CreateBulkUpload::route('/create'),
+            'edit' => EditBulkUpload::route('/{record}/edit'),
         ];
     }
 }

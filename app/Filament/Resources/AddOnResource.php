@@ -2,12 +2,25 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\AddOnResource\Pages\ListAddOns;
+use App\Filament\Resources\AddOnResource\Pages\CreateAddOn;
+use App\Filament\Resources\AddOnResource\Pages\EditAddOn;
 use App\Filament\Resources\AddOnResource\Pages;
 use App\Filament\Resources\AddOnResource\RelationManagers;
 use App\Models\AddOn;
 use Filament\Forms;
 use Filament\Forms\Components\Tabs\Tab;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use App\Models\Customer;
 use Filament\Tables;
@@ -21,25 +34,25 @@ class AddOnResource extends Resource
 
     protected static ?string $navigationLabel = 'Add List';
 
-    protected static ?string $navigationIcon = 'heroicon-s-rectangle-group';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-s-rectangle-group';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Textarea::make('title')
+        return $schema
+            ->components([
+                Textarea::make('title')
                     ->required()
                     ->columnSpanFull(),
-                Forms\Components\Textarea::make('description')
+                Textarea::make('description')
                     ->columnSpanFull(),
-                Forms\Components\TextInput::make('price')
+                TextInput::make('price')
                     ->required()
                     ->numeric()
                     ->prefix('$'),
-                Forms\Components\Textarea::make('location')
+                Textarea::make('location')
                     ->required()
                     ->columnSpanFull(),
-                Forms\Components\Select::make('category_id')
+                Select::make('category_id')
                     ->required()
                     ->relationship('category', 'name')
                     ->columnSpanFull(),
@@ -50,42 +63,42 @@ class AddOnResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('title')
+                TextColumn::make('title')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('customer.name')
+                TextColumn::make('customer.name')
                     ->sortable()
                     ->label('Customer')
                     ->searchable(),
                 // Tables\Columns\TextColumn::make('customer.phone_number')
                 //     ->label('Phone No.')
                 //     ->searchable(),
-                Tables\Columns\TextColumn::make('description')
+                TextColumn::make('description')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('location')
+                TextColumn::make('location')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('category.name')
+                TextColumn::make('category.name')
                     ->sortable()
                     ->label('Category')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('category.status')
+                TextColumn::make('category.status')
                     ->sortable()
                     ->label('Status')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('category.description')
+                TextColumn::make('category.description')
                     ->sortable()
                     ->label('Description')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('price')
+                TextColumn::make('price')
                     ->sortable()
                     ->prefix('$'),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->sortable()
                     ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->sortable()
                     ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -93,12 +106,12 @@ class AddOnResource extends Resource
             // I want to add a filter for the category
             ->filters([
             // Add a proper category filter
-            Tables\Filters\SelectFilter::make('category')
+            SelectFilter::make('category')
                 ->relationship('category', 'name')
                 ->label('Filter by Category'),
-            Tables\Filters\Filter::make('price_range')
-                ->form([
-                    Forms\Components\Select::make('price_range')
+            Filter::make('price_range')
+                ->schema([
+                    Select::make('price_range')
                         ->options([
                             'under_50' => 'Under $50',
                             '50_100' => '$50 to $100',
@@ -115,20 +128,20 @@ class AddOnResource extends Resource
                         return $q->where('price', '>', 100);
                     });
                 }),
-            Tables\Filters\Filter::make('customer')
-                ->form([
-                    Forms\Components\Select::make('customer')
+            Filter::make('customer')
+                ->schema([
+                    Select::make('customer')
                         ->options(Customer::all()->pluck('name', 'id'))
                         ->label('Filter by Customer'),
                 ])
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -143,9 +156,9 @@ class AddOnResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAddOns::route('/'),
-            'create' => Pages\CreateAddOn::route('/create'),
-            'edit' => Pages\EditAddOn::route('/{record}/edit'),
+            'index' => ListAddOns::route('/'),
+            'create' => CreateAddOn::route('/create'),
+            'edit' => EditAddOn::route('/{record}/edit'),
         ];
     }
 }

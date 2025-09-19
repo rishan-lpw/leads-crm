@@ -2,11 +2,17 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\UserManageResource\Pages\ListUserManages;
+use App\Filament\Resources\UserManageResource\Pages\CreateUserManage;
+use App\Filament\Resources\UserManageResource\Pages\EditUserManage;
 use App\Filament\Resources\UserManageResource\Pages;
 use App\Filament\Resources\UserManageResource\RelationManagers;
 use App\Models\UserManage;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,14 +25,14 @@ class UserManageResource extends Resource
 
     protected static ?string $navigationLabel = 'Manage Users';
 
-    protected static ?string $navigationGroup = 'Admin';
+    protected static string | \UnitEnum | null $navigationGroup = 'Admin';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -40,12 +46,12 @@ class UserManageResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -60,9 +66,9 @@ class UserManageResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUserManages::route('/'),
-            'create' => Pages\CreateUserManage::route('/create'),
-            'edit' => Pages\EditUserManage::route('/{record}/edit'),
+            'index' => ListUserManages::route('/'),
+            'create' => CreateUserManage::route('/create'),
+            'edit' => EditUserManage::route('/{record}/edit'),
         ];
     }
 }

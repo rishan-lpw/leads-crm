@@ -2,20 +2,32 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DatePicker;
+use Filament\Tables\Columns\TextColumn;
+use Carbon\Carbon;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\ViewAction;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Actions;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
+use App\Filament\Resources\MemberResource\Pages\ListMembers;
+use App\Filament\Resources\MemberResource\Pages\CreateMember;
+use App\Filament\Resources\MemberResource\Pages\EditMember;
 use App\Filament\Resources\MemberResource\Pages;
 use App\Filament\Resources\MemberResource\RelationManagers;
 use App\Models\Customer;
 use App\Models\Member;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Infolists\Components\Section;
-use Filament\Infolists\Components\Tabs;
-use Filament\Infolists\Components\Tabs\Tab;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
-use Filament\Forms\Form;
-use Filament\Infolists\Components\Actions;
-use Filament\Infolists\Components\Actions\Action as InfolistAction;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -27,26 +39,26 @@ class MemberResource extends Resource
 {
     protected static ?string $model = Customer::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $modelLabel = 'Members';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('name')
+        return $schema
+            ->components([
+                TextInput::make('name')
                     ->label('Member Name')
                     ->required(),
-                Forms\Components\TextInput::make('email')
+                TextInput::make('email')
                     ->label('Email')
                     ->email()
                     ->required(),
-                Forms\Components\Textarea::make('address')
+                Textarea::make('address')
                     ->label('Address'),
-                Forms\Components\TextInput::make('phone_number')
+                TextInput::make('phone_number')
                     ->label('Contact Number'),
-                Forms\Components\Select::make('membership_status')
+                Select::make('membership_status')
                     ->label('Membership Status')
                     ->options([
                         'active' => 'Active',
@@ -55,7 +67,7 @@ class MemberResource extends Resource
                         'expired' => 'Expired',
                     ])
                     ->required(),
-                Forms\Components\Select::make('membership_category')
+                Select::make('membership_category')
                     ->label('Membership Category')
                     ->options([
                         'basic' => 'Basic',
@@ -63,20 +75,20 @@ class MemberResource extends Resource
                         'vip' => 'VIP',
                     ])
                     ->required(),
-                Forms\Components\DatePicker::make('payment_exp_date')
+                DatePicker::make('payment_exp_date')
                     ->label('Payment Expiry Date'),
-                Forms\Components\DatePicker::make('membership_exp_date')
+                DatePicker::make('membership_exp_date')
                     ->label('Membership Expiry Date'),
-                Forms\Components\TextInput::make('available_boosts_source')
+                TextInput::make('available_boosts_source')
                     ->label('Available Boosts')
                     ->numeric()
                     ->default(0),
-                Forms\Components\DatePicker::make('last_boost_added_date')
+                DatePicker::make('last_boost_added_date')
                     ->label('Last Boost Added Date'),
-                Forms\Components\TextInput::make('ad_url')
+                TextInput::make('ad_url')
                     ->label('Ad URL')
                     ->url(),
-                Forms\Components\Textarea::make('customer_remarks')
+                Textarea::make('customer_remarks')
                     ->label('Customer Remarks'),
             ]);
     }
@@ -85,18 +97,18 @@ class MemberResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->label('Member Name')
                     ->sortable()
                     ->searchable(),
                 
-                Tables\Columns\TextColumn::make('email')
+                TextColumn::make('email')
                     ->label('Email')
                     ->sortable()
                     ->searchable(),
 
                 // Add colourful badges for membership status
-                Tables\Columns\TextColumn::make('membership_status')
+                TextColumn::make('membership_status')
                     ->label('Membership Status')
                     ->sortable()
                     ->searchable()
@@ -109,7 +121,7 @@ class MemberResource extends Resource
                         default => 'gray',
                     }),
 
-                Tables\Columns\TextColumn::make('membership_category')
+                TextColumn::make('membership_category')
                     ->label('Membership Category')
                     ->sortable()
                     ->searchable()
@@ -122,13 +134,13 @@ class MemberResource extends Resource
                     }),
 
                 // AM name: user.name
-                Tables\Columns\TextColumn::make('user.name')
+                TextColumn::make('user.name')
                     ->label('AM')
                     ->sortable()
                     ->searchable(),
 
                 // Add a field called No. of Ads as show the ads count from add_on table for a relevant member
-                Tables\Columns\TextColumn::make('ads_count')
+                TextColumn::make('ads_count')
                     ->label('No. of Ads')
                     ->formatStateUsing(function ($record) {
                         return DB::table('add_on')
@@ -145,28 +157,28 @@ class MemberResource extends Resource
                     ->sortable(false),
 
                 // Payment Expiration Date
-                Tables\Columns\TextColumn::make('payment_exp_date')
+                TextColumn::make('payment_exp_date')
                     ->label('Payment Exp. Date')
                     ->date('M d, Y')
                     ->sortable()
                     ->color(function ($state) {
                         if (!$state) return 'gray';
-                        return \Carbon\Carbon::parse($state)->isPast() ? 'danger' : 'success';
+                        return Carbon::parse($state)->isPast() ? 'danger' : 'success';
                     }),
 
                 // Membership Expiration Date
-                Tables\Columns\TextColumn::make('membership_exp_date')
+                TextColumn::make('membership_exp_date')
                     ->label('Membership Exp. Date')
                     ->date('M d, Y')
                     ->sortable()
                     ->color(function ($state) {
                         if (!$state) return 'gray';
-                        return \Carbon\Carbon::parse($state)->isPast() ? 'danger' : 'success';
+                        return Carbon::parse($state)->isPast() ? 'danger' : 'success';
                     }),
 
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('membership_status')
+                SelectFilter::make('membership_status')
                     ->label('Membership Status')
                     ->options([
                         'active' => 'Active',
@@ -175,7 +187,7 @@ class MemberResource extends Resource
                         'expired' => 'Expired',
                     ]),
                 
-                Tables\Filters\SelectFilter::make('membership_category')
+                SelectFilter::make('membership_category')
                     ->label('Membership Category')
                     ->options([
                         'basic' => 'Basic',
@@ -183,11 +195,11 @@ class MemberResource extends Resource
                         'vip' => 'VIP',
                     ]),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading(fn($record) => 'Member Details - ' . $record->name)
                     ->modalWidth('6xl')
-                    ->infolist([
+                    ->schema([
                         Tabs::make('MemberTabs')
                             ->tabs([
                                  Tab::make('Summary')
@@ -252,7 +264,7 @@ class MemberResource extends Resource
                                                     ->placeholder('Not set')
                                                     ->color(function ($state) {
                                                         if (!$state) return 'gray';
-                                                        return \Carbon\Carbon::parse($state)->isPast() ? 'danger' : 'success';
+                                                        return Carbon::parse($state)->isPast() ? 'danger' : 'success';
                                                     }),
                                                 TextEntry::make('membership_exp_date')
                                                     ->label('Membership Expiry Date')
@@ -260,7 +272,7 @@ class MemberResource extends Resource
                                                     ->placeholder('Not set')
                                                     ->color(function ($state) {
                                                         if (!$state) return 'gray';
-                                                        return \Carbon\Carbon::parse($state)->isPast() ? 'danger' : 'success';
+                                                        return Carbon::parse($state)->isPast() ? 'danger' : 'success';
                                                     }),
                                                 TextEntry::make('last_boost_added_date')
                                                     ->label('Last Boost Added')
@@ -288,23 +300,23 @@ class MemberResource extends Resource
                                     ->icon('heroicon-o-document-text')
                                     ->schema([
                                         Actions::make([
-                                            InfolistAction::make('edit')
+                                            Action::make('edit')
                                                 ->label('Edit Member Details')
                                                 ->icon('heroicon-o-pencil')
                                                 ->color('primary')
-                                                ->form([
-                                                    Forms\Components\TextInput::make('name')
+                                                ->schema([
+                                                    TextInput::make('name')
                                                         ->label('Member Name')
                                                         ->required(),
-                                                    Forms\Components\TextInput::make('email')
+                                                    TextInput::make('email')
                                                         ->label('Email')
                                                         ->email()
                                                         ->required(),
-                                                    Forms\Components\Textarea::make('address')
+                                                    Textarea::make('address')
                                                         ->label('Address'),
-                                                    Forms\Components\TextInput::make('phone_number')
+                                                    TextInput::make('phone_number')
                                                         ->label('Contact Number'),
-                                                    Forms\Components\Select::make('membership_status')
+                                                    Select::make('membership_status')
                                                         ->label('Membership Status')
                                                         ->options([
                                                             'active' => 'Active',
@@ -313,7 +325,7 @@ class MemberResource extends Resource
                                                             'expired' => 'Expired',
                                                         ])
                                                         ->required(),
-                                                    Forms\Components\Select::make('membership_category')
+                                                    Select::make('membership_category')
                                                         ->label('Membership Category')
                                                         ->options([
                                                             'basic' => 'Basic',
@@ -321,20 +333,20 @@ class MemberResource extends Resource
                                                             'vip' => 'VIP',
                                                         ])
                                                         ->required(),
-                                                    Forms\Components\DatePicker::make('payment_exp_date')
+                                                    DatePicker::make('payment_exp_date')
                                                         ->label('Payment Expiry Date'),
-                                                    Forms\Components\DatePicker::make('membership_exp_date')
+                                                    DatePicker::make('membership_exp_date')
                                                         ->label('Membership Expiry Date'),
-                                                    Forms\Components\TextInput::make('available_boosts_source')
+                                                    TextInput::make('available_boosts_source')
                                                         ->label('Available Boosts')
                                                         ->numeric()
                                                         ->default(0),
-                                                    Forms\Components\DatePicker::make('last_boost_added_date')
+                                                    DatePicker::make('last_boost_added_date')
                                                         ->label('Last Boost Added Date'),
-                                                    Forms\Components\TextInput::make('ad_url')
+                                                    TextInput::make('ad_url')
                                                         ->label('Ad URL')
                                                         ->url(),
-                                                    Forms\Components\Textarea::make('customer_remarks')
+                                                    Textarea::make('customer_remarks')
                                                         ->label('Customer Remarks'),
                                                 ])
                                                 ->fillForm(fn ($record): array => [
@@ -441,7 +453,7 @@ class MemberResource extends Resource
                                                     ->date('M d, Y')
                                                     ->color(function ($state) {
                                                         if (!$state) return 'gray';
-                                                        return \Carbon\Carbon::parse($state)->isPast() ? 'danger' : 'success';
+                                                        return Carbon::parse($state)->isPast() ? 'danger' : 'success';
                                                     }),
                                                 TextEntry::make('days_until_expiry')
                                                     ->label('Days Until Expiry')
@@ -517,7 +529,7 @@ class MemberResource extends Resource
                     ]),
                 
                 // Add a separate edit action in the table
-                Tables\Actions\EditAction::make()
+                EditAction::make()
                     ->slideOver(),
             ]);
     }
@@ -532,9 +544,9 @@ class MemberResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListMembers::route('/'),
-            'create' => Pages\CreateMember::route('/create'),
-            'edit' => Pages\EditMember::route('/{record}/edit'),
+            'index' => ListMembers::route('/'),
+            'create' => CreateMember::route('/create'),
+            'edit' => EditMember::route('/{record}/edit'),
         ];
     }
 }

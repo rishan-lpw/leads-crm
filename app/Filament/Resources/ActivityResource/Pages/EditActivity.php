@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ActivityResource\Pages;
 
+use Filament\Actions\DeleteAction;
 use App\Filament\Resources\ActivityResource;
 use Filament\Actions;
 use Filament\Forms\Components\Section;
@@ -16,7 +17,7 @@ class EditActivity extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 

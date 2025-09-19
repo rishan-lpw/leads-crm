@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\AgentDashboardResource\Pages\ListAgentDashboards;
+use App\Filament\Resources\AgentDashboardResource\Pages\CreateAgentDashboard;
+use App\Filament\Resources\AgentDashboardResource\Pages\EditAgentDashboard;
 use App\Filament\Resources\AgentDashboardResource\Pages;
 use App\Filament\Resources\AgentDashboardResource\RelationManagers;
 use App\Filament\Resources\AgentDashboardResource\Widgets\StatsOverview;
@@ -21,9 +24,9 @@ class AgentDashboardResource extends Page
 
     protected static ?string $navigationLabel = 'Agent Dashboard';
 
-    protected static ?string $navigationGroup = 'Agents';
+    protected static string | \UnitEnum | null $navigationGroup = 'Agents';
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-group';
 
     protected function getHeaderWidgets(): array
     {
@@ -69,9 +72,9 @@ class AgentDashboardResource extends Page
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAgentDashboards::route('/'),
-            'create' => Pages\CreateAgentDashboard::route('/create'),
-            'edit' => Pages\EditAgentDashboard::route('/{record}/edit'),
+            'index' => ListAgentDashboards::route('/'),
+            'create' => CreateAgentDashboard::route('/create'),
+            'edit' => EditAgentDashboard::route('/{record}/edit'),
         ];
     }
 }

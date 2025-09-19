@@ -2,6 +2,25 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\DatePicker;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Exception;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\BulkAction;
+use App\Filament\Resources\HuntersResource\Pages\ListHunters;
+use App\Filament\Resources\HuntersResource\Pages\CreateHunters;
+use App\Filament\Resources\HuntersResource\Pages\EditHunters;
 use App\Filament\Resources\HuntersResource\Pages;
 use App\Filament\Resources\HuntersResource\RelationManagers;
 use App\Models\Customer;
@@ -13,10 +32,6 @@ use Filament\Actions\ViewAction;
 use Filament\Forms;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Select;
-use Filament\Infolists\Components\Section;
-use Filament\Infolists\Components\Tabs;
-use Filament\Infolists\Components\Tabs\Tab;
-use Filament\Forms\Form;
 use Filament\Infolists\Components\Actions;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -27,7 +42,6 @@ use Filament\Tables;
 use Filament\Infolists\Components\Actions\Action as InfolistAction;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Tables\Table;
-use Filament\Tables\Actions\Action;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
@@ -41,9 +55,9 @@ class HuntersResource extends Resource
 
     protected static ?string $navigationLabel = 'Hunters';
 
-    protected static ?string $navigationGroup = 'Private Sellers';
+    protected static string | \UnitEnum | null $navigationGroup = 'Private Sellers';
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-users';
 
     // Show all leads since there's no source field in the new structure
     public static function getEloquentQuery(): Builder
@@ -61,17 +75,17 @@ class HuntersResource extends Resource
         return $query;
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Basic Information')
+        return $schema
+            ->components([
+                Section::make('Basic Information')
                     ->schema([
-                        Forms\Components\TextInput::make('heading')
+                        TextInput::make('heading')
                             ->label('Property Heading')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\Select::make('type')
+                        Select::make('type')
                             ->label('Listing Type')
                             ->options([
                                 'sell' => 'For Sale',
@@ -79,7 +93,7 @@ class HuntersResource extends Resource
                                 'lease' => 'For Lease',
                             ])
                             ->required(),
-                        Forms\Components\Select::make('propty_type')
+                        Select::make('propty_type')
                             ->label('Property Type')
                             ->options([
                                 'house' => 'House',
@@ -90,7 +104,7 @@ class HuntersResource extends Resource
                                 'townhouse' => 'Townhouse',
                             ])
                             ->required(),
-                        Forms\Components\Select::make('service_type')
+                        Select::make('service_type')
                             ->label('Service Type')
                             ->options([
                                 'complete' => 'Complete Service',
@@ -100,44 +114,44 @@ class HuntersResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Location Details')
+                Section::make('Location Details')
                     ->schema([
-                        Forms\Components\TextInput::make('street')
+                        TextInput::make('street')
                             ->label('Street Address')
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('city')
+                        TextInput::make('city')
                             ->label('City')
                             ->required()
                             ->maxLength(100),
-                        Forms\Components\TextInput::make('lat')
+                        TextInput::make('lat')
                             ->label('Latitude')
                             ->numeric()
                             ->step(0.00000001),
-                        Forms\Components\TextInput::make('lng')
+                        TextInput::make('lng')
                             ->label('Longitude')
                             ->numeric()
                             ->step(0.00000001),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Property Description')
+                Section::make('Property Description')
                     ->schema([
-                        Forms\Components\Textarea::make('desc')
+                        Textarea::make('desc')
                             ->label('Description')
                             ->rows(4)
                             ->columnSpanFull(),
                     ]),
 
-                Forms\Components\Section::make('Pricing Information')
+                Section::make('Pricing Information')
                     ->schema([
-                        Forms\Components\TextInput::make('price')
+                        TextInput::make('price')
                             ->label('Main Price')
                             ->numeric()
                             ->prefix('LKR'),
-                        Forms\Components\TextInput::make('alt_price')
+                        TextInput::make('alt_price')
                             ->label('Alternative Price')
                             ->numeric(),
-                        Forms\Components\Select::make('alt_currency')
+                        Select::make('alt_currency')
                             ->label('Alternative Currency')
                             ->options([
                                 'LKR' => 'LKR',
@@ -145,7 +159,7 @@ class HuntersResource extends Resource
                                 'EUR' => 'EUR',
                                 'GBP' => 'GBP',
                             ]),
-                        Forms\Components\Select::make('price_type')
+                        Select::make('price_type')
                             ->label('Price Type')
                             ->options([
                                 'total' => 'Total Price',
@@ -153,66 +167,66 @@ class HuntersResource extends Resource
                                 'per_month' => 'Per Month',
                                 'negotiable' => 'Negotiable',
                             ]),
-                        Forms\Components\TextInput::make('price_monthly')
+                        TextInput::make('price_monthly')
                             ->label('Monthly Price')
                             ->numeric()
                             ->prefix('LKR'),
-                        Forms\Components\TextInput::make('price_land_pp')
+                        TextInput::make('price_land_pp')
                             ->label('Land Price per Perch')
                             ->numeric()
                             ->prefix('LKR'),
-                        Forms\Components\TextInput::make('price_land_total')
+                        TextInput::make('price_land_total')
                             ->label('Total Land Price')
                             ->numeric()
                             ->prefix('LKR'),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Contact Information')
+                Section::make('Contact Information')
                     ->schema([
-                        Forms\Components\Select::make('contact_type')
+                        Select::make('contact_type')
                             ->label('Contact Type')
                             ->options([
                                 'owner' => 'Property Owner',
                                 'agent' => 'Real Estate Agent',
                                 'developer' => 'Developer',
                             ]),
-                        Forms\Components\TextInput::make('contact_name')
+                        TextInput::make('contact_name')
                             ->label('Contact Name')
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('email')
+                        TextInput::make('email')
                             ->label('Email')
                             ->email()
                             ->maxLength(255),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Media & Links')
+                Section::make('Media & Links')
                     ->schema([
-                        Forms\Components\Toggle::make('pic')
+                        Toggle::make('pic')
                             ->label('Has Pictures'),
-                        Forms\Components\TextInput::make('pic_count')
+                        TextInput::make('pic_count')
                             ->label('Picture Count')
                             ->numeric()
                             ->minValue(0),
-                        Forms\Components\TextInput::make('youtube_link')
+                        TextInput::make('youtube_link')
                             ->label('YouTube Link')
                             ->url()
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('video_link')
+                        TextInput::make('video_link')
                             ->label('Video Link')
                             ->url()
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('image_360')
+                        TextInput::make('image_360')
                             ->label('360° Image Link')
                             ->url()
                             ->maxLength(255),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Status & Settings')
+                Section::make('Status & Settings')
                     ->schema([
-                        Forms\Components\Select::make('status')
+                        Select::make('status')
                             ->label('Lead Status')
                             ->options([
                                 'new' => 'New',
@@ -223,7 +237,7 @@ class HuntersResource extends Resource
                             ])
                             ->default('new')
                             ->required(),
-                        Forms\Components\Select::make('source')
+                        Select::make('source')
                             ->label('Lead Source')
                             ->options([
                                 'pending_payments' => 'Pending Payments',
@@ -233,7 +247,7 @@ class HuntersResource extends Resource
                             ])
                             ->searchable(),
 
-                        Forms\Components\TextInput::make('weight')
+                        TextInput::make('weight')
                             ->label('Priority Weight')
                             ->numeric()
                             ->default(0)
@@ -254,25 +268,25 @@ class HuntersResource extends Resource
                             ->default(1)
                             ->native(false)
                             ->required(),
-                        Forms\Components\Toggle::make('is_trending')
+                        Toggle::make('is_trending')
                             ->label('Trending'),
-                        Forms\Components\Toggle::make('blocked')
+                        Toggle::make('blocked')
                             ->label('Blocked')
                             ->helperText('Block this listing from public view'),
                     ])
                     ->columns(3),
 
-                Forms\Components\Section::make('System Fields')
+                Section::make('System Fields')
                     ->schema([
-                        Forms\Components\TextInput::make('ad_id')
+                        TextInput::make('ad_id')
                             ->label('Advertisement ID')
                             ->numeric()
                             ->required(),
-                        Forms\Components\TextInput::make('cust_id')
+                        TextInput::make('cust_id')
                             ->label('Customer ID')
                             ->numeric()
                             ->required(),
-                        Forms\Components\TextInput::make('user_id')
+                        TextInput::make('user_id')
                             ->label('User ID')
                             ->numeric(),
                     ])
@@ -296,28 +310,28 @@ class HuntersResource extends Resource
         return $table
             ->columns([
                 // Print customer name and user name as new columns
-                Tables\Columns\TextColumn::make('customer.firstname')
+                TextColumn::make('customer.firstname')
                     ->label('Customer Name')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('user.name')
+                TextColumn::make('user.name')
                     ->label('AM Name')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('heading')
+                TextColumn::make('heading')
                     ->label('Property Heading')
                     ->searchable()
                     ->sortable()
                     ->limit(50),
 
-                Tables\Columns\TextColumn::make('weight')
+                TextColumn::make('weight')
                     ->label('Priority Weight')
                     ->sortable()
                     ->badge(),
                 // ->formatStateUsing(fn ($record) => $record->weight . ' (' . \App\Services\LeadWeightService::getWeightLevel($record->weight) . ')')
                 // ->color(fn ($record) => \App\Services\LeadWeightService::getWeightColor($record->weight)),
 
-                Tables\Columns\BadgeColumn::make('type')
+                BadgeColumn::make('type')
                     ->label('Listing Type')
                     ->colors([
                         'primary' => 'sell',
@@ -327,7 +341,7 @@ class HuntersResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\BadgeColumn::make('propty_type')
+                BadgeColumn::make('propty_type')
                     ->label('Property Type')
                     ->colors([
                         'primary' => 'house',
@@ -339,24 +353,24 @@ class HuntersResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('city')
+                TextColumn::make('city')
                     ->label('City')
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-o-map-pin'),
 
-                Tables\Columns\TextColumn::make('price')
+                TextColumn::make('price')
                     ->label('Price')
                     ->money('LKR')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('contact_name')
+                TextColumn::make('contact_name')
                     ->label('Contact')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('contact_type')
+                TextColumn::make('contact_type')
                     ->label('Contact Type')
                     ->badge()
                     ->colors([
@@ -365,7 +379,7 @@ class HuntersResource extends Resource
                         'warning' => 'developer',
                     ]),
 
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->label('Status')
                     ->badge()
                     ->colors([
@@ -377,7 +391,7 @@ class HuntersResource extends Resource
                     ])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('source')
+                TextColumn::make('source')
                     ->label('Source')
                     ->badge()
                     ->colors([
@@ -394,7 +408,7 @@ class HuntersResource extends Resource
                 //     ->trueIcon('heroicon-o-camera')
                 //     ->falseIcon('heroicon-o-x-mark'),
 
-                Tables\Columns\TextColumn::make('is_active')
+                TextColumn::make('is_active')
                     ->label('Status')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
@@ -421,7 +435,7 @@ class HuntersResource extends Resource
 
                 // Add the column posted_date
 
-                Tables\Columns\TextColumn::make('posted_date')
+                TextColumn::make('posted_date')
                     ->label('Posted Date')
                     ->dateTime('M d, Y')
                     ->sortable(),
@@ -429,18 +443,18 @@ class HuntersResource extends Resource
             ->filters([
                 // Add required filters
                 // Add user name filter
-                Tables\Filters\SelectFilter::make('user_id')
+                SelectFilter::make('user_id')
                     ->label('User')
                     ->relationship('user', 'name')
                     ->searchable(),
-                Tables\Filters\SelectFilter::make('type')
+                SelectFilter::make('type')
                     ->label('Listing Type')
                     ->options([
                         'sell' => 'For Sale',
                         'rent' => 'For Rent',
                         'lease' => 'For Lease',
                     ]),
-                Tables\Filters\SelectFilter::make('propty_type')
+                SelectFilter::make('propty_type')
                     ->label('Property Type')
                     ->options([
                         'house' => 'House',
@@ -450,7 +464,7 @@ class HuntersResource extends Resource
                         'villa' => 'Villa',
                         'townhouse' => 'Townhouse',
                     ]),
-                Tables\Filters\SelectFilter::make('status')
+                SelectFilter::make('status')
                     ->label('Status')
                     ->options([
                         'new' => 'New',
@@ -461,7 +475,7 @@ class HuntersResource extends Resource
                     ]),
 
                 // Weight filter for low, high, medium
-                Tables\Filters\SelectFilter::make('weight')
+                SelectFilter::make('weight')
                     ->label('Weight')
                     ->options([
                         'low' => 'Low',
@@ -469,7 +483,7 @@ class HuntersResource extends Resource
                         'high' => 'High',
                     ]),
 
-                Tables\Filters\SelectFilter::make('source')
+                SelectFilter::make('source')
                     ->label('Source')
                     ->options([
                         'pending_payments' => 'Pending Payments',
@@ -478,7 +492,7 @@ class HuntersResource extends Resource
                         'other' => 'Other',
                     ]),
 
-                Tables\Filters\SelectFilter::make('is_active')
+                SelectFilter::make('is_active')
                     ->label('Status')
                     ->options([
                         0 => 'Inactive',
@@ -487,11 +501,11 @@ class HuntersResource extends Resource
                         3 => 'Pending',
                     ]),
                 // posted_date filter
-                Tables\Filters\Filter::make('posted_date')
-                    ->form([
-                        Forms\Components\DatePicker::make('posted_date_from')
+                Filter::make('posted_date')
+                    ->schema([
+                        DatePicker::make('posted_date_from')
                             ->label('Posted Date From'),
-                        Forms\Components\DatePicker::make('posted_date_to')
+                        DatePicker::make('posted_date_to')
                             ->label('Posted Date To'),
                     ])
                     ->query(function (Builder $query, array $data) {
@@ -502,13 +516,13 @@ class HuntersResource extends Resource
                     ->label('Posted Date Range'),
 
                 // price range filter
-                Tables\Filters\Filter::make('price_range')
-                    ->form([
-                        Forms\Components\TextInput::make('price_min')
+                Filter::make('price_range')
+                    ->schema([
+                        TextInput::make('price_min')
                             ->label('Min Price')
                             ->numeric()
                             ->prefix('LKR'),
-                        Forms\Components\TextInput::make('price_max')
+                        TextInput::make('price_max')
                             ->label('Max Price')
                             ->numeric()
                             ->prefix('LKR'),
@@ -521,11 +535,11 @@ class HuntersResource extends Resource
                     ->label('Price Range')
             ])
 
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading(fn($record) => 'Property Details - ' . $record->heading)
                     ->modalWidth('6xl')
-                    ->infolist([
+                    ->schema([
                         Tabs::make('PropertyTabs')
                             ->tabs([
                                 Tab::make('Overview')
@@ -632,7 +646,7 @@ class HuntersResource extends Resource
                                                         ->contained(false)
                                                         //->emptyStateHeading('No activities yet'),
                                                 ]),
-                                                
+
                                             Tab::make('Call Log')
                                                 ->icon('heroicon-o-phone')
                                                 ->schema([
@@ -852,12 +866,12 @@ class HuntersResource extends Resource
                     ]),
 
                 // Add edit action
-                Tables\Actions\EditAction::make()
+                EditAction::make()
                     ->visible(fn ($record) => Gate::allows('update', $record))
                     ->slideOver(),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('sync_api_data')
+                \Filament\Actions\Action::make('sync_api_data')
                     ->label('Sync API Data')
                     ->icon('heroicon-o-arrow-path')
                     ->color('primary')
@@ -913,7 +927,7 @@ class HuntersResource extends Resource
                                             $customer = Customer::create($customerPayload);
                                             $customerId = $customer->id;
                                             $customerCreated++;
-                                        } catch (\Exception $e) {
+                                        } catch (Exception $e) {
                                             // If creation fails (e.g., duplicate ID), try to find existing
                                             $customer = Customer::where('id', $user['uid'])->first();
                                             $customerId = $customer ? $customer->id : null;
@@ -1007,9 +1021,9 @@ class HuntersResource extends Resource
                             ->send();
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->label('Delete Selected')
                         ->requiresConfirmation()
                         ->modalHeading('Delete Property Leads')
@@ -1017,7 +1031,7 @@ class HuntersResource extends Resource
                         ->modalSubmitActionLabel('Yes, delete them')
                         ->visible(fn () => auth()->user()->user_level_id != 1),
 
-                    Tables\Actions\BulkAction::make('mark_as_active')
+                    BulkAction::make('mark_as_active')
                         ->label('Mark as Active')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
@@ -1034,7 +1048,7 @@ class HuntersResource extends Resource
                                 ->send();
                         }),
 
-                    Tables\Actions\BulkAction::make('mark_as_inactive')
+                    BulkAction::make('mark_as_inactive')
                         ->label('Mark as Inactive')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
@@ -1051,7 +1065,7 @@ class HuntersResource extends Resource
                                 ->send();
                         }),
 
-                    Tables\Actions\BulkAction::make('export_selected')
+                    BulkAction::make('export_selected')
                         ->label('Export Selected')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
@@ -1071,9 +1085,9 @@ class HuntersResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListHunters::route('/'),
-            'create' => Pages\CreateHunters::route('/create'),
-            'edit' => Pages\EditHunters::route('/{record}/edit'),
+            'index' => ListHunters::route('/'),
+            'create' => CreateHunters::route('/create'),
+            'edit' => EditHunters::route('/{record}/edit'),
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use Exception;
 use App\Models\Lead;
 use App\Models\User;
 use App\Models\Cron;
@@ -251,7 +252,7 @@ class AssignLeadsCron extends Command
 
             return $nextUserId;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error("Error in getNextAssignee: " . $e->getMessage());
             return null;
         }

@@ -2,11 +2,20 @@
 
 namespace App\Filament\Resources\HuntersResource\Pages;
 
+use Filament\Actions\DeleteAction;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Textarea;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
 use App\Filament\Resources\HuntersResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 
 class EditHunters extends EditRecord
@@ -16,13 +25,13 @@ class EditHunters extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make()
+            DeleteAction::make()
                 ->requiresConfirmation()
                 ->modalHeading('Delete Hunter Record')
                 ->modalDescription('Are you sure you want to delete this hunter record? This action cannot be undone.')
                 ->modalSubmitActionLabel('Yes, delete it'),
 
-            Actions\Action::make('mark_as_upsell')
+            Action::make('mark_as_upsell')
                 ->label('Mark as Upsell')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
@@ -49,7 +58,7 @@ class EditHunters extends EditRecord
                     return redirect()->to(HuntersResource::getUrl('index'));
                 }),
 
-            Actions\Action::make('mark_renew')
+            Action::make('mark_renew')
                 ->label('Mark as Renew')
                 ->icon('heroicon-o-credit-card')
                 ->color('warning')
@@ -74,12 +83,12 @@ class EditHunters extends EditRecord
                         ->send();
                 }),
 
-            Actions\Action::make('add_comment')
+            Action::make('add_comment')
                 ->label('Add Comment')
                 ->icon('heroicon-o-chat-bubble-left-right')
                 ->color('info')
-                ->form([
-                    Forms\Components\Textarea::make('new_comment')
+                ->schema([
+                    Textarea::make('new_comment')
                         ->label('Add New Comment')
                         ->required()
                         ->rows(4)
@@ -112,28 +121,28 @@ class EditHunters extends EditRecord
         ];
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Basic Information')
+        return $schema
+            ->components([
+                Section::make('Basic Information')
                     ->description('Primary hunter details')
                     ->schema([
-                        Forms\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Forms\Components\TextInput::make('name')
+                                TextInput::make('name')
                                     ->label('Name')
                                     ->required()
                                     ->maxLength(255)
                                     ->placeholder('Enter hunter name'),
 
-                                Forms\Components\TextInput::make('tel')
+                                TextInput::make('tel')
                                     ->label('Telephone')
                                     ->tel()
                                     ->maxLength(20)
                                     ->placeholder('+94 XX XXX XXXX'),
 
-                                Forms\Components\Select::make('source')
+                                Select::make('source')
                                     ->label('Source')
                                     ->options([
                                         'ikman' => 'Ikman',
@@ -145,7 +154,7 @@ class EditHunters extends EditRecord
                                     ->required()
                                     ->searchable(),
 
-                                Forms\Components\TextInput::make('am')
+                                TextInput::make('am')
                                     ->label('Account Manager')
                                     ->maxLength(100)
                                     ->placeholder('Enter AM name'),
@@ -153,12 +162,12 @@ class EditHunters extends EditRecord
                     ])
                     ->collapsible(),
 
-                Forms\Components\Section::make('Property Details')
+                Section::make('Property Details')
                     ->description('Property and pricing information')
                     ->schema([
-                        Forms\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Forms\Components\Select::make('property_type')
+                                Select::make('property_type')
                                     ->label('Property Type')
                                     ->options([
                                         'house' => 'House',
@@ -170,7 +179,7 @@ class EditHunters extends EditRecord
                                     ])
                                     ->searchable(),
 
-                                Forms\Components\TextInput::make('price')
+                                TextInput::make('price')
                                     ->label('Price')
                                     ->numeric()
                                     ->prefix('LKR')
@@ -178,7 +187,7 @@ class EditHunters extends EditRecord
                                     ->formatStateUsing(fn ($state): string => number_format($state, 2))
                                     ->dehydrateStateUsing(fn ($state): float => (float) str_replace(',', '', $state)),
 
-                                Forms\Components\Select::make('ad_type')
+                                Select::make('ad_type')
                                     ->label('Ad Type')
                                     ->options([
                                         'sell' => 'Sell',
@@ -188,19 +197,19 @@ class EditHunters extends EditRecord
                                     ->searchable(),
                             ]),
 
-                        Forms\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Forms\Components\TextInput::make('city')
+                                TextInput::make('city')
                                     ->label('City')
                                     ->maxLength(100)
                                     ->placeholder('Enter city'),
 
-                                Forms\Components\TextInput::make('location')
+                                TextInput::make('location')
                                     ->label('Location')
                                     ->maxLength(255)
                                     ->placeholder('Enter specific location'),
 
-                                Forms\Components\TextInput::make('duration')
+                                TextInput::make('duration')
                                     ->label('Duration')
                                     ->maxLength(50)
                                     ->placeholder('e.g., 6 months'),
@@ -208,12 +217,12 @@ class EditHunters extends EditRecord
                     ])
                     ->collapsible(),
 
-                Forms\Components\Section::make('Status & Management')
+                Section::make('Status & Management')
                     ->description('Current status and management details')
                     ->schema([
-                        Forms\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Forms\Components\Select::make('status')
+                                Select::make('status')
                                     ->label('Status')
                                     ->options([
                                         'new' => 'New',
@@ -233,7 +242,7 @@ class EditHunters extends EditRecord
                                         }
                                     }),
 
-                                Forms\Components\TextInput::make('last_update_by')
+                                TextInput::make('last_update_by')
                                     ->label('Last Updated By')
                                     ->maxLength(100)
                                     ->default(auth()->user()->name ?? 'System')
@@ -242,10 +251,10 @@ class EditHunters extends EditRecord
                     ])
                     ->collapsible(),
 
-                Forms\Components\Section::make('Comments & Notes')
+                Section::make('Comments & Notes')
                     ->description('Additional information and comments')
                     ->schema([
-                        Forms\Components\Textarea::make('latest_comments')
+                        Textarea::make('latest_comments')
                             ->label('Comments')
                             ->rows(6)
                             ->placeholder('Enter comments, notes, or follow-up information...')
@@ -253,21 +262,21 @@ class EditHunters extends EditRecord
                     ])
                     ->collapsible(),
 
-                Forms\Components\Section::make('System Information')
+                Section::make('System Information')
                     ->description('System-managed fields (read-only)')
                     ->schema([
-                        Forms\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Forms\Components\DatePicker::make('posted_date')
+                                DatePicker::make('posted_date')
                                     ->label('Posted Date')
                                     ->disabled(),
 
-                                Forms\Components\DateTimePicker::make('last_update_date')
+                                DateTimePicker::make('last_update_date')
                                     ->label('Last Update Date')
                                     ->default(now())
                                     ->disabled(),
 
-                                Forms\Components\TextInput::make('user_type_id')
+                                TextInput::make('user_type_id')
                                     ->label('User Type ID')
                                     ->disabled(),
                             ]),

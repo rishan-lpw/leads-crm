@@ -2,6 +2,12 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Pages\Dashboard;
+use Filament\Widgets\AccountWidget;
+use App\Filament\Widgets\StatsOverviewWidget;
+use App\Filament\Widgets\CustomerActivityChart;
+use App\Filament\Widgets\CustomerGrowthChart;
+use App\Filament\Widgets\LatestActivities;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -36,16 +42,16 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
-                Pages\Dashboard::class,
+                Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
+                AccountWidget::class,
                 // Add our custom widgets to the dashboard
-                \App\Filament\Widgets\StatsOverviewWidget::class,
-                \App\Filament\Widgets\CustomerActivityChart::class,
-                \App\Filament\Widgets\CustomerGrowthChart::class,
-                \App\Filament\Widgets\LatestActivities::class,
+                StatsOverviewWidget::class,
+                CustomerActivityChart::class,
+                CustomerGrowthChart::class,
+                LatestActivities::class,
             ])
             ->resources([
                 UserResource::class,

@@ -2,10 +2,17 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\ActiveAgentsResource\Pages\ListActiveAgents;
+use App\Filament\Resources\ActiveAgentsResource\Pages\CreateActiveAgents;
+use App\Filament\Resources\ActiveAgentsResource\Pages\EditActiveAgents;
 use App\Filament\Resources\ActiveAgentsResource\Pages;
 use App\Models\ActiveAgents;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -14,16 +21,16 @@ class ActiveAgentsResource extends Resource
 {
     protected static ?string $model = ActiveAgents::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationLabel = 'Active Agents';
 
-    protected static ?string $navigationGroup = 'Agents';
+    protected static string | \UnitEnum | null $navigationGroup = 'Agents';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -37,13 +44,13 @@ class ActiveAgentsResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -58,9 +65,9 @@ class ActiveAgentsResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListActiveAgents::route('/'),
-            'create' => Pages\CreateActiveAgents::route('/create'),
-            'edit' => Pages\EditActiveAgents::route('/{record}/edit'),
+            'index' => ListActiveAgents::route('/'),
+            'create' => CreateActiveAgents::route('/create'),
+            'edit' => EditActiveAgents::route('/{record}/edit'),
         ];
     }
 }

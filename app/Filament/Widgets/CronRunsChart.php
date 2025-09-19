@@ -7,7 +7,7 @@ use Filament\Widgets\LineChartWidget;
 
 class CronRunsChart extends LineChartWidget
 {
-    protected static ?string $heading = 'Cron Runs (Last 14 Days)';
+    protected ?string $heading = 'Cron Runs (Last 14 Days)';
 
     protected function getData(): array
     {

@@ -2,16 +2,20 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\CustomerResource\Pages\ListCustomers;
+use App\Filament\Resources\CustomerResource\Pages\CreateCustomer;
+use App\Filament\Resources\CustomerResource\Pages\EditCustomer;
 use App\Filament\Resources\CustomerResource\Pages;
 use App\Filament\Resources\CustomerResource\RelationManagers;
 use App\Models\Customer;
 use Filament\Forms;
 use App\Models\Role;
-use Filament\Forms\Form;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
@@ -27,14 +31,14 @@ class CustomerResource extends Resource
 
     protected static ?string $navigationLabel = 'Customer Registration';
 
-    protected static ?string $navigationGroup = 'Customers';
+    protected static string | \UnitEnum | null $navigationGroup = 'Customers';
 
-    protected static ?string $navigationIcon = 'fas-user-plus';
+    protected static string | \BackedEnum | null $navigationIcon = 'fas-user-plus';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 TextInput::make('firstname')
                     ->required()
                     ->maxLength(255)
@@ -99,9 +103,9 @@ class CustomerResource extends Resource
             ])
             ->filters([
                 // Add name, email, id filters
-                Tables\Filters\Filter::make('name')
+                Filter::make('name')
                     ->label('Name')
-                    ->form([
+                    ->schema([
                         TextInput::make('name')
                             ->label('Name')
                             ->placeholder('Search by First or Surname'),
@@ -114,9 +118,9 @@ class CustomerResource extends Resource
                             });
                         });
                     }),
-                Tables\Filters\Filter::make('email')
+                Filter::make('email')
                     ->label('Email')
-                    ->form([
+                    ->schema([
                         TextInput::make('email')
                             ->label('Email')
                             ->placeholder('Search by Email'),
@@ -126,9 +130,9 @@ class CustomerResource extends Resource
                             $query->where('email', 'like', "%{$value}%");
                         });
                     }),
-                Tables\Filters\Filter::make('id')
+                Filter::make('id')
                     ->label('ID')
-                    ->form([
+                    ->schema([
                         TextInput::make('id')
                             ->label('ID')
                             ->placeholder('Search by ID'),
@@ -139,11 +143,11 @@ class CustomerResource extends Resource
                         });
                     }),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
@@ -159,9 +163,9 @@ class CustomerResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCustomers::route('/'),
-            'create' => Pages\CreateCustomer::route('/create'),
-            'edit' => Pages\EditCustomer::route('/{record}/edit'),
+            'index' => ListCustomers::route('/'),
+            'create' => CreateCustomer::route('/create'),
+            'edit' => EditCustomer::route('/{record}/edit'),
         ];
     }
 }

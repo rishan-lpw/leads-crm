@@ -7,7 +7,7 @@ use Filament\Widgets\ChartWidget;
 
 class LeadsBySource extends ChartWidget
 {
-    protected static ?string $heading = 'Leads by Source';
+    protected ?string $heading = 'Leads by Source';
 
     protected function getData(): array
     {

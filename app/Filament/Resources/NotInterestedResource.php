@@ -2,17 +2,27 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\TextInput;
+use Filament\Actions\ViewAction;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Actions;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use App\Filament\Resources\NotInterestedResource\Pages\ListNotInteresteds;
 use App\Filament\Resources\NotInterestedResource\Pages;
 use App\Filament\Resources\NotInterestedResource\RelationManagers;
 use App\Models\NotInterested;
 use Filament\Forms;
-use Filament\Infolists\Components\Actions;
-use Filament\Infolists\Components\Actions\Action as InfolistAction;
-use Filament\Infolists\Components\Section;
-use Filament\Infolists\Components\Tabs;
-use Filament\Infolists\Components\Tabs\Tab;
 use App\Models\Lead;
-use Filament\Forms\Form;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -23,11 +33,11 @@ class NotInterestedResource extends Resource
 {
     protected static ?string $model = Lead::class;
 
-    protected static ?string $navigationGroup = 'Private Sellers';
+    protected static string | \UnitEnum | null $navigationGroup = 'Private Sellers';
 
     protected static ?string $navigationLabel = 'Not Interested';
 
-    protected static ?string $navigationIcon = 'heroicon-c-eye-slash';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-c-eye-slash';
 
     public static function getEloquentQuery(): Builder
     {
@@ -35,35 +45,35 @@ class NotInterestedResource extends Resource
             ->where('status', 'not_interested');
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
 
-    public static function table(Tables\Table $table): Tables\Table
+    public static function table(Table $table): Table
     {
         return $table
             ->columns([
                 // Print customer name and user name as new columns
-                Tables\Columns\TextColumn::make('customer.firstname')
+                TextColumn::make('customer.firstname')
                     ->label('Customer Name')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('user.name')
+                TextColumn::make('user.name')
                     ->label('User Name')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('heading')
+                TextColumn::make('heading')
                     ->label('Property Heading')
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->limit(50),
 
-                Tables\Columns\BadgeColumn::make('type')
+                BadgeColumn::make('type')
                     ->label('Listing Type')
                     ->colors([
                         'primary' => 'sell',
@@ -73,7 +83,7 @@ class NotInterestedResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\BadgeColumn::make('propty_type')
+                BadgeColumn::make('propty_type')
                     ->label('Property Type')
                     ->colors([
                         'primary' => 'house',
@@ -85,24 +95,24 @@ class NotInterestedResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('city')
+                TextColumn::make('city')
                     ->label('City')
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-o-map-pin'),
 
-                Tables\Columns\TextColumn::make('price')
+                TextColumn::make('price')
                     ->label('Price')
                     ->money('LKR')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('contact_name')
+                TextColumn::make('contact_name')
                     ->label('Contact')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('contact_type')
+                TextColumn::make('contact_type')
                     ->label('Contact Type')
                     ->badge()
                     ->colors([
@@ -111,7 +121,7 @@ class NotInterestedResource extends Resource
                         'warning' => 'developer',
                     ]),
 
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->label('Status')
                     ->badge()
                     ->colors([
@@ -123,7 +133,7 @@ class NotInterestedResource extends Resource
                     ])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('source')
+                TextColumn::make('source')
                     ->label('Source')
                     ->badge()
                     ->colors([
@@ -140,7 +150,7 @@ class NotInterestedResource extends Resource
                 //     ->trueIcon('heroicon-o-camera')
                 //     ->falseIcon('heroicon-o-x-mark'),
 
-                Tables\Columns\IconColumn::make('is_active')
+                IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
@@ -155,19 +165,19 @@ class NotInterestedResource extends Resource
                 //     ->falseIcon('heroicon-o-minus')
                 //     ->trueColor('warning'),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime('M d, Y')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Updated')
                     ->dateTime('M d, Y')
                     ->sortable(),
             ])
             ->filters([
                 // Tables\Filters\TrashedFilter::make(),
-                Tables\Filters\SelectFilter::make('source')
+                SelectFilter::make('source')
                     ->label('Source')
                     ->options([
                         'ikman' => 'Ikman',
@@ -175,7 +185,7 @@ class NotInterestedResource extends Resource
                         'other' => 'Other',
                     ])
                     ->placeholder('All Sources'),
-                Tables\Filters\SelectFilter::make('type')
+                SelectFilter::make('type')
                     ->label('Listing Type')
                     ->options([
                         'sell' => 'Sell',
@@ -183,7 +193,7 @@ class NotInterestedResource extends Resource
                         'lease' => 'Lease',
                     ])
                     ->placeholder('All Types'),
-                Tables\Filters\SelectFilter::make('propty_type')
+                SelectFilter::make('propty_type')
                     ->label('Property Type')
                     ->options([
                         'house' => 'House',
@@ -194,13 +204,13 @@ class NotInterestedResource extends Resource
                     ])
                     ->placeholder('All Property Types'),
                 // Price range filter
-                Tables\Filters\Filter::make('price_range')
-                    ->form([
-                        Forms\Components\TextInput::make('min_price')
+                Filter::make('price_range')
+                    ->schema([
+                        TextInput::make('min_price')
                             ->label('Min Price')
                             ->numeric()
                             ->prefix('LKR'),
-                        Forms\Components\TextInput::make('max_price')
+                        TextInput::make('max_price')
                             ->label('Max Price')
                             ->numeric()
                             ->prefix('LKR'),
@@ -226,11 +236,11 @@ class NotInterestedResource extends Resource
                         return null;
                     }),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading(fn($record) => 'Hunter Details - ' . $record->name)
                     ->modalWidth('6xl')
-                    ->infolist([
+                    ->schema([
                         Tabs::make('HunterTabs')
                             ->tabs([
                                 Tab::make('Summary')
@@ -269,7 +279,7 @@ class NotInterestedResource extends Resource
                                                     ->label('Account Manager'),
                                             ])
                                             ->columns(2),
-                                        
+
                                         Section::make('Property Information')
                                             ->schema([
                                                 TextEntry::make('property_type')
@@ -291,7 +301,7 @@ class NotInterestedResource extends Resource
                                                     ->placeholder('Not specified'),
                                             ])
                                             ->columns(2),
-                                        
+
                                         Section::make('Latest Comments')
                                             ->schema([
                                                 TextEntry::make('latest_comments')
@@ -305,18 +315,18 @@ class NotInterestedResource extends Resource
                                     ->icon('heroicon-o-document-text')
                                     ->schema([
                                         Actions::make([
-                                            InfolistAction::make('edit')
+                                            Action::make('edit')
                                                 ->label('Edit Hunter Details')
                                                 ->icon('heroicon-o-pencil')
                                                 ->color('primary')
-                                                ->form([
-                                                    Forms\Components\TextInput::make('name')
+                                                ->schema([
+                                                    TextInput::make('name')
                                                         ->label('Name')
                                                         ->required(),
-                                                    Forms\Components\TextInput::make('tel')
+                                                    TextInput::make('tel')
                                                         ->label('Telephone')
                                                         ->tel(),
-                                                    Forms\Components\Select::make('source')
+                                                    Select::make('source')
                                                         ->label('Source')
                                                         ->options([
                                                             'ikman' => 'Ikman',
@@ -325,9 +335,9 @@ class NotInterestedResource extends Resource
                                                             'referral' => 'Referral',
                                                         ])
                                                         ->required(),
-                                                    Forms\Components\TextInput::make('am')
+                                                    TextInput::make('am')
                                                         ->label('Account Manager'),
-                                                    Forms\Components\Select::make('property_type')
+                                                    Select::make('property_type')
                                                         ->label('Property Type')
                                                         ->options([
                                                             'house' => 'House',
@@ -335,24 +345,24 @@ class NotInterestedResource extends Resource
                                                             'land' => 'Land',
                                                             'commercial' => 'Commercial',
                                                         ]),
-                                                    Forms\Components\TextInput::make('price')
+                                                    TextInput::make('price')
                                                         ->label('Price')
                                                         ->numeric()
                                                         ->prefix('LKR'),
-                                                    Forms\Components\TextInput::make('city')
+                                                    TextInput::make('city')
                                                         ->label('City'),
-                                                    Forms\Components\TextInput::make('location')
+                                                    TextInput::make('location')
                                                         ->label('Location'),
-                                                    Forms\Components\TextInput::make('duration')
+                                                    TextInput::make('duration')
                                                         ->label('Duration'),
-                                                    Forms\Components\Select::make('ad_type')
+                                                    Select::make('ad_type')
                                                         ->label('Ad Type')
                                                         ->options([
                                                             'sell' => 'Sell',
                                                             'rent' => 'Rent',
                                                             'lease' => 'Lease',
                                                         ]),
-                                                    Forms\Components\Select::make('status')
+                                                    Select::make('status')
                                                         ->label('Status')
                                                         ->options([
                                                             'new' => 'New',
@@ -361,10 +371,10 @@ class NotInterestedResource extends Resource
                                                             'rejected' => 'Rejected',
                                                         ])
                                                         ->required(),
-                                                    Forms\Components\Textarea::make('latest_comments')
+                                                    Textarea::make('latest_comments')
                                                         ->label('Latest Comments')
                                                         ->rows(3),
-                                                    Forms\Components\TextInput::make('last_update_by')
+                                                    TextInput::make('last_update_by')
                                                         ->label('Last Updated By'),
                                                 ])
                                                 ->fillForm(fn ($record): array => [
@@ -389,7 +399,7 @@ class NotInterestedResource extends Resource
                                                 ->modalSubmitActionLabel('Save Changes')
                                                 ->modalWidth('4xl'),
                                         ]),
-                                        
+
                                         Section::make('Non-Editable Information')
                                             ->description('These fields are system-managed and cannot be edited')
                                             ->schema([
@@ -443,7 +453,7 @@ class NotInterestedResource extends Resource
                                                     ->badge(),
                                             ])
                                             ->columns(2),
-                                        
+
                                         Section::make('Comments History')
                                             ->schema([
                                                 TextEntry::make('latest_comments')
@@ -451,7 +461,7 @@ class NotInterestedResource extends Resource
                                                     ->placeholder('No comments available')
                                                     ->columnSpanFull(),
                                             ]),
-                                        
+
                                         Section::make('System Information')
                                             ->schema([
                                                 TextEntry::make('user_type_id')
@@ -495,7 +505,7 @@ class NotInterestedResource extends Resource
                                                     ->badge(),
                                             ])
                                             ->columns(2),
-                                        
+
                                         Section::make('Time Analysis')
                                             ->schema([
                                                 TextEntry::make('created_at')
@@ -537,7 +547,7 @@ class NotInterestedResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListNotInteresteds::route('/'),
+            'index' => ListNotInteresteds::route('/'),
         ];
     }
 }

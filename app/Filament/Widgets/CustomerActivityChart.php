@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerActivityChart extends ChartWidget
 {
-    protected static ?string $heading = 'Customer Activities (Last 30 Days)';
+    protected ?string $heading = 'Customer Activities (Last 30 Days)';
 
-    protected static ?string $pollingInterval = null;
+    protected ?string $pollingInterval = null;
 
     protected int | string | array $columnSpan = 'full';
 

@@ -2,11 +2,17 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\CallAnalysisResource\Pages\ListCallAnalyses;
+use App\Filament\Resources\CallAnalysisResource\Pages\CreateCallAnalysis;
+use App\Filament\Resources\CallAnalysisResource\Pages\EditCallAnalysis;
 use App\Filament\Resources\CallAnalysisResource\Pages;
 use App\Filament\Resources\CallAnalysisResource\RelationManagers;
 use App\Models\CallAnalysis;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,14 +25,14 @@ class CallAnalysisResource extends Resource
 
     protected static ?string $navigationLabel = 'Call Script Analysis';
 
-    protected static ?string $navigationGroup = 'Reports';
+    protected static string | \UnitEnum | null $navigationGroup = 'Reports';
 
-    protected static ?string $navigationIcon = 'heroicon-c-phone';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-c-phone';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -40,12 +46,12 @@ class CallAnalysisResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -60,9 +66,9 @@ class CallAnalysisResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCallAnalyses::route('/'),
-            'create' => Pages\CreateCallAnalysis::route('/create'),
-            'edit' => Pages\EditCallAnalysis::route('/{record}/edit'),
+            'index' => ListCallAnalyses::route('/'),
+            'create' => CreateCallAnalysis::route('/create'),
+            'edit' => EditCallAnalysis::route('/{record}/edit'),
         ];
     }
 }

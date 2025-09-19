@@ -2,11 +2,17 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\InvoiceResource\Pages\ListInvoices;
+use App\Filament\Resources\InvoiceResource\Pages\CreateInvoice;
+use App\Filament\Resources\InvoiceResource\Pages\EditInvoice;
 use App\Filament\Resources\InvoiceResource\Pages;
 use App\Filament\Resources\InvoiceResource\RelationManagers;
 use App\Models\Invoice;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,14 +25,14 @@ class InvoiceResource extends Resource
 
     protected static ?string $navigationLabel = 'Invoices';
 
-    protected static ?string $navigationGroup = 'Accounts';
+    protected static string | \UnitEnum | null $navigationGroup = 'Accounts';
 
-    protected static ?string $navigationIcon = 'heroicon-s-document-chart-bar';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-s-document-chart-bar';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -40,12 +46,12 @@ class InvoiceResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -60,9 +66,9 @@ class InvoiceResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListInvoices::route('/'),
-            'create' => Pages\CreateInvoice::route('/create'),
-            'edit' => Pages\EditInvoice::route('/{record}/edit'),
+            'index' => ListInvoices::route('/'),
+            'create' => CreateInvoice::route('/create'),
+            'edit' => EditInvoice::route('/{record}/edit'),
         ];
     }
 }

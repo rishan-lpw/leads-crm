@@ -2,11 +2,17 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\ToBeRemovedResource\Pages\ListToBeRemoveds;
+use App\Filament\Resources\ToBeRemovedResource\Pages\CreateToBeRemoved;
+use App\Filament\Resources\ToBeRemovedResource\Pages\EditToBeRemoved;
 use App\Filament\Resources\ToBeRemovedResource\Pages;
 use App\Filament\Resources\ToBeRemovedResource\RelationManagers;
 use App\Models\ToBeRemoved;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,14 +25,14 @@ class ToBeRemovedResource extends Resource
 
     protected static ?string $navigationLabel = 'To Be Removed';
 
-    protected static ?string $navigationGroup = 'Reports';
+    protected static string | \UnitEnum | null $navigationGroup = 'Reports';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -40,12 +46,12 @@ class ToBeRemovedResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -60,9 +66,9 @@ class ToBeRemovedResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListToBeRemoveds::route('/'),
-            'create' => Pages\CreateToBeRemoved::route('/create'),
-            'edit' => Pages\EditToBeRemoved::route('/{record}/edit'),
+            'index' => ListToBeRemoveds::route('/'),
+            'create' => CreateToBeRemoved::route('/create'),
+            'edit' => EditToBeRemoved::route('/{record}/edit'),
         ];
     }
 }

@@ -2,11 +2,17 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\AMChangedResource\Pages\ListAMChangeds;
+use App\Filament\Resources\AMChangedResource\Pages\CreateAMChanged;
+use App\Filament\Resources\AMChangedResource\Pages\EditAMChanged;
 use App\Filament\Resources\AMChangedResource\Pages;
 use App\Filament\Resources\AMChangedResource\RelationManagers;
 use App\Models\AMChanged;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,14 +25,14 @@ class AMChangedResource extends Resource
 
     protected static ?string $navigationLabel = 'AM Changes';
 
-    protected static ?string $navigationGroup = 'Reports';
+    protected static string | \UnitEnum | null $navigationGroup = 'Reports';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -40,12 +46,12 @@ class AMChangedResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -60,9 +66,9 @@ class AMChangedResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAMChangeds::route('/'),
-            'create' => Pages\CreateAMChanged::route('/create'),
-            'edit' => Pages\EditAMChanged::route('/{record}/edit'),
+            'index' => ListAMChangeds::route('/'),
+            'create' => CreateAMChanged::route('/create'),
+            'edit' => EditAMChanged::route('/{record}/edit'),
         ];
     }
 }

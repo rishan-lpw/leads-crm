@@ -3,6 +3,7 @@
 
 namespace App\Services;
 
+use Exception;
 use Illuminate\Support\Facades\Log; // Correct Log import
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
@@ -71,7 +72,7 @@ class LpwApiService
                     return [];
                 }
             });
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Exception in LPW API service', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

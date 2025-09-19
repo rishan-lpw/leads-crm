@@ -11,7 +11,7 @@ class CustomerPasswordReset extends EditRecord
 {
     protected static string $resource = CustomerResource::class;
     protected static ?string $navigationLabel = 'Reset Password';
-    protected static ?string $navigationGroup = 'Customers';
+    protected static string | \UnitEnum | null $navigationGroup = 'Customers';
     protected static ?string $title = 'Customer Password Reset';
 
 }

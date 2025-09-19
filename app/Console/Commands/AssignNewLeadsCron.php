@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use Exception;
 use Illuminate\Console\Command;
 use App\Models\Lead;
 use App\Models\User;
@@ -107,7 +108,7 @@ class AssignNewLeadsCron extends Command
 
             return Command::SUCCESS;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error('❌ Error during lead assignment: ' . $e->getMessage());
             Log::error('AssignNewLeadsCron failed', [
                 'error' => $e->getMessage(),

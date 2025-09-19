@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use App\Filament\Resources\CronLogResource\Pages\ListCronLogs;
 use App\Filament\Resources\CronLogResource\Pages;
 use App\Filament\Resources\CronLogResource\RelationManagers;
 use App\Models\CronLog;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -17,22 +19,22 @@ class CronLogResource extends Resource
 {
     protected static ?string $model = CronLog::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([]);
+        return $schema
+            ->components([]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('cron.name')->label('Cron Job'),
-                Tables\Columns\TextColumn::make('started_at'),
-                Tables\Columns\TextColumn::make('finished_at'),
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('cron.name')->label('Cron Job'),
+                TextColumn::make('started_at'),
+                TextColumn::make('finished_at'),
+                TextColumn::make('status')
                     ->badge()
                     ->colors([
                         'success' => 'Success',
@@ -43,7 +45,7 @@ class CronLogResource extends Resource
                         'danger' => 'Failed',
                         default => $state,
                     }),
-                Tables\Columns\TextColumn::make('output')->limit(50),
+                TextColumn::make('output')->limit(50),
             ])
             ->filters([
                 //
@@ -68,7 +70,7 @@ class CronLogResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCronLogs::route('/'),
+            'index' => ListCronLogs::route('/'),
             // 'create' => Pages\CreateCronLog::route('/create'),
             // 'edit' => Pages\EditCronLog::route('/{record}/edit'),
         ];

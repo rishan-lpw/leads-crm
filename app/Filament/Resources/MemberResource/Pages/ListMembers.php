@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources\MemberResource\Pages;
 
+use Filament\Actions\CreateAction;
+use Filament\Schemas\Components\Tabs\Tab;
 use App\Filament\Resources\MemberResource;
 use Filament\Actions;
-use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Table;
@@ -16,7 +17,7 @@ class ListMembers extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 
@@ -30,8 +31,8 @@ class ListMembers extends ListRecords
             )
             ->columns($this->getResource()::table($table)->getColumns())
             ->filters($this->getResource()::table($table)->getFilters())
-            ->actions($this->getResource()::table($table)->getActions())
-            ->bulkActions($this->getResource()::table($table)->getBulkActions());
+            ->recordActions($this->getResource()::table($table)->getActions())
+            ->toolbarActions($this->getResource()::table($table)->getBulkActions());
     }
 
     public function getTabs(): array

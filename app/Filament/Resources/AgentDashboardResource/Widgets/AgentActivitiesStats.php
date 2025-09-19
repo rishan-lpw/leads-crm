@@ -8,8 +8,8 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class AgentActivitiesStats extends ChartWidget
 {
-    protected static ?string $heading = 'Agent Activities Stats';
-    protected static ?string $pollingInterval = '10s';
+    protected ?string $heading = 'Agent Activities Stats';
+    protected ?string $pollingInterval = '10s';
 
     protected function getData(): array
     {

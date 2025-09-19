@@ -2,11 +2,20 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DatePicker;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use App\Filament\Resources\CustomerMergeResource\Pages\ListCustomerMerges;
+use App\Filament\Resources\CustomerMergeResource\Pages\CreateCustomerMerge;
+use App\Filament\Resources\CustomerMergeResource\Pages\EditCustomerMerge;
 use App\Filament\Resources\CustomerMergeResource\Pages;
 use App\Filament\Resources\CustomerMergeResource\RelationManagers;
 use App\Models\CustomerMerge;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -20,33 +29,33 @@ class CustomerMergeResource extends Resource
 
     protected static ?string $navigationLabel = 'Customer Merge';
 
-    protected static ?string $navigationGroup = 'Customers';
+    protected static string | \UnitEnum | null $navigationGroup = 'Customers';
 
-    protected static ?string $navigationIcon = 'heroicon-s-users';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-s-users';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 // Primary and secondary customers can be select from customer table.
-                Forms\Components\Select::make('primary_customer_id')
+                Select::make('primary_customer_id')
                     ->label('Primary Customer')
                     ->relationship('primaryCustomer', 'firstname')
                     ->searchable()
                     ->preload()
                     ->required(),
-                Forms\Components\Select::make('secondary_customer_id')
+                Select::make('secondary_customer_id')
                     ->label('Secondary Customer')
                     ->relationship('secondaryCustomer', 'firstname')
                     ->searchable()
                     ->preload()
                     ->required(),
-                Forms\Components\DatePicker::make('merge_at')
+                DatePicker::make('merge_at')
                     ->label('Merge Date')
                     ->required()
                     ->default(now()),
                 // Merged By select the user.name from user table
-                Forms\Components\Select::make('merged_by')
+                Select::make('merged_by')
                     ->label('Merged By')
                     ->relationship('user', 'name')
                     ->searchable()
@@ -60,17 +69,17 @@ class CustomerMergeResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('primaryCustomer.firstname')
+                TextColumn::make('primaryCustomer.firstname')
                     ->label('Primary Customer')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('secondaryCustomer.firstname')
+                TextColumn::make('secondaryCustomer.firstname')
                     ->label('Secondary Customer')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('user.name')
+                TextColumn::make('user.name')
                     ->label('Merged By'),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created At')
                     ->sortable()
                     ->dateTime(),
@@ -81,12 +90,12 @@ class CustomerMergeResource extends Resource
                 ->relationship('user', 'name'),
                 
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
+            ->toolbarActions([
+                BulkActionGroup::make([
                     // Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
@@ -102,9 +111,9 @@ class CustomerMergeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCustomerMerges::route('/'),
-            'create' => Pages\CreateCustomerMerge::route('/create'),
-            'edit' => Pages\EditCustomerMerge::route('/{record}/edit'),
+            'index' => ListCustomerMerges::route('/'),
+            'create' => CreateCustomerMerge::route('/create'),
+            'edit' => EditCustomerMerge::route('/{record}/edit'),
         ];
     }
 }

@@ -2,18 +2,30 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\DatePicker;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Forms\Components\TextInput;
+use Filament\Actions\ViewAction;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Actions;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use App\Filament\Resources\UpsellResource\Pages\ListUpsells;
+use App\Filament\Resources\UpsellResource\Pages\CreateUpsell;
+use App\Filament\Resources\UpsellResource\Pages\EditUpsell;
 use App\Filament\Resources\UpsellResource\Pages;
 use App\Filament\Resources\UpsellResource\RelationManagers;
 use App\Models\Lead;
 use App\Models\Upsell;
 use Filament\Forms;
-// use Filament\Forms\Components\Actions;
-use Filament\Infolists\Components\Actions;
-use Filament\Infolists\Components\Actions\Action as InfolistAction;
-use Filament\Infolists\Components\Section;
-use Filament\Infolists\Components\Tabs;
-use Filament\Infolists\Components\Tabs\Tab;
-use Filament\Forms\Form;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -27,19 +39,19 @@ class UpsellResource extends Resource
 
     protected static ?string $label = 'Upsell';
 
-    protected static ?string $navigationGroup = 'Private Sellers';
+    protected static string | \UnitEnum | null $navigationGroup = 'Private Sellers';
 
-    protected static ?string $navigationIcon = 'heroicon-c-arrow-trending-up';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-c-arrow-trending-up';
 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->where('status', 'upsell');
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -49,22 +61,22 @@ class UpsellResource extends Resource
         return $table
             ->columns([
                 // Print customer name and user name as new columns
-                Tables\Columns\TextColumn::make('customer.firstname')
+                TextColumn::make('customer.firstname')
                     ->label('Customer Name')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('user.name')
+                TextColumn::make('user.name')
                     ->label('User Name')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('heading')
+                TextColumn::make('heading')
                     ->label('Property Heading')
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->limit(50),
 
-                Tables\Columns\BadgeColumn::make('type')
+                BadgeColumn::make('type')
                     ->label('Listing Type')
                     ->colors([
                         'primary' => 'sell',
@@ -74,7 +86,7 @@ class UpsellResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\BadgeColumn::make('propty_type')
+                BadgeColumn::make('propty_type')
                     ->label('Property Type')
                     ->colors([
                         'primary' => 'house',
@@ -86,24 +98,24 @@ class UpsellResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('city')
+                TextColumn::make('city')
                     ->label('City')
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-o-map-pin'),
 
-                Tables\Columns\TextColumn::make('price')
+                TextColumn::make('price')
                     ->label('Price')
                     ->money('LKR')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('contact_name')
+                TextColumn::make('contact_name')
                     ->label('Contact')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('contact_type')
+                TextColumn::make('contact_type')
                     ->label('Contact Type')
                     ->badge()
                     ->colors([
@@ -112,7 +124,7 @@ class UpsellResource extends Resource
                         'warning' => 'developer',
                     ]),
 
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->label('Status')
                     ->badge()
                     ->colors([
@@ -124,7 +136,7 @@ class UpsellResource extends Resource
                     ])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('source')
+                TextColumn::make('source')
                     ->label('Source')
                     ->badge()
                     ->colors([
@@ -141,7 +153,7 @@ class UpsellResource extends Resource
                 //     ->trueIcon('heroicon-o-camera')
                 //     ->falseIcon('heroicon-o-x-mark'),
 
-                Tables\Columns\IconColumn::make('is_active')
+                IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
@@ -156,21 +168,21 @@ class UpsellResource extends Resource
                 //     ->falseIcon('heroicon-o-minus')
                 //     ->trueColor('warning'),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime('M d, Y')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Updated')
                     ->dateTime('M d, Y')
                     ->sortable(),
             ])
             ->filters([
                 // Apply column filters and date filters
-                Tables\Filters\Filter::make('posted_date')
-                    ->form([
-                        Forms\Components\DatePicker::make('posted_date')
+                Filter::make('posted_date')
+                    ->schema([
+                        DatePicker::make('posted_date')
                             ->label('Posted Date'),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => 
@@ -179,29 +191,29 @@ class UpsellResource extends Resource
                             fn (Builder $query, $date): Builder => $query->whereDate('posted_date', $date),
                         )
                     ),
-                Tables\Filters\SelectFilter::make('source')
+                SelectFilter::make('source')
                     ->options([
                         'ikman' => 'Ikman',
                         'facebook' => 'Facebook',
                         'website' => 'Website',
                         'referral' => 'Referral',
                     ]),
-                Tables\Filters\SelectFilter::make('am')
+                SelectFilter::make('am')
                     ->options([
                         'john' => 'John',
                         'jane' => 'Jane',
                         'mike' => 'Mike',
                     ]),
-                Tables\Filters\SelectFilter::make('status')
+                SelectFilter::make('status')
                     ->options([
                         'new' => 'New',
                         'follow_up' => 'Follow Up',
                         'closed' => 'Closed',
                         'rejected' => 'Rejected',
                     ]),
-                Tables\Filters\Filter::make('last_update_date')
-                    ->form([
-                        Forms\Components\DatePicker::make('last_update_date')
+                Filter::make('last_update_date')
+                    ->schema([
+                        DatePicker::make('last_update_date')
                             ->label('Last Update Date'),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => 
@@ -210,10 +222,10 @@ class UpsellResource extends Resource
                             fn (Builder $query, $date): Builder => $query->whereDate('last_update_date', $date),
                         )
                     ),
-                Tables\Filters\SelectFilter::make('last_update_by'),
-                Tables\Filters\Filter::make('tel')
-                    ->form([
-                        Forms\Components\TextInput::make('tel')
+                SelectFilter::make('last_update_by'),
+                Filter::make('tel')
+                    ->schema([
+                        TextInput::make('tel')
                             ->label('Telephone'),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => 
@@ -222,12 +234,12 @@ class UpsellResource extends Resource
                             fn (Builder $query, $tel): Builder => $query->where('tel', 'like', "%{$tel}%"),
                         )
                     ),
-                Tables\Filters\Filter::make('price')
-                    ->form([
-                        Forms\Components\TextInput::make('min_price')
+                Filter::make('price')
+                    ->schema([
+                        TextInput::make('min_price')
                             ->label('Min Price')
                             ->numeric(),
-                        Forms\Components\TextInput::make('max_price')
+                        TextInput::make('max_price')
                             ->label('Max Price')
                             ->numeric(),
                     ])
@@ -243,11 +255,11 @@ class UpsellResource extends Resource
                             )
                     ),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading(fn($record) => 'Hunter Details - ' . $record->name)
                     ->modalWidth('6xl')
-                    ->infolist([
+                    ->schema([
                         Tabs::make('HunterTabs')
                             ->tabs([
                                 Tab::make('Summary')
@@ -286,7 +298,7 @@ class UpsellResource extends Resource
                                                     ->label('Account Manager'),
                                             ])
                                             ->columns(2),
-                                        
+
                                         Section::make('Property Information')
                                             ->schema([
                                                 TextEntry::make('property_type')
@@ -308,7 +320,7 @@ class UpsellResource extends Resource
                                                     ->placeholder('Not specified'),
                                             ])
                                             ->columns(2),
-                                        
+
                                         Section::make('Latest Comments')
                                             ->schema([
                                                 TextEntry::make('latest_comments')
@@ -322,18 +334,18 @@ class UpsellResource extends Resource
                                     ->icon('heroicon-o-document-text')
                                     ->schema([
                                         Actions::make([
-                                            InfolistAction::make('edit')
+                                            Action::make('edit')
                                                 ->label('Edit Hunter Details')
                                                 ->icon('heroicon-o-pencil')
                                                 ->color('primary')
-                                                ->form([
-                                                    Forms\Components\TextInput::make('name')
+                                                ->schema([
+                                                    TextInput::make('name')
                                                         ->label('Name')
                                                         ->required(),
-                                                    Forms\Components\TextInput::make('tel')
+                                                    TextInput::make('tel')
                                                         ->label('Telephone')
                                                         ->tel(),
-                                                    Forms\Components\Select::make('source')
+                                                    Select::make('source')
                                                         ->label('Source')
                                                         ->options([
                                                             'ikman' => 'Ikman',
@@ -342,9 +354,9 @@ class UpsellResource extends Resource
                                                             'referral' => 'Referral',
                                                         ])
                                                         ->required(),
-                                                    Forms\Components\TextInput::make('am')
+                                                    TextInput::make('am')
                                                         ->label('Account Manager'),
-                                                    Forms\Components\Select::make('property_type')
+                                                    Select::make('property_type')
                                                         ->label('Property Type')
                                                         ->options([
                                                             'house' => 'House',
@@ -352,24 +364,24 @@ class UpsellResource extends Resource
                                                             'land' => 'Land',
                                                             'commercial' => 'Commercial',
                                                         ]),
-                                                    Forms\Components\TextInput::make('price')
+                                                    TextInput::make('price')
                                                         ->label('Price')
                                                         ->numeric()
                                                         ->prefix('LKR'),
-                                                    Forms\Components\TextInput::make('city')
+                                                    TextInput::make('city')
                                                         ->label('City'),
-                                                    Forms\Components\TextInput::make('location')
+                                                    TextInput::make('location')
                                                         ->label('Location'),
-                                                    Forms\Components\TextInput::make('duration')
+                                                    TextInput::make('duration')
                                                         ->label('Duration'),
-                                                    Forms\Components\Select::make('ad_type')
+                                                    Select::make('ad_type')
                                                         ->label('Ad Type')
                                                         ->options([
                                                             'sell' => 'Sell',
                                                             'rent' => 'Rent',
                                                             'lease' => 'Lease',
                                                         ]),
-                                                    Forms\Components\Select::make('status')
+                                                    Select::make('status')
                                                         ->label('Status')
                                                         ->options([
                                                             'new' => 'New',
@@ -378,10 +390,10 @@ class UpsellResource extends Resource
                                                             'rejected' => 'Rejected',
                                                         ])
                                                         ->required(),
-                                                    Forms\Components\Textarea::make('latest_comments')
+                                                    Textarea::make('latest_comments')
                                                         ->label('Latest Comments')
                                                         ->rows(3),
-                                                    Forms\Components\TextInput::make('last_update_by')
+                                                    TextInput::make('last_update_by')
                                                         ->label('Last Updated By'),
                                                 ])
                                                 ->fillForm(fn ($record): array => [
@@ -406,7 +418,7 @@ class UpsellResource extends Resource
                                                 ->modalSubmitActionLabel('Save Changes')
                                                 ->modalWidth('4xl'),
                                         ]),
-                                        
+
                                         Section::make('Non-Editable Information')
                                             ->description('These fields are system-managed and cannot be edited')
                                             ->schema([
@@ -460,7 +472,7 @@ class UpsellResource extends Resource
                                                     ->badge(),
                                             ])
                                             ->columns(2),
-                                        
+
                                         Section::make('Comments History')
                                             ->schema([
                                                 TextEntry::make('latest_comments')
@@ -468,7 +480,7 @@ class UpsellResource extends Resource
                                                     ->placeholder('No comments available')
                                                     ->columnSpanFull(),
                                             ]),
-                                        
+
                                         Section::make('System Information')
                                             ->schema([
                                                 TextEntry::make('user_type_id')
@@ -512,7 +524,7 @@ class UpsellResource extends Resource
                                                     ->badge(),
                                             ])
                                             ->columns(2),
-                                        
+
                                         Section::make('Time Analysis')
                                             ->schema([
                                                 TextEntry::make('created_at')
@@ -554,9 +566,9 @@ class UpsellResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUpsells::route('/'),
-            'create' => Pages\CreateUpsell::route('/create'),
-            'edit' => Pages\EditUpsell::route('/{record}/edit'),
+            'index' => ListUpsells::route('/'),
+            'create' => CreateUpsell::route('/create'),
+            'edit' => EditUpsell::route('/{record}/edit'),
         ];
     }
 }
