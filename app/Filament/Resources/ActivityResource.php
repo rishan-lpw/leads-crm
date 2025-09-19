@@ -42,8 +42,8 @@ class ActivityResource extends Resource
         return $table
             ->columns([
                 // Add the Columns: 'lead_id', 'user_id', 'action', 'qty', 'value', 'ad_id', 'comments', 'reminder', 'date_time', 'old_am'
-                Tables\Columns\TextColumn::make('lead.customer.name')->label('Customer')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('user.name')->label('Agent')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('lead.customer.firstname')->label('Customer')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('action')->label('Action')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('qty')->label('Quantity')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('value')->label('Value')->searchable()->sortable(),
