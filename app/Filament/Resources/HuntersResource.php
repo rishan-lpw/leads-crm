@@ -358,21 +358,32 @@ class HuntersResource extends Resource
                     // Limit the row height to 2 lines.
                     ->wrap(2),
 
-                // Display followUp.status and level_score as a dot.
-                TextColumn::make('stage')
+                // Display activity stage with colored dots for level_score
+                TextColumn::make('latest_activity_stage')
                     ->label('Stage')
-                    // Add dots in the second line of the stage text. Green for 'contacted', yellow for 'interested', red for 'not_interested', gray for others. The number of dots should be equal to the followUp.level_score (1-5).
+                    ->getStateUsing(function ($record) {
+                        // Get the latest activity for this lead
+                        $latestActivity = $record->activities()
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+                        
+                        if (!$latestActivity) {
+                            return 'No Activity';
+                        }
+                        
+                        return ucfirst($latestActivity->stage ?? 'Unknown');
+                    })
+                    // Display the level_score by plain text.
                     ->description(function ($record) {
-                        $status = $record->stage;
-                        $levelScore = $record->level_score;
-                        $color = match ($status) {
-                            'contacted' => 'green',
-                            'interested' => 'yellow',
-                            'not_interested' => 'red',
-                            default => 'gray',
-                        };
-                        $dots = str_repeat('&#9679; ', min($levelScore, 5)); // limit to 5 dots max
-                        return "<span class=\"text-{$color}\">{$dots}</span> " . ucfirst($status);
+                        $latestActivity = $record->activities()
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+                        
+                        if (!$latestActivity || $latestActivity->level_score === null) {
+                            return 'Score: N/A';
+                        }
+                        
+                        return 'Score: ' . $latestActivity->level_score;
                     })
                     ->html() // allow the colored dots
                     ->sortable(),
@@ -752,7 +763,7 @@ class HuntersResource extends Resource
                                                 Section::make()
                                                     ->collapsible()
                                                     ->collapsed()
-                                                    ->heading(fn($record) => match($record->stage) {
+                                                    ->heading(fn($record) => match($record->activity_type) {
                                                         'email' => '✉️ Email Activity',
                                                         'meeting' => '📅 Meeting Activity', 
                                                         'site_visit' => '🏠 Site Visit Activity',
@@ -816,10 +827,6 @@ class HuntersResource extends Resource
                                                     ->columns(2),
                                             ])
                                             ->contained(false)
-                                            // ->query(fn($record) => $record->activities()->where('stage', '!=', 'call')->orderBy('created_at', 'desc'))
-                                            // ->emptyStateHeading('No Activities Found')
-                                            // ->emptyStateDescription('No activities have been recorded for this lead yet.')
-                                            // ->emptyStateIcon('heroicon-o-clipboard-document-list'),
                                     ]),
                                 Tab::make('Call Log')
                                     ->icon('heroicon-o-phone')
