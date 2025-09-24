@@ -22,15 +22,19 @@ use App\Filament\Resources\HuntersResource\Pages\ListHunters;
 use App\Filament\Resources\HuntersResource\Pages\CreateHunters;
 use App\Filament\Resources\HuntersResource\Pages\EditHunters;
 use App\Filament\Resources\HuntersResource\Pages;
+use App\Filament\Resources\HuntersResource\Pages\ViewActivities;
 use App\Filament\Resources\HuntersResource\RelationManagers;
+use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\Lead;
 use App\Services\LpwApiService;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms;
 use Filament\Forms\Components\Group;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Infolists\Components\Actions;
 use Filament\Infolists\Components\RepeatableEntry;
@@ -44,6 +48,7 @@ use Filament\Infolists\Components\ViewEntry;
 use Filament\Tables\Table;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
@@ -311,84 +316,15 @@ class HuntersResource extends Resource
             ->columns([
                 // Print customer name and user name as new columns
                 TextColumn::make('customer.firstname')
-                    ->label('Customer Name')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('user.name')
-                    ->label('AM Name')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('heading')
-                    ->label('Property Heading')
-                    ->searchable()
-                    ->sortable()
-                    ->limit(50),
-
-                TextColumn::make('weight')
-                    ->label('Priority Weight')
-                    ->sortable()
-                    ->badge(),
-                // ->formatStateUsing(fn ($record) => $record->weight . ' (' . \App\Services\LeadWeightService::getWeightLevel($record->weight) . ')')
-                // ->color(fn ($record) => \App\Services\LeadWeightService::getWeightColor($record->weight)),
-
-                BadgeColumn::make('type')
-                    ->label('Listing Type')
-                    ->colors([
-                        'primary' => 'sell',
-                        'success' => 'rent',
-                        'warning' => 'lease',
-                    ])
+                    ->label('Customer')
+                    // Add customer email as the second line under name. Use text: xs, color: gray-500.
+                    ->description(fn($record) => $record->customer->email)
                     ->searchable()
                     ->sortable(),
 
-                BadgeColumn::make('propty_type')
-                    ->label('Property Type')
-                    ->colors([
-                        'primary' => 'house',
-                        'success' => 'apartment',
-                        'warning' => 'land',
-                        'danger' => 'commercial',
-                        'info' => 'villa',
-                    ])
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('city')
-                    ->label('City')
-                    ->searchable()
-                    ->sortable()
-                    ->icon('heroicon-o-map-pin'),
-
-                TextColumn::make('price')
-                    ->label('Price')
-                    ->money('LKR')
-                    ->sortable()
-                    ->searchable(),
-
-                TextColumn::make('contact_name')
-                    ->label('Contact')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('contact_type')
-                    ->label('Contact Type')
-                    ->badge()
-                    ->colors([
-                        'primary' => 'owner',
-                        'success' => 'agent',
-                        'warning' => 'developer',
-                    ]),
-
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->badge()
-                    ->colors([
-                        'primary' => 'new',
-                        'secondary' => 'follow_up',
-                        'success' => 'system',
-                        'warning' => 'to_be_expired',
-                        'danger' => 'expired',
-                    ])
+                TextColumn::make('posted_date')
+                    ->label('Posted Date')
+                    ->dateTime('M d, Y')
                     ->sortable(),
 
                 TextColumn::make('source')
@@ -402,29 +338,81 @@ class HuntersResource extends Resource
                     ])
                     ->sortable(),
 
+                TextColumn::make('property_summary')
+                    ->label('Property Details Summary')
+                    ->getStateUsing(function ($record) {
+                        $price = 'LKR ' . number_format($record->price);
+                        $propertyType = ucfirst($record->propty_type);
+                        // Render only the first line here; description below will handle the second line. text-xs, gray-500 of propertyType.
+                        return "<span class=\"font-bold\">{$price}</span> - <span class=\"text-xs text-gray-500\">{$propertyType}</span>";
+                    })
+                    ->html() // allow the bold span in the first line
+                    // Second line in native description (small, gray by default in Filament)
+                    ->description(function ($record) {
+                        $type = ucfirst($record->type);
+                        $city = ucfirst($record->city);
+                        return "$type | $city";
+                    })
+                    ->searchable(['type', 'propty_type', 'city', 'price'])
+                    ->sortable()
+                    // Limit the row height to 2 lines.
+                    ->wrap(2),
+
+                // Display followUp.status and level_score as a dot.
+                TextColumn::make('stage')
+                    ->label('Stage')
+                    // Add dots in the second line of the stage text. Green for 'contacted', yellow for 'interested', red for 'not_interested', gray for others. The number of dots should be equal to the followUp.level_score (1-5).
+                    ->description(function ($record) {
+                        $status = $record->stage;
+                        $levelScore = $record->level_score;
+                        $color = match ($status) {
+                            'contacted' => 'green',
+                            'interested' => 'yellow',
+                            'not_interested' => 'red',
+                            default => 'gray',
+                        };
+                        $dots = str_repeat('&#9679; ', min($levelScore, 5)); // limit to 5 dots max
+                        return "<span class=\"text-{$color}\">{$dots}</span> " . ucfirst($status);
+                    })
+                    ->html() // allow the colored dots
+                    ->sortable(),
+
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'new',
+                        'secondary' => 'follow_up',
+                        'success' => 'system',
+                        'warning' => 'to_be_expired',
+                        'danger' => 'expired',
+                    ])
+                    ->sortable(),
+
+                TextColumn::make('user.username')
+                    ->label('AM')
+                    ->searchable()
+                    ->sortable(),
+
+                
+                // TextColumn::make('heading')
+                //     ->label('Property Heading')
+                //     ->searchable()
+                //     ->sortable()
+                //     ->limit(50),
+
+                // TextColumn::make('weight')
+                //     ->label('Priority Weight')
+                //     ->sortable()
+                //     ->badge(),
+                // ->formatStateUsing(fn ($record) => $record->weight . ' (' . \App\Services\LeadWeightService::getWeightLevel($record->weight) . ')')
+                // ->color(fn ($record) => \App\Services\LeadWeightService::getWeightColor($record->weight)),
+
                 // Tables\Columns\IconColumn::make('pic')
                 //     ->label('Has Pictures')
                 //     ->boolean()
                 //     ->trueIcon('heroicon-o-camera')
                 //     ->falseIcon('heroicon-o-x-mark'),
-
-                TextColumn::make('is_active')
-                    ->label('Status')
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        '0' => 'danger',
-                        '1' => 'success',
-                        '2' => 'warning',
-                        '3' => 'info',
-                        default => 'gray'
-                    })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                        '0' => 'Inactive',
-                        '1' => 'Active',
-                        '2' => 'Special',
-                        '3' => 'Pending',
-                        default => 'Unknown'
-                    }),
 
                 // Tables\Columns\IconColumn::make('is_trending')
                 //     ->label('Trending')
@@ -435,10 +423,6 @@ class HuntersResource extends Resource
 
                 // Add the column posted_date
 
-                TextColumn::make('posted_date')
-                    ->label('Posted Date')
-                    ->dateTime('M d, Y')
-                    ->sortable(),
             ])
             ->filters([
                 // Add required filters
@@ -537,6 +521,8 @@ class HuntersResource extends Resource
 
             ->recordActions([
                 ViewAction::make()
+                    ->label('')
+                    ->icon('heroicon-o-eye')
                     ->modalHeading(fn($record) => 'Property Details - ' . $record->heading)
                     ->modalWidth('6xl')
                     ->schema([
@@ -603,123 +589,6 @@ class HuntersResource extends Resource
                                                     ->columnSpanFull()
                                                     ->html(),
                                             ]),
-                                    ]),
-
-                            Tab::make('Activities')
-                                ->icon('heroicon-o-clipboard-document-list')
-                                ->schema([
-                                    // Add Activity button
-
-                                    // Sub-tabs for Activity Log and Call Log
-                                    Tabs::make('ActivitySubTabs')
-                                        ->tabs([
-                                            Tab::make('Activity Log')
-                                                ->icon('heroicon-o-document-text')
-                                                ->schema([
-                                                    RepeatableEntry::make('activities')
-                                                        ->schema([
-                                                            Section::make()
-                                                                ->collapsible()
-                                                                ->collapsed()
-                                                                ->heading(fn($record) => ucfirst($record->activity_type ?? 'Activity'))
-                                                                ->description(fn($record) => $record->created_at?->format('M d, Y h:i A'))
-                                                                ->schema([
-                                                                    TextEntry::make('description')
-                                                                        ->label('Details')
-                                                                        ->columnSpanFull(),
-                                                                    TextEntry::make('notes')
-                                                                        ->label('Notes')
-                                                                        ->columnSpanFull(),
-                                                                    TextEntry::make('assigned_by')
-                                                                        ->label('By'),
-                                                                    TextEntry::make('created_at')
-                                                                        ->label('Created At')
-                                                                        ->dateTime(),
-                                                                    TextEntry::make('followUp.status')
-                                                                        ->label('Follow-up')
-                                                                        ->badge(),
-                                                                    TextEntry::make('followUp.level_score')
-                                                                        ->label('Lead Score'),
-                                                                ])
-                                                                ->columns(2),
-                                                        ])
-                                                        ->contained(false)
-                                                        //->emptyStateHeading('No activities yet'),
-                                                ]),
-
-                                            Tab::make('Call Log')
-                                                ->icon('heroicon-o-phone')
-                                                ->schema([
-                                                    RepeatableEntry::make('call_activities')
-                                                        ->schema([
-                                                            Section::make()
-                                                                ->collapsible()
-                                                                ->collapsed()
-                                                                ->heading(fn($record) => "📞 Call - " . ($record->status ?? 'Unknown'))
-                                                                ->description(fn($record) => $record->created_at?->format('M d, Y h:i A'))
-                                                                ->schema([
-                                                                    TextEntry::make('status')
-                                                                        ->label('Call Status')
-                                                                        ->badge(),
-                                                                    TextEntry::make('duration')
-                                                                        ->label('Duration')
-                                                                        ->formatStateUsing(fn($state) => $state ? "{$state} min" : 'N/A'),
-                                                                    TextEntry::make('description')
-                                                                        ->label('Summary')
-                                                                        ->columnSpanFull(),
-                                                                    TextEntry::make('notes')
-                                                                        ->label('Notes')
-                                                                        ->columnSpanFull(),
-                                                                    TextEntry::make('assigned_by')
-                                                                        ->label('Called By'),
-                                                                    TextEntry::make('created_at')
-                                                                        ->label('Date')
-                                                                        ->dateTime(),
-                                                                    TextEntry::make('followUp.status')
-                                                                        ->label('Follow-up')
-                                                                        ->badge(),
-                                                                    TextEntry::make('followUp.level_score')
-                                                                        ->label('Level Score'),
-                                                                ])
-                                                                ->columns(2),
-                                                        ])
-                                                        ->contained(false)
-                                                        //->emptyStateHeading('No calls yet'),
-                                                ]),
-                                        ]),
-                                ]),
-
-                                Tab::make('Pricing')
-                                    ->icon('heroicon-o-currency-dollar')
-                                    ->schema([
-                                        Section::make('Price Information')
-                                            ->schema([
-                                                TextEntry::make('price')
-                                                    ->label('Main Price')
-                                                    ->money('LKR')
-                                                    ->size('xl')
-                                                    ->weight('bold')
-                                                    ->color('success'),
-                                                TextEntry::make('alt_price')
-                                                    ->label('Alternative Price')
-                                                    ->formatStateUsing(
-                                                        fn($state, $record) =>
-                                                        $state ? number_format($state) . ' ' . ($record->alt_currency ?? '') : 'Not set'
-                                                    ),
-                                                TextEntry::make('price_monthly')
-                                                    ->label('Monthly Price')
-                                                    ->money('LKR'),
-                                                TextEntry::make('price_land_pp')
-                                                    ->label('Land Price per Perch')
-                                                    ->money('LKR'),
-                                                TextEntry::make('price_land_total')
-                                                    ->label('Total Land Price')
-                                                    ->money('LKR'),
-                                                TextEntry::make('price_type')
-                                                    ->label('Price Type')
-                                                    ->badge(),
-                                            ])
-                                            ->columns(2),
                                     ]),
 
                                 Tab::make('Contact')
@@ -865,8 +734,183 @@ class HuntersResource extends Resource
                             ->visible(fn ($record) => Gate::allows('view', $record)),
                     ]),
 
+                ViewAction::make('viewActivities')
+                    ->label('')
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->modalHeading('Activity Details')
+                    ->modalWidth('6xl')
+                    ->schema([
+                        // Add two tabs - Activities and Call Log
+                        Tabs::make('ActivityTabs')
+                            ->tabs([
+                                Tab::make('Activities')
+                                    ->icon('heroicon-o-eye')
+                                    ->schema([
+                                        // Activity Details(activity_type != 'call') using collapsible sections for each activity related to this lead
+                                        RepeatableEntry::make('activities')
+                                            ->schema([
+                                                Section::make()
+                                                    ->collapsible()
+                                                    ->collapsed()
+                                                    ->heading(fn($record) => match($record->stage) {
+                                                        'email' => '✉️ Email Activity',
+                                                        'meeting' => '📅 Meeting Activity', 
+                                                        'site_visit' => '🏠 Site Visit Activity',
+                                                        'follow_up' => '🔄 Follow Up Activity',
+                                                        'note' => '📝 Note Activity',
+                                                        'other' => '📋 Other Activity',
+                                                        default => '📝 Activity',
+                                                    })
+                                                    ->description(function($record) {
+                                                        $date = $record->date_time ? $record->date_time->format('M d, Y h:i A') : 'No date';
+                                                        $by = $record->old_am ?? 'Unknown';
+                                                        return "{$date} • By: {$by}";
+                                                    })
+                                                    ->schema([
+                                                        TextEntry::make('stage')
+                                                            ->label('Activity Type')
+                                                            ->badge()
+                                                            ->color(fn($state) => match($state) {
+                                                                'email' => 'info',
+                                                                'meeting' => 'success',
+                                                                'site_visit' => 'warning', 
+                                                                'follow_up' => 'primary',
+                                                                'note' => 'gray',
+                                                                'other' => 'secondary',
+                                                                default => 'gray'
+                                                            }),
+                                                        TextEntry::make('action')
+                                                            ->label('Action Required')
+                                                            ->placeholder('No action specified'),
+                                                        TextEntry::make('comments')
+                                                            ->label('Comments')
+                                                            ->placeholder('No comments')
+                                                            ->columnSpanFull(),
+                                                        TextEntry::make('qty')
+                                                            ->label('Quantity')
+                                                            ->placeholder('N/A'),
+                                                        TextEntry::make('value')
+                                                            ->label('Value')
+                                                            ->formatStateUsing(fn($state) => $state ? 'LKR ' . number_format($state) : 'N/A'),
+                                                        TextEntry::make('level_score')
+                                                            ->label('Lead Score')
+                                                            ->formatStateUsing(fn($state) => $state ? "{$state}/10" : 'No score')
+                                                            ->badge()
+                                                            ->color(fn($state) => match(true) {
+                                                                $state >= 8 => 'success',
+                                                                $state >= 6 => 'warning',
+                                                                $state >= 4 => 'primary',
+                                                                default => 'gray'
+                                                            }),
+                                                        TextEntry::make('reminder')
+                                                            ->label('Reminder Date')
+                                                            ->date('M d, Y')
+                                                            ->placeholder('No reminder'),
+                                                        TextEntry::make('date_time')
+                                                            ->label('Activity Date')
+                                                            ->dateTime('M d, Y h:i A'),
+                                                        TextEntry::make('old_am')
+                                                            ->label('Assigned By')
+                                                            ->placeholder('Unknown'),
+                                                    ])
+                                                    ->columns(2),
+                                            ])
+                                            ->contained(false)
+                                            // ->query(fn($record) => $record->activities()->where('stage', '!=', 'call')->orderBy('created_at', 'desc'))
+                                            // ->emptyStateHeading('No Activities Found')
+                                            // ->emptyStateDescription('No activities have been recorded for this lead yet.')
+                                            // ->emptyStateIcon('heroicon-o-clipboard-document-list'),
+                                    ]),
+                                Tab::make('Call Log')
+                                    ->icon('heroicon-o-phone')
+                                    ->schema([
+                                        // Call Log Details(activity_type == 'call') using collapsible sections for each call log related to this lead
+                                        RepeatableEntry::make('callLogs')
+                                            ->schema([
+                                                Section::make()
+                                                    ->collapsible()
+                                                    ->collapsed()
+                                                    ->heading(function($record) {
+                                                        $duration = $record->qty ? " ({$record->qty} min)" : '';
+                                                        return "📞 Call Log{$duration}";
+                                                    })
+                                                    ->description(function($record) {
+                                                        $date = $record->date_time ? $record->date_time->format('M d, Y h:i A') : 'No date';
+                                                        $by = $record->old_am ?? 'Unknown';
+                                                        $score = $record->level_score ? " • Quality: {$record->level_score}/10" : '';
+                                                        return "{$date} • By: {$by}{$score}";
+                                                    })
+                                                    ->schema([
+                                                        TextEntry::make('action')
+                                                            ->label('Call Purpose')
+                                                            ->placeholder('No purpose specified'),
+                                                        TextEntry::make('qty')
+                                                            ->label('Duration')
+                                                            ->formatStateUsing(fn($state) => $state ? "{$state} minutes" : 'Not recorded'),
+                                                        TextEntry::make('comments')
+                                                            ->label('Call Summary')
+                                                            ->placeholder('No summary provided')
+                                                            ->columnSpanFull(),
+                                                        TextEntry::make('value')
+                                                            ->label('Deal Value Discussed')
+                                                            ->formatStateUsing(fn($state) => $state ? 'LKR ' . number_format($state) : 'Not discussed'),
+                                                        TextEntry::make('level_score')
+                                                            ->label('Lead Quality After Call')
+                                                            ->formatStateUsing(function($state) {
+                                                                if (!$state) return 'Not rated';
+                                                                return match(true) {
+                                                                    $state >= 9 => "{$state}/10 - Excellent",
+                                                                    $state >= 7 => "{$state}/10 - High Interest",
+                                                                    $state >= 5 => "{$state}/10 - Moderate Interest",
+                                                                    $state >= 3 => "{$state}/10 - Low Interest",
+                                                                    default => "{$state}/10 - Very Low Interest"
+                                                                };
+                                                            })
+                                                            ->badge()
+                                                            ->color(fn($state) => match(true) {
+                                                                $state >= 8 => 'success',
+                                                                $state >= 6 => 'warning',
+                                                                $state >= 4 => 'primary',
+                                                                default => 'danger'
+                                                            }),
+                                                        TextEntry::make('reminder')
+                                                            ->label('Follow-up Reminder')
+                                                            ->date('M d, Y')
+                                                            ->placeholder('No follow-up scheduled'),
+                                                        TextEntry::make('date_time')
+                                                            ->label('Call Date & Time')
+                                                            ->dateTime('M d, Y h:i A'),
+                                                        TextEntry::make('old_am')
+                                                            ->label('Called By')
+                                                            ->placeholder('Unknown'),
+                                                    ])
+                                                    ->columns(2),
+                                            ])
+                                            ->contained(false)
+                                            // ->query(fn($record) => $record->activities()->where('stage', 'call')->orderBy('created_at', 'desc'))
+                                            // ->emptyStateHeading('No Call Logs Found')
+                                            // ->emptyStateDescription('No calls have been logged for this lead yet.')
+                                            // ->emptyStateIcon('heroicon-o-phone'),
+                                    ])
+                            ])
+                            ->columnSpanFull()
+                            ->visible(fn ($record) => Gate::allows('view', $record)),
+                    ]),
+
+                // Add Call action button as an icon to view the call log tab directly
+                Action::make('view_call_log')
+                    ->label('')
+                    ->icon('heroicon-o-phone')
+                    // ->tooltip('View Call Log')
+                    // ->url(fn ($record) => route('filament.resources.hunters.view', ['record' => $record->id, 'tab' => 'Activities', 'subtab' => 'Call Log']))
+                    // ->openUrlInNewTab()
+                    ->color('primary')
+                    ->visible(fn ($record) => Gate::allows('view', $record)),
+
                 // Add edit action
                 EditAction::make()
+                    ->label('')
+                    ->icon('heroicon-o-pencil')
                     ->visible(fn ($record) => Gate::allows('update', $record))
                     ->slideOver(),
             ])
@@ -1079,7 +1123,8 @@ class HuntersResource extends Resource
                         }),
                 ]),
             ])
-            ->recordUrl(null); // disable row click
+            // ->recordUrl(null) // disable row click
+            ->recordUrl(null);// disable row click
     }
 
     public static function getPages(): array
@@ -1088,6 +1133,7 @@ class HuntersResource extends Resource
             'index' => ListHunters::route('/'),
             'create' => CreateHunters::route('/create'),
             'edit' => EditHunters::route('/{record}/edit'),
+            // 'activities' => ViewActivities::route('/{record}/activities'),
         ];
     }
 }

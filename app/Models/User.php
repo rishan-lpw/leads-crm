@@ -30,7 +30,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'user_type',
+        'department_id',
         'user_level_id'
     ];
 
@@ -62,9 +62,9 @@ class User extends Authenticatable
         return $this->belongsTo(UserLevel::class, 'user_level_id');
     }
 
-    public function userType()
+    public function department()
     {
-        return $this->belongsTo(UserType::class, 'user_type');
+        return $this->belongsTo(Department::class, 'department_id');
     }
 
     // ...existing code...

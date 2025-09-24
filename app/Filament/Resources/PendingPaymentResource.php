@@ -60,78 +60,15 @@ class PendingPaymentResource extends Resource
             ->columns([
                 // Print customer name and user name as new columns
                 TextColumn::make('customer.firstname')
-                    ->label('Customer Name')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('user.name')
-                    ->label('User Name')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('heading')
-                    ->label('Property Heading')
-                    ->searchable()
-                    ->sortable()
-                    ->weight('bold')
-                    ->limit(50),
-
-                BadgeColumn::make('type')
-                    ->label('Listing Type')
-                    ->colors([
-                        'primary' => 'sell',
-                        'success' => 'rent',
-                        'warning' => 'lease',
-                    ])
+                    ->label('Customer')
+                    // Add customer email as the second line under name. Use text: xs, color: gray-500.
+                    ->description(fn($record) => $record->customer->email)
                     ->searchable()
                     ->sortable(),
 
-                BadgeColumn::make('propty_type')
-                    ->label('Property Type')
-                    ->colors([
-                        'primary' => 'house',
-                        'success' => 'apartment',
-                        'warning' => 'land',
-                        'danger' => 'commercial',
-                        'info' => 'villa',
-                    ])
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('city')
-                    ->label('City')
-                    ->searchable()
-                    ->sortable()
-                    ->icon('heroicon-o-map-pin'),
-
-                TextColumn::make('price')
-                    ->label('Price')
-                    ->money('LKR')
-                    ->sortable()
-                    ->searchable(),
-
-                TextColumn::make('contact_name')
-                    ->label('Contact')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('contact_type')
-                    ->label('Contact Type')
-                    ->badge()
-                    ->colors([
-                        'primary' => 'owner',
-                        'success' => 'agent',
-                        'warning' => 'developer',
-                    ]),
-
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->badge()
-                    ->colors([
-                        'primary' => 'new',
-                        'secondary' => 'follow_up',
-                        'success' => 'system',
-                        'warning' => 'to_be_expired',
-                        'danger' => 'expired',
-                    ])
+                TextColumn::make('posted_date')
+                    ->label('Posted Date')
+                    ->dateTime('M d, Y')
                     ->sortable(),
 
                 TextColumn::make('source')
@@ -145,36 +82,60 @@ class PendingPaymentResource extends Resource
                     ])
                     ->sortable(),
 
-                // Tables\Columns\IconColumn::make('pic')
-                //     ->label('Has Pictures')
-                //     ->boolean()
-                //     ->trueIcon('heroicon-o-camera')
-                //     ->falseIcon('heroicon-o-x-mark'),
+                TextColumn::make('property_summary')
+                    ->label('Property Details Summary')
+                    ->getStateUsing(function ($record) {
+                        $price = 'LKR ' . number_format($record->price);
+                        $propertyType = ucfirst($record->propty_type);
+                        // Render only the first line here; description below will handle the second line. text-xs, gray-500 of propertyType.
+                        return "<span class=\"font-bold\">{$price}</span> - <span class=\"text-xs text-gray-500\">{$propertyType}</span>";
+                    })
+                    ->html() // allow the bold span in the first line
+                    // Second line in native description (small, gray by default in Filament)
+                    ->description(function ($record) {
+                        $type = ucfirst($record->type);
+                        $city = ucfirst($record->city);
+                        return "$type | $city";
+                    })
+                    ->searchable(['type', 'propty_type', 'city', 'price'])
+                    ->sortable()
+                    // Limit the row height to 2 lines.
+                    ->wrap(2),
 
-                IconColumn::make('is_active')
-                    ->label('Active')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
-
-                // Tables\Columns\IconColumn::make('is_trending')
-                //     ->label('Trending')
-                //     ->boolean()
-                //     ->trueIcon('heroicon-o-fire')
-                //     ->falseIcon('heroicon-o-minus')
-                //     ->trueColor('warning'),
-
-                TextColumn::make('created_at')
-                    ->label('Created')
-                    ->dateTime('M d, Y')
+                TextColumn::make('status')
+                    ->label('Stage')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'new',
+                        'secondary' => 'follow_up',
+                        'success' => 'system',
+                        'warning' => 'to_be_expired',
+                        'danger' => 'expired',
+                    ])
                     ->sortable(),
 
-                TextColumn::make('updated_at')
-                    ->label('Updated')
-                    ->dateTime('M d, Y')
+                TextColumn::make('user.username')
+                    ->label('AM')
+                    ->searchable()
                     ->sortable(),
+
+                TextColumn::make('is_active')
+                    ->label('Status')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        '0' => 'danger',
+                        '1' => 'success',
+                        '2' => 'warning',
+                        '3' => 'info',
+                        default => 'gray'
+                    })
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        '0' => 'Inactive',
+                        '1' => 'Active',
+                        '2' => 'Special',
+                        '3' => 'Pending',
+                        default => 'Unknown'
+                    }),
             ])
             ->filters([
                 Filter::make('status')

@@ -21,6 +21,8 @@ return new class extends Migration
             $table->string('action')->nullable();
             $table->integer('qty')->nullable();
             $table->decimal('value', 10, 2)->nullable();
+            $table->string('stage')->nullable();
+            $table->integer('level_score')->nullable();
             $table->unsignedBigInteger('ad_id')->nullable();
             $table->text('comments')->nullable();
             $table->date('reminder')->nullable();
