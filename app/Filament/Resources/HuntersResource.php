@@ -15,6 +15,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Exception;
+use Filament\Tables\Actions\ColumnsAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\BulkAction;
@@ -29,10 +30,12 @@ use App\Models\Customer;
 use App\Models\Lead;
 use App\Services\LpwApiService;
 use Filament\Actions\Action;
+use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -49,6 +52,8 @@ use Filament\Tables\Table;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\View;
+use Filament\Support\View\Components\ButtonComponent;
+use Filament\Tables\Columns\IconColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
@@ -339,53 +344,131 @@ class HuntersResource extends Resource
                     ->sortable(),
 
                 TextColumn::make('property_summary')
-                    ->label('Property Details Summary')
+                    ->label('Property Details')
                     ->getStateUsing(function ($record) {
-                        $price = 'LKR ' . number_format($record->price);
-                        $propertyType = ucfirst($record->propty_type);
-                        // Render only the first line here; description below will handle the second line. text-xs, gray-500 of propertyType.
-                        return "<span class=\"font-bold\">{$price}</span> - <span class=\"text-xs text-gray-500\">{$propertyType}</span>";
-                    })
-                    ->html() // allow the bold span in the first line
-                    // Second line in native description (small, gray by default in Filament)
-                    ->description(function ($record) {
+                        // Convert price values into Billions, Millions and thousands
+                        $priceInMillions = $record->price / 1_000_000;
+                        $priceInBillions = $record->price / 1_000_000_000;
+                        $priceInThousands = $record->price / 1_000;
+                        if ($priceInBillions >= 1) {
+                            $priceFormatted = number_format($priceInBillions) . ' B';
+                        } elseif ($priceInMillions >= 1) {
+                            $priceFormatted = number_format($priceInMillions) . ' M';
+                        } elseif ($priceInThousands >= 1) {
+                            $priceFormatted = number_format($priceInThousands) . ' K';
+                        } else {
+                            $priceFormatted = number_format($record->price);
+                        }
+                        $price = 'LKR ' . $priceFormatted;
                         $type = ucfirst($record->type);
                         $city = ucfirst($record->city);
-                        return "$type | $city";
+                        // Render only the first line here; description below will handle the second line. text-xs, gray-500 of propertyType.
+                        return "$price - $type";
+                    })
+                    ->html()
+                    ->description(function ($record) {
+                        $propertyType = ucfirst($record->propty_type);
+                        $city = ucfirst($record->city);
+                        return "$propertyType | $city";
                     })
                     ->searchable(['type', 'propty_type', 'city', 'price'])
                     ->sortable()
                     // Limit the row height to 2 lines.
-                    ->wrap(2),
+                    ->wrap(),
 
                 // Display activity stage with colored dots for level_score
                 TextColumn::make('latest_activity_stage')
                     ->label('Stage')
                     ->getStateUsing(function ($record) {
-                        // Get the latest activity for this lead
                         $latestActivity = $record->activities()
                             ->orderBy('created_at', 'desc')
                             ->first();
-                        
+
                         if (!$latestActivity) {
                             return 'No Activity';
                         }
-                        
+
                         return ucfirst($latestActivity->stage ?? 'Unknown');
                     })
-                    // Display the level_score by plain text.
                     ->description(function ($record) {
                         $latestActivity = $record->activities()
                             ->orderBy('created_at', 'desc')
                             ->first();
-                        
+
                         if (!$latestActivity || $latestActivity->level_score === null) {
                             return 'Score: N/A';
                         }
-                        
-                        return 'Score: ' . $latestActivity->level_score;
+
+                        $score = (int) $latestActivity->level_score;
+                        $stage = $latestActivity->stage ?? '';
+
+                        // Determine dot color based on stage. Repeat the no. of below icons relevant to the level_score.
+                        // contacted - 🔵
+                        // rna - 🟠
+                        // not_interested - 🔴
+                        // upsell - 🟡
+                        // qualified - 🟢
+                        // interested - 🟤🟣⚪
+                        // default - ⚪ (gray)
+
+                       // Use this emojis to represent colored dots
+                        $dot = match ($stage) {
+                            'contacted' => '🔵',
+                            'rna' => '🟠',
+                            'not_interested' => '🔴',
+                            default => '⚪', // Default gray dot
+                        };
+                        return str_repeat($dot, $score);
                     })
-                    ->html() // allow the colored dots
+                    ->html() // allow rendering colored dots
+                    ->toggleable()
+                    ->sortable(),
+                
+                BadgeColumn::make('weight')
+                    ->label('Weight')
+                    ->getStateUsing(function ($record) {
+                        return $record->weight;
+                    })
+                    ->colors([
+                        'primary' => fn($state) => $state >= 700, // High weight
+                        'warning' => fn($state) => $state >= 300 && $state < 700, // Medium weight
+                        'secondary' => fn($state) => $state < 300, // Low weight
+                    ])
+                    ->toggleable()
+                    ->sortable(),
+
+                // Street, service_type columns
+                TextColumn::make('street')
+                    ->label('Street')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('service_type')
+                    ->label('Service Type')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                // is_active, is_trending as icons
+                IconColumn::make('is_active')
+                    ->label('Active')
+                    ->boolean()
+                    ->trueIcon('heroicon-m-shield-check')
+                    ->falseIcon('heroicon-s-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->toggleable()
+                    ->sortable(),
+
+                IconColumn::make('is_trending')
+                    ->label('Trending')
+                    ->boolean()
+                    ->trueIcon('heroicon-s-fire')
+                    ->falseIcon('heroicon-s-minus')
+                    ->trueColor('warning')
+                    ->falseColor('secondary')
+                    ->toggleable()
                     ->sortable(),
 
                 TextColumn::make('status')
@@ -398,13 +481,13 @@ class HuntersResource extends Resource
                         'warning' => 'to_be_expired',
                         'danger' => 'expired',
                     ])
+                    ->toggleable()
                     ->sortable(),
 
                 TextColumn::make('user.username')
                     ->label('AM')
                     ->searchable()
                     ->sortable(),
-
                 
                 // TextColumn::make('heading')
                 //     ->label('Property Heading')
@@ -436,8 +519,6 @@ class HuntersResource extends Resource
 
             ])
             ->filters([
-                // Add required filters
-                // Add user name filter
                 SelectFilter::make('user_id')
                     ->label('User')
                     ->relationship('user', 'name')
@@ -536,6 +617,7 @@ class HuntersResource extends Resource
                     ->icon('heroicon-o-eye')
                     ->modalHeading(fn($record) => 'Property Details - ' . $record->heading)
                     ->modalWidth('6xl')
+                    ->visible(fn ($record) => Gate::allows('view', $record))
                     ->schema([
                         Tabs::make('PropertyTabs')
                             ->tabs([
@@ -656,6 +738,7 @@ class HuntersResource extends Resource
                                     ]),
 
                                 Tab::make('Status')
+                                    // icon including letter 'R'
                                     ->icon('heroicon-o-cog')
                                     ->schema([
                                         Section::make('Status Information')
@@ -741,23 +824,92 @@ class HuntersResource extends Resource
                                             ->collapsed(),
                                     ]),
                             ])
-                            ->columnSpanFull()
-                            ->visible(fn ($record) => Gate::allows('view', $record)),
+                            ->columnSpanFull(),
                     ]),
 
                 ViewAction::make('viewActivities')
                     ->label('')
                     ->icon('heroicon-o-clipboard-document-list')
-                    ->modalHeading('Activity Details')
+                    ->modalHeading(fn($record) => 'Activities - ' . $record->heading)
                     ->modalWidth('6xl')
+                    ->visible(fn ($record) => Gate::allows('view', $record))
                     ->schema([
-                        // Add two tabs - Activities and Call Log
                         Tabs::make('ActivityTabs')
                             ->tabs([
                                 Tab::make('Activities')
                                     ->icon('heroicon-o-eye')
                                     ->schema([
                                         // Activity Details(activity_type != 'call') using collapsible sections for each activity related to this lead
+                                        // Add activity button to display a popup form to add a new activity.
+                                        Action::make('addActivity')
+                                            ->label('Add Activity')
+                                            ->icon('heroicon-o-plus')
+                                            ->schema([
+                                                // Form to add a new activity
+                                                Select::make('activity_type')
+                                                    ->label('Activity Type')
+                                                    ->options([
+                                                        'email' => 'Email',
+                                                        'meeting' => 'Meeting',
+                                                        'site_visit' => 'Site Visit',
+                                                        'follow_up' => 'Follow Up',
+                                                        'note' => 'Note',
+                                                        'other' => 'Other',
+                                                    ])
+                                                    ->required(),
+                                                // Add fields: stage, level_score, comments, qty, value, date_time, assined_by, old_am
+                                                Select::make('stage')
+                                                    ->label('Activity Stage')
+                                                    ->options([
+                                                        'contacted' => 'Contacted',
+                                                        'rna' => 'RNA',
+                                                        'not_interested' => 'Not Interested',
+                                                    ])
+                                                    ->required(),
+                                                Select::make('level_score')
+                                                    ->label('Lead Score')
+                                                    // Contacted: 1-8, Not Interested: 1-2, RNA: 1-3 - Numerical options.
+                                                    ->options(fn($record) => match($record->stage) {
+                                                        'contacted' => [
+                                                            1 => '1 - Very Low',
+                                                            2 => '2 - Low',
+                                                            3 => '3 - Below Average',
+                                                            4 => '4 - Average',
+                                                            5 => '5 - Moderate',
+                                                            6 => '6 - Above Average',
+                                                            7 => '7 - Good',
+                                                            8 => '8 - High',
+                                                        ],
+                                                        'not_interested' => [
+                                                            1 => '1 - Very Low',
+                                                            2 => '2 - Low',
+                                                        ],
+                                                        'rna' => [
+                                                            1 => '1 - Very Low',
+                                                            2 => '2 - Low',
+                                                            3 => '3 - Below Average',
+                                                        ],
+                                                        default => [],
+                                                    }),
+                                                Textarea::make('comments')
+                                                    ->label('Comments')
+                                                    ->rows(4)
+                                                    ->placeholder('Enter activity details...'),
+                                                TextInput::make('qty')
+                                                    ->label('Quantity')
+                                                    ->numeric()
+                                                    ->placeholder('1'),
+                                                TextInput::make('value')
+                                                    ->label('Value')
+                                                    ->numeric(),
+                                                    // Date and time picker for date_time
+                                                DateTimePicker::make('date_time')
+                                                    ->label('Activity Date & Time')
+                                                    ->default(now())
+                                                    ->required(),
+                                                    // assigned_by as the current logged in user
+                                            ]),
+
                                         RepeatableEntry::make('activities')
                                             ->schema([
                                                 Section::make()
@@ -900,21 +1052,9 @@ class HuntersResource extends Resource
                                             // ->emptyStateIcon('heroicon-o-phone'),
                                     ])
                             ])
-                            ->columnSpanFull()
-                            ->visible(fn ($record) => Gate::allows('view', $record)),
+                            ->columnSpanFull(),
                     ]),
 
-                // Add Call action button as an icon to view the call log tab directly
-                Action::make('view_call_log')
-                    ->label('')
-                    ->icon('heroicon-o-phone')
-                    // ->tooltip('View Call Log')
-                    // ->url(fn ($record) => route('filament.resources.hunters.view', ['record' => $record->id, 'tab' => 'Activities', 'subtab' => 'Call Log']))
-                    // ->openUrlInNewTab()
-                    ->color('primary')
-                    ->visible(fn ($record) => Gate::allows('view', $record)),
-
-                // Add edit action
                 EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil')
@@ -922,6 +1062,9 @@ class HuntersResource extends Resource
                     ->slideOver(),
             ])
             ->headerActions([
+                // Add customize table columns action
+                
+
                 \Filament\Actions\Action::make('sync_api_data')
                     ->label('Sync API Data')
                     ->icon('heroicon-o-arrow-path')
@@ -1075,50 +1218,56 @@ class HuntersResource extends Resource
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->label('Delete Selected')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->tooltip('Delete Selected')
                         ->requiresConfirmation()
                         ->modalHeading('Delete Property Leads')
                         ->modalDescription('Are you sure you want to delete these property leads? This action cannot be undone.')
                         ->modalSubmitActionLabel('Yes, delete them')
                         ->visible(fn () => auth()->user()->user_level_id != 1),
 
-                    BulkAction::make('mark_as_active')
-                        ->label('Mark as Active')
-                        ->icon('heroicon-o-check-circle')
+                    // 🔄 Toggle Pin
+                    BulkAction::make('toggle_pin')
+                        ->label('Toggle Pin')
                         ->color('success')
-                        ->requiresConfirmation()
                         ->action(function (Collection $records) {
-                            $records->each(function ($record) {
-                                $record->update(['is_active' => 1]);
-                            });
-
+                            $toggledCount = 0;
+                            foreach ($records as $record) {
+                                $record->update([
+                                    'is_active' => $record->is_active == 1 ? 0 : 1,
+                                ]);
+                                $toggledCount++;
+                            }
                             Notification::make()
-                                ->title('Leads Updated')
-                                ->body('Selected leads have been marked as active.')
+                                ->title('Pin Updated')
+                                ->body("Toggled pin status for {$toggledCount} leads.")
                                 ->success()
                                 ->send();
                         }),
 
-                    BulkAction::make('mark_as_inactive')
-                        ->label('Mark as Inactive')
-                        ->icon('heroicon-o-x-circle')
-                        ->color('danger')
-                        ->requiresConfirmation()
+                    // ⭐ Toggle Favourite
+                    BulkAction::make('toggle_favourite')
+                        ->label('Toggle Favourite')
+                        ->color('warning')
                         ->action(function (Collection $records) {
-                            $records->each(function ($record) {
-                                $record->update(['is_active' => 0]);
-                            });
-
+                            $toggledCount = 0;
+                            foreach ($records as $record) {
+                                $record->update([
+                                    'is_trending' => $record->is_trending == 1 ? 0 : 1,
+                                ]);
+                                $toggledCount++;
+                            }
                             Notification::make()
-                                ->title('Leads Updated')
-                                ->body('Selected leads have been marked as inactive.')
+                                ->title('Favourite Updated')
+                                ->body("Toggled favourite status for {$toggledCount} leads.")
                                 ->success()
                                 ->send();
                         }),
 
                     BulkAction::make('export_selected')
                         ->label('Export Selected')
-                        ->icon('heroicon-o-document-arrow-down')
+                        // ->icon('heroicon-o-document-arrow-down')
                         ->color('info')
                         ->action(function (Collection $records) {
                             // Export functionality can be implemented here

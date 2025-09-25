@@ -34,7 +34,7 @@ class PendingPaymentResource extends Resource
 {
     protected static ?string $model = Lead::class;
 
-    protected static ?string $label = 'Pending Payment';
+    protected static ?string $label = 'Open';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Private Sellers';
 
