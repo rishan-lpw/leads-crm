@@ -54,22 +54,19 @@ class UserResource extends Resource
                     ->required()
                     ->email()
                     ->maxLength(255),
-                TextInput::make('password')
-                    ->required()
-                    ->password()
-                    ->dehydrateStateUsing(fn ($state) => filled($state) ? bcrypt($state) : null)
-                    ->dehydrated(fn ($state) => filled($state))
-                    ->maxLength(255),
+                // TextInput::make('password')
+                //     ->required()
+                //     ->password()
+                //     ->dehydrateStateUsing(fn ($state) => filled($state) ? bcrypt($state) : null)
+                //     ->dehydrated(fn ($state) => filled($state))
+                //     ->maxLength(255),
                 // User Type should be the type_name option from user_type table.
-                Select::make('user_type_id')
+                // score
+                TextInput::make('score')
                     ->required()
-                    ->options(UserType::query()->pluck('type_name', 'id')->toArray())
-                    ->label('User Type'),
-                // User Sub Type should be the sub_type option from user_type table.
-                Select::make('user_sub_type_id')
-                    ->required()
-                    ->options(UserType::query()->pluck('sub_type', 'id')->toArray())
-                    ->label('User Sub Type'),
+                    ->numeric()
+                    ->default(20)
+                    ->label('Score'),
                 Select::make('user_level_id')
                     ->required()
                     ->options(UserLevel::query()->pluck('title', 'id')->toArray())
@@ -84,7 +81,22 @@ class UserResource extends Resource
             ->columns([
                 TextColumn::make('name'),
                 TextColumn::make('email'),
-                TextColumn::make('userType.type_name')->label('User Type'),
+                // Score > 80 : High, 50-80 : Medium, <50 : Low
+                // Add badges for each 3 levels using colors: High - success, Medium - warning, Low - danger
+                TextColumn::make('score')
+                    ->label('Priority Score')
+                    ->formatStateUsing(fn ($state) => match (true) {
+                        $state > 80 => 'High',
+                        $state > 50 => 'Medium',
+                        default => 'Low',
+                    })
+                    ->colors([
+                        'success' => fn ($state) => $state === 'High',
+                        'warning' => fn ($state) => $state === 'Medium',
+                        'danger' => fn ($state) => $state === 'Low',
+                    ]),
+                
+                // level name from user_levels table
                 TextColumn::make('level.title')->label('User Level'),
             ])
             ->filters([

@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "andreiio/blade-remix-icon": "^3.6",
+        "davidhsianturi/blade-bootstrap-icons": "^2.1",
         "filament/filament": "4.0",
         "filament/notifications": "4.0",
         "laravel/framework": "^12.0",

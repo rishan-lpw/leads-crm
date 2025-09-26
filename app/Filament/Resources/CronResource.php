@@ -57,9 +57,9 @@ class CronResource extends Resource
                 Select::make('member')
                     ->label('Select Member/Members')
                     ->multiple()
-                    // Give options as user names from user table whose user_type <= 3
+                    // Give options as user names from user table whose user_level_id == 1
                     ->options(User::query()
-                        ->where('user_type', '<=', 3)
+                        ->where('user_level_id', 1)
                         ->whereNotNull('name')
                         ->where('name', '!=', '')
                         ->pluck('name', 'id')

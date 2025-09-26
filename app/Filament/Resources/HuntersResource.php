@@ -63,6 +63,9 @@ class HuntersResource extends Resource
 {
     protected static ?string $model = Lead::class;
 
+    // activity model also used
+    protected static ?string $activityModel = Activity::class;
+
     protected static ?string $navigationLabel = 'Hunters';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Private Sellers';
@@ -311,15 +314,23 @@ class HuntersResource extends Resource
         $apiService = new LpwApiService();
         $pendingPayments = $apiService->getPendingPayments();
 
-        // Log the API data for debugging
-        // Log::info('Hunters API Data:', [
-        //     'count' => count($pendingPayments),
-        //     'sample' => !empty($pendingPayments) ? array_slice($pendingPayments, 0, 2) : []
-        // ]);
-
         return $table
             ->columns([
                 // Print customer name and user name as new columns
+                IconColumn::make('is_active')
+        ->label('')
+        ->boolean()
+        ->trueIcon('bi-pin-fill')
+        ->falseIcon('bi-pin')
+        ->trueColor('primary')
+        ->falseColor('gray')
+        ->action(function ($record) {
+            $record->is_active = ! $record->is_active;
+            $record->save();
+        })
+        ->tooltip(fn ($state): string => $state ? 'Unpin' : 'Pin')
+        ->sortable(),
+
                 TextColumn::make('customer.firstname')
                     ->label('Customer')
                     // Add customer email as the second line under name. Use text: xs, color: gray-500.
@@ -377,56 +388,85 @@ class HuntersResource extends Resource
                     ->wrap(),
 
                 // Display activity stage with colored dots for level_score
-                TextColumn::make('latest_activity_stage')
-                    ->label('Stage')
-                    ->getStateUsing(function ($record) {
-                        $latestActivity = $record->activities()
-                            ->orderBy('created_at', 'desc')
-                            ->first();
+                // TextColumn::make('latest_activity_stage')
+                //     ->label('Stage')
+                //     ->getStateUsing(function ($record) {
+                //         $latestActivity = $record->activities()
+                //             ->orderBy('created_at', 'desc')
+                //             ->first();
 
-                        if (!$latestActivity) {
-                            return 'No Activity';
-                        }
+                //         if (!$latestActivity) {
+                //             return 'No Activity';
+                //         }
 
-                        return ucfirst($latestActivity->stage ?? 'Unknown');
-                    })
-                    ->description(function ($record) {
-                        $latestActivity = $record->activities()
-                            ->orderBy('created_at', 'desc')
-                            ->first();
+                //         return ucfirst($latestActivity->stage ?? 'Unknown');
+                //     })
+                //     ->description(function ($record) {
+                //         $latestActivity = $record->activities()
+                //             ->orderBy('created_at', 'desc')
+                //             ->first();
 
-                        if (!$latestActivity || $latestActivity->level_score === null) {
-                            return 'Score: N/A';
-                        }
+                //         if (!$latestActivity || $latestActivity->level_score === null) {
+                //             return 'Score: N/A';
+                //         }
 
-                        $score = (int) $latestActivity->level_score;
-                        $stage = $latestActivity->stage ?? '';
+                //         $score = (int) $latestActivity->level_score;
+                //         $stage = $latestActivity->stage ?? '';
 
-                        // Determine dot color based on stage. Repeat the no. of below icons relevant to the level_score.
-                        // contacted - 🔵
-                        // rna - 🟠
-                        // not_interested - 🔴
-                        // upsell - 🟡
-                        // qualified - 🟢
-                        // interested - 🟤🟣⚪
-                        // default - ⚪ (gray)
+                //        // Use this emojis to represent colored dots
+                //         $dot = match ($stage) {
+                //             'contacted' => '🔵',
+                //             'rna' => '🟠',
+                //             'not_interested' => '🔴',
+                //             default => '⚪', // Default gray dot
+                //         };
+                //         return str_repeat($dot, $score);
+                //     })
+                //     ->html() // allow rendering colored dots
+                //     ->toggleable()
+                //     ->sortable(),
 
-                       // Use this emojis to represent colored dots
-                        $dot = match ($stage) {
-                            'contacted' => '🔵',
-                            'rna' => '🟠',
-                            'not_interested' => '🔴',
-                            default => '⚪', // Default gray dot
-                        };
-                        return str_repeat($dot, $score);
-                    })
-                    ->html() // allow rendering colored dots
-                    ->toggleable()
-                    ->sortable(),
-                
-                BadgeColumn::make('weight')
-                    ->label('Weight')
-                    ->getStateUsing(function ($record) {
+                TextColumn::make('activity_icons')
+    ->label('Activity History')
+    ->html() // allow raw HTML rendering
+    ->getStateUsing(function ($record) {
+        $activities = $record->activities()
+            ->orderBy('created_at', 'asc') // oldest → newest
+            ->get();
+
+        if ($activities->isEmpty()) {
+            return '<span class="text-gray-400">No Activity</span>';
+        }
+
+        $icons = '';
+
+        foreach ($activities as $activity) {
+            $stage = $activity->stage ?? null;
+            $level = (int) ($activity->level_score ?? 0);
+
+            // Emoji sets by stage
+            $emojiSets = [
+                'contacted' => ['🔴', '🟠', '🟡', '🔵', '🟣', '🟢', '🟤', '⚪'],
+                'rna' => ['🟥', '🟧', '🟨'],
+                'not_interested' => ['🔶', '🔷'],
+            ];
+
+            // Only render if stage exists in emojiSets
+            if ($stage && isset($emojiSets[$stage])) {
+                $emojis = $emojiSets[$stage];
+                $index = max(0, min($level - 1, count($emojis) - 1));
+                $icons .= $emojis[$index] . ' ';
+            }
+        }
+
+        return $icons ?: '<span class="text-gray-400">No Activity</span>';
+    })
+    ->toggleable()
+    ->sortable(),
+
+    BadgeColumn::make('weight')
+        ->label('Weight')
+        ->getStateUsing(function ($record) {
                         return $record->weight;
                     })
                     ->colors([
@@ -451,15 +491,15 @@ class HuntersResource extends Resource
                     ->toggleable(),
 
                 // is_active, is_trending as icons
-                IconColumn::make('is_active')
-                    ->label('Active')
-                    ->boolean()
-                    ->trueIcon('heroicon-m-shield-check')
-                    ->falseIcon('heroicon-s-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger')
-                    ->toggleable()
-                    ->sortable(),
+                // IconColumn::make('is_active')
+                //     ->label('Active')
+                //     ->boolean()
+                //     ->trueIcon('heroicon-m-shield-check')
+                //     ->falseIcon('heroicon-s-x-circle')
+                //     ->trueColor('success')
+                //     ->falseColor('danger')
+                //     ->toggleable()
+                //     ->sortable(),
 
                 IconColumn::make('is_trending')
                     ->label('Trending')
@@ -846,6 +886,7 @@ class HuntersResource extends Resource
                                             ->icon('heroicon-o-plus')
                                             ->schema([
                                                 // Form to add a new activity
+                                                // Should be updated activity table in the database.
                                                 Select::make('activity_type')
                                                     ->label('Activity Type')
                                                     ->options([
@@ -866,31 +907,38 @@ class HuntersResource extends Resource
                                                         'not_interested' => 'Not Interested',
                                                     ])
                                                     ->required(),
-                                                Select::make('level_score')
+                                                // numerical field to enter level_score.
+                                                TextInput::make('level_score')
                                                     ->label('Lead Score')
-                                                    // Contacted: 1-8, Not Interested: 1-2, RNA: 1-3 - Numerical options.
-                                                    ->options(fn($record) => match($record->stage) {
-                                                        'contacted' => [
-                                                            1 => '1 - Very Low',
-                                                            2 => '2 - Low',
-                                                            3 => '3 - Below Average',
-                                                            4 => '4 - Average',
-                                                            5 => '5 - Moderate',
-                                                            6 => '6 - Above Average',
-                                                            7 => '7 - Good',
-                                                            8 => '8 - High',
-                                                        ],
-                                                        'not_interested' => [
-                                                            1 => '1 - Very Low',
-                                                            2 => '2 - Low',
-                                                        ],
-                                                        'rna' => [
-                                                            1 => '1 - Very Low',
-                                                            2 => '2 - Low',
-                                                            3 => '3 - Below Average',
-                                                        ],
-                                                        default => [],
-                                                    }),
+                                                    ->numeric()
+                                                    ->minValue(1)
+                                                    ->maxValue(8)
+                                                    ->required(),
+                                                // Select::make('level_score')
+                                                //     ->label('Lead Score')
+                                                //     // Contacted: 1-8, Not Interested: 1-2, RNA: 1-3 - Numerical options.
+                                                //     ->options(fn($record) => match($record->stage) {
+                                                //         'contacted' => [
+                                                //             1 => '1 - Very Low',
+                                                //             2 => '2 - Low',
+                                                //             3 => '3 - Below Average',
+                                                //             4 => '4 - Average',
+                                                //             5 => '5 - Moderate',
+                                                //             6 => '6 - Above Average',
+                                                //             7 => '7 - Good',
+                                                //             8 => '8 - High',
+                                                //         ],
+                                                //         'not_interested' => [
+                                                //             1 => '1 - Very Low',
+                                                //             2 => '2 - Low',
+                                                //         ],
+                                                //         'rna' => [
+                                                //             1 => '1 - Very Low',
+                                                //             2 => '2 - Low',
+                                                //             3 => '3 - Below Average',
+                                                //         ],
+                                                //         default => [],
+                                                //     }),
                                                 Textarea::make('comments')
                                                     ->label('Comments')
                                                     ->rows(4)
@@ -908,7 +956,52 @@ class HuntersResource extends Resource
                                                     ->default(now())
                                                     ->required(),
                                                     // assigned_by as the current logged in user
-                                            ]),
+                                            ])
+                                            ->action(function (array $data, $record) {
+                                                try {
+            // Create the activity record
+            Activity::create([
+                'lead_id' => $record->id,
+                // 'user_id' => auth()->id(),
+                // 'ad_id' => $record->ad_id,
+                'activity_type' => $data['activity_type'] ?? 'other',
+                'stage' => $data['stage'],
+                'level_score' => $data['level_score'],
+                'comments' => $data['comments'],
+                'qty' => $data['qty'] ?? 1,
+                'value' => $data['value'] ?? null,
+                'date_time' => $data['date_time'],
+                // 'reminder' => $data['reminder'] ?? null,
+                // 'old_am' => auth()->user()->name ?? 'System',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            Notification::make()
+                ->title('Activity Added Successfully')
+                ->body("New {$data['stage']} activity has been created for this lead.")
+                ->success()
+                ->duration(5000)
+                ->send();
+                
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error Adding Activity')
+                ->body('Failed to create activity: ' . $e->getMessage())
+                ->danger()
+                ->duration(8000)
+                ->send();
+                
+            Log::error('Activity creation failed', [
+                'lead_id' => $record->id,
+                // 'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'data' => $data
+            ]);
+        }
+                                            })
+                                            ->modalWidth('2xl')
+                                            ->button(),
 
                                         RepeatableEntry::make('activities')
                                             ->schema([
@@ -1043,6 +1136,7 @@ class HuntersResource extends Resource
                                                             ->label('Called By')
                                                             ->placeholder('Unknown'),
                                                     ])
+                                                
                                                     ->columns(2),
                                             ])
                                             ->contained(false)
@@ -1054,6 +1148,13 @@ class HuntersResource extends Resource
                             ])
                             ->columnSpanFull(),
                     ]),
+
+                // Add a new action to view the call script for each lead.
+                Action::make('viewCallScript')
+                    ->label('')
+                    ->icon('heroicon-c-phone')
+                    ->visible(fn ($record) => Gate::allows('view', $record))
+                    ->slideOver(),
 
                 EditAction::make()
                     ->label('')
