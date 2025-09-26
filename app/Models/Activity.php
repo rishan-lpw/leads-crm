@@ -16,7 +16,7 @@ class Activity extends Model
     protected $table = 'activity';
 
     protected $fillable = [
-        'lead_id', 'user_id', 'action', 'qty', 'value', 'ad_id', 'comments', 'reminder', 'date_time', 'old_am'
+        'lead_id', 'user_id', 'activity_type', 'status', 'stage', 'level_score', 'action', 'qty', 'value', 'ad_id', 'comments', 'reminder', 'date_time', 'old_am'
     ];
 
     protected $casts = [

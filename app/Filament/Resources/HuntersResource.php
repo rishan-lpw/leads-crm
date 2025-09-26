@@ -57,6 +57,7 @@ use Filament\Tables\Columns\IconColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class HuntersResource extends Resource
@@ -76,15 +77,15 @@ class HuntersResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-    
+
         // Check if current user has restricted access (user_level_id = 1)
         $user = auth()->user();
-        
+
         if ($user && $user->user_level_id == 1) {
             // Restrict to only leads assigned to this user
             $query->where('user_id', $user->id);
         }
-        
+
         return $query;
     }
 
@@ -318,18 +319,18 @@ class HuntersResource extends Resource
             ->columns([
                 // Print customer name and user name as new columns
                 IconColumn::make('is_active')
-        ->label('')
-        ->boolean()
-        ->trueIcon('bi-pin-fill')
-        ->falseIcon('bi-pin')
-        ->trueColor('primary')
-        ->falseColor('gray')
-        ->action(function ($record) {
-            $record->is_active = ! $record->is_active;
-            $record->save();
-        })
-        ->tooltip(fn ($state): string => $state ? 'Unpin' : 'Pin')
-        ->sortable(),
+                    ->label('')
+                    ->boolean()
+                    ->trueIcon('bi-pin-fill')
+                    ->falseIcon('bi-pin')
+                    ->trueColor('primary')
+                    ->falseColor('gray')
+                    ->action(function ($record) {
+                        $record->is_active = ! $record->is_active;
+                        $record->save();
+                    })
+                    ->tooltip(fn($state): string => $state ? 'Unpin' : 'Pin')
+                    ->sortable(),
 
                 TextColumn::make('customer.firstname')
                     ->label('Customer')
@@ -387,6 +388,18 @@ class HuntersResource extends Resource
                     // Limit the row height to 2 lines.
                     ->wrap(),
 
+                // Add a column to show latest comment. Get the latest comment from activity table where comments is not null.
+                TextColumn::make('latest_comment')
+                    ->label('Latest Comment')
+                    ->getStateUsing(function ($record) {
+                        return $record->activities()
+                            ->whereNotNull('comments')
+                            ->orderBy('created_at', 'desc')
+                            ->first()?->comments ?? 'No Comment';
+                    })
+                    ->toggleable()
+                    ->sortable(),
+
                 // Display activity stage with colored dots for level_score
                 // TextColumn::make('latest_activity_stage')
                 //     ->label('Stage')
@@ -426,47 +439,89 @@ class HuntersResource extends Resource
                 //     ->toggleable()
                 //     ->sortable(),
 
+                // Add a column to show the progress of each lead using below emojis:
+                // Positive: 🟢, Pending: 🟡, RNA: 🟠, Not Interested: 🔴
+                // Mark for every activity relevant to the lead using which status of the each activity.
+                TextColumn::make('progress_icons')
+                    ->label('Progress')
+                    ->html()
+                    // Add last acivity date as the first line. emojis should be in second line.
+                    ->getStateUsing(function ($record) {
+                        $activities = $record->activities()
+                            ->orderBy('created_at', 'asc') // oldest → newest
+                            ->get();
+
+                        if ($activities->isEmpty()) {
+                            return '<span class="text-gray-400">No Progress</span>';
+                        }
+
+                        $lastActivity = $activities->last();
+                        $lastDate = $lastActivity ? Carbon::parse($lastActivity->created_at)->format('M d, Y') : 'N/A';
+
+                        $icons = '';
+
+                        foreach ($activities as $activity) {
+                            $status = $activity->status ?? null;
+
+                            // Map status → progress emoji
+                            $map = [
+                                'positive'        => '🟢',
+                                'pending'         => '🟡',
+                                'rna'             => '🟠',
+                                'not_interested'  => '🔴',
+                            ];
+
+                            $icons .= $map[$status]; // default gray if status unknown
+                        }
+
+                        $icons = "<div class='text-xs text-gray-500 mb-1'>$lastDate</div>" . $icons;
+                        return $icons;
+                    })
+                    ->toggleable()
+                    ->sortable(),
+
                 TextColumn::make('activity_icons')
-    ->label('Activity History')
-    ->html() // allow raw HTML rendering
-    ->getStateUsing(function ($record) {
-        $activities = $record->activities()
-            ->orderBy('created_at', 'asc') // oldest → newest
-            ->get();
+                    ->label('Funnel Stage')
+                    ->html() // allow raw HTML rendering
+                    ->getStateUsing(function ($record) {
+                        $activities = $record->activities()
+                            ->orderBy('created_at', 'asc') // oldest → newest
+                            ->get();
 
-        if ($activities->isEmpty()) {
-            return '<span class="text-gray-400">No Activity</span>';
-        }
+                        if ($activities->isEmpty()) {
+                            return '<span class="text-gray-400">No Activity</span>';
+                        }
 
-        $icons = '';
+                        $icons = '';
 
-        foreach ($activities as $activity) {
-            $stage = $activity->stage ?? null;
-            $level = (int) ($activity->level_score ?? 0);
+                        foreach ($activities as $activity) {
+                            $stage = $activity->stage ?? null;
+                            $level = (int) ($activity->level_score ?? 0);
 
-            // Emoji sets by stage
-            $emojiSets = [
-                'contacted' => ['🔴', '🟠', '🟡', '🔵', '🟣', '🟢', '🟤', '⚪'],
-                'rna' => ['🟥', '🟧', '🟨'],
-                'not_interested' => ['🔶', '🔷'],
-            ];
+                            // Emoji sets by stage
+                            $emojiSets = [
+                                'contacted' => ['🔴', '🟠', '🟡', '🟤', '🔵', '🟣', '🟢'],
+                                'rna' => ['🟥', '🟧', '🟨'],
+                                'not_interested' => ['🔶', '🔷'],
+                            ];
 
-            // Only render if stage exists in emojiSets
-            if ($stage && isset($emojiSets[$stage])) {
-                $emojis = $emojiSets[$stage];
-                $index = max(0, min($level - 1, count($emojis) - 1));
-                $icons .= $emojis[$index] . ' ';
-            }
-        }
+                            if ($stage && isset($emojiSets[$stage])) {
+                                $emojis = $emojiSets[$stage];
 
-        return $icons ?: '<span class="text-gray-400">No Activity</span>';
-    })
-    ->toggleable()
-    ->sortable(),
+                                // Pick icon based on level
+                                $index = max(0, min($level - 1, count($emojis) - 1));
+                                $icons .= $emojis[$index]; // append without extra space
+                            }
+                        }
 
-    BadgeColumn::make('weight')
-        ->label('Weight')
-        ->getStateUsing(function ($record) {
+                        return $icons ?: '<span class="text-gray-400">No Activity</span>';
+                    })
+                    ->toggleable()
+                    ->sortable(),
+
+                BadgeColumn::make('weight')
+                    ->label('Weight')
+                    ->getStateUsing(function ($record) {
                         return $record->weight;
                     })
                     ->colors([
@@ -528,7 +583,7 @@ class HuntersResource extends Resource
                     ->label('AM')
                     ->searchable()
                     ->sortable(),
-                
+
                 // TextColumn::make('heading')
                 //     ->label('Property Heading')
                 //     ->searchable()
@@ -657,7 +712,7 @@ class HuntersResource extends Resource
                     ->icon('heroicon-o-eye')
                     ->modalHeading(fn($record) => 'Property Details - ' . $record->heading)
                     ->modalWidth('6xl')
-                    ->visible(fn ($record) => Gate::allows('view', $record))
+                    ->visible(fn($record) => Gate::allows('view', $record))
                     ->schema([
                         Tabs::make('PropertyTabs')
                             ->tabs([
@@ -872,7 +927,7 @@ class HuntersResource extends Resource
                     ->icon('heroicon-o-clipboard-document-list')
                     ->modalHeading(fn($record) => 'Activities - ' . $record->heading)
                     ->modalWidth('6xl')
-                    ->visible(fn ($record) => Gate::allows('view', $record))
+                    ->visible(fn($record) => Gate::allows('view', $record))
                     ->schema([
                         Tabs::make('ActivityTabs')
                             ->tabs([
@@ -898,9 +953,20 @@ class HuntersResource extends Resource
                                                         'other' => 'Other',
                                                     ])
                                                     ->required(),
+
+                                                Select::make('status')
+                                                    ->label('Activity Status')
+                                                    ->options([
+                                                        'positive' => 'Positive',
+                                                        'rna' => 'RNA',
+                                                        'pending' => 'Pending',
+                                                        'not_interested' => 'Not Interested',
+                                                    ])
+                                                    ->placeholder('Select status')
+                                                    ->required(),
                                                 // Add fields: stage, level_score, comments, qty, value, date_time, assined_by, old_am
                                                 Select::make('stage')
-                                                    ->label('Activity Stage')
+                                                    ->label('Funnel Category')
                                                     ->options([
                                                         'contacted' => 'Contacted',
                                                         'rna' => 'RNA',
@@ -909,7 +975,7 @@ class HuntersResource extends Resource
                                                     ->required(),
                                                 // numerical field to enter level_score.
                                                 TextInput::make('level_score')
-                                                    ->label('Lead Score')
+                                                    ->label('Funnel Score')
                                                     ->numeric()
                                                     ->minValue(1)
                                                     ->maxValue(8)
@@ -943,62 +1009,62 @@ class HuntersResource extends Resource
                                                     ->label('Comments')
                                                     ->rows(4)
                                                     ->placeholder('Enter activity details...'),
-                                                TextInput::make('qty')
-                                                    ->label('Quantity')
-                                                    ->numeric()
-                                                    ->placeholder('1'),
-                                                TextInput::make('value')
-                                                    ->label('Value')
-                                                    ->numeric(),
-                                                    // Date and time picker for date_time
+                                                // TextInput::make('qty')
+                                                //     ->label('Quantity')
+                                                //     ->numeric()
+                                                //     ->placeholder('1'),
+                                                // TextInput::make('value')
+                                                //     ->label('Value')
+                                                //     ->numeric(),
+                                                // Date and time picker for date_time
                                                 DateTimePicker::make('date_time')
                                                     ->label('Activity Date & Time')
                                                     ->default(now())
                                                     ->required(),
-                                                    // assigned_by as the current logged in user
+                                                // assigned_by as the current logged in user
                                             ])
                                             ->action(function (array $data, $record) {
                                                 try {
-            // Create the activity record
-            Activity::create([
-                'lead_id' => $record->id,
-                // 'user_id' => auth()->id(),
-                // 'ad_id' => $record->ad_id,
-                'activity_type' => $data['activity_type'] ?? 'other',
-                'stage' => $data['stage'],
-                'level_score' => $data['level_score'],
-                'comments' => $data['comments'],
-                'qty' => $data['qty'] ?? 1,
-                'value' => $data['value'] ?? null,
-                'date_time' => $data['date_time'],
-                // 'reminder' => $data['reminder'] ?? null,
-                // 'old_am' => auth()->user()->name ?? 'System',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-            
-            Notification::make()
-                ->title('Activity Added Successfully')
-                ->body("New {$data['stage']} activity has been created for this lead.")
-                ->success()
-                ->duration(5000)
-                ->send();
-                
-        } catch (\Exception $e) {
-            Notification::make()
-                ->title('Error Adding Activity')
-                ->body('Failed to create activity: ' . $e->getMessage())
-                ->danger()
-                ->duration(8000)
-                ->send();
-                
-            Log::error('Activity creation failed', [
-                'lead_id' => $record->id,
-                // 'user_id' => auth()->id(),
-                'error' => $e->getMessage(),
-                'data' => $data
-            ]);
-        }
+                                                    // Create the activity record
+                                                    Activity::create([
+                                                        'lead_id' => $record->id,
+                                                        // 'user_id' => auth()->id(),
+                                                        // 'ad_id' => $record->ad_id,
+                                                        'activity_type' => $data['activity_type'] ?? 'other',
+                                                        'stage' => $data['stage'],
+                                                        'status' => $data['status'],
+                                                        'level_score' => $data['level_score'],
+                                                        'comments' => $data['comments'],
+                                                        'qty' => $data['qty'] ?? 1,
+                                                        'value' => $data['value'] ?? null,
+                                                        'date_time' => $data['date_time'],
+                                                        // 'reminder' => $data['reminder'] ?? null,
+                                                        // 'old_am' => auth()->user()->name ?? 'System',
+                                                        'created_at' => now(),
+                                                        'updated_at' => now(),
+                                                    ]);
+
+                                                    Notification::make()
+                                                        ->title('Activity Added Successfully')
+                                                        ->body("New {$data['stage']} activity has been created for this lead.")
+                                                        ->success()
+                                                        ->duration(5000)
+                                                        ->send();
+                                                } catch (\Exception $e) {
+                                                    Notification::make()
+                                                        ->title('Error Adding Activity')
+                                                        ->body('Failed to create activity: ' . $e->getMessage())
+                                                        ->danger()
+                                                        ->duration(8000)
+                                                        ->send();
+
+                                                    Log::error('Activity creation failed', [
+                                                        'lead_id' => $record->id,
+                                                        // 'user_id' => auth()->id(),
+                                                        'error' => $e->getMessage(),
+                                                        'data' => $data
+                                                    ]);
+                                                }
                                             })
                                             ->modalWidth('2xl')
                                             ->button(),
@@ -1008,16 +1074,16 @@ class HuntersResource extends Resource
                                                 Section::make()
                                                     ->collapsible()
                                                     ->collapsed()
-                                                    ->heading(fn($record) => match($record->activity_type) {
+                                                    ->heading(fn($record) => match ($record->activity_type) {
                                                         'email' => '✉️ Email Activity',
-                                                        'meeting' => '📅 Meeting Activity', 
+                                                        'meeting' => '📅 Meeting Activity',
                                                         'site_visit' => '🏠 Site Visit Activity',
                                                         'follow_up' => '🔄 Follow Up Activity',
                                                         'note' => '📝 Note Activity',
                                                         'other' => '📋 Other Activity',
                                                         default => '📝 Activity',
                                                     })
-                                                    ->description(function($record) {
+                                                    ->description(function ($record) {
                                                         $date = $record->date_time ? $record->date_time->format('M d, Y h:i A') : 'No date';
                                                         $by = $record->old_am ?? 'Unknown';
                                                         return "{$date} • By: {$by}";
@@ -1026,10 +1092,10 @@ class HuntersResource extends Resource
                                                         TextEntry::make('stage')
                                                             ->label('Activity Type')
                                                             ->badge()
-                                                            ->color(fn($state) => match($state) {
+                                                            ->color(fn($state) => match ($state) {
                                                                 'email' => 'info',
                                                                 'meeting' => 'success',
-                                                                'site_visit' => 'warning', 
+                                                                'site_visit' => 'warning',
                                                                 'follow_up' => 'primary',
                                                                 'note' => 'gray',
                                                                 'other' => 'secondary',
@@ -1052,7 +1118,7 @@ class HuntersResource extends Resource
                                                             ->label('Lead Score')
                                                             ->formatStateUsing(fn($state) => $state ? "{$state}/10" : 'No score')
                                                             ->badge()
-                                                            ->color(fn($state) => match(true) {
+                                                            ->color(fn($state) => match (true) {
                                                                 $state >= 8 => 'success',
                                                                 $state >= 6 => 'warning',
                                                                 $state >= 4 => 'primary',
@@ -1082,11 +1148,11 @@ class HuntersResource extends Resource
                                                 Section::make()
                                                     ->collapsible()
                                                     ->collapsed()
-                                                    ->heading(function($record) {
+                                                    ->heading(function ($record) {
                                                         $duration = $record->qty ? " ({$record->qty} min)" : '';
                                                         return "📞 Call Log{$duration}";
                                                     })
-                                                    ->description(function($record) {
+                                                    ->description(function ($record) {
                                                         $date = $record->date_time ? $record->date_time->format('M d, Y h:i A') : 'No date';
                                                         $by = $record->old_am ?? 'Unknown';
                                                         $score = $record->level_score ? " • Quality: {$record->level_score}/10" : '';
@@ -1108,9 +1174,9 @@ class HuntersResource extends Resource
                                                             ->formatStateUsing(fn($state) => $state ? 'LKR ' . number_format($state) : 'Not discussed'),
                                                         TextEntry::make('level_score')
                                                             ->label('Lead Quality After Call')
-                                                            ->formatStateUsing(function($state) {
+                                                            ->formatStateUsing(function ($state) {
                                                                 if (!$state) return 'Not rated';
-                                                                return match(true) {
+                                                                return match (true) {
                                                                     $state >= 9 => "{$state}/10 - Excellent",
                                                                     $state >= 7 => "{$state}/10 - High Interest",
                                                                     $state >= 5 => "{$state}/10 - Moderate Interest",
@@ -1119,7 +1185,7 @@ class HuntersResource extends Resource
                                                                 };
                                                             })
                                                             ->badge()
-                                                            ->color(fn($state) => match(true) {
+                                                            ->color(fn($state) => match (true) {
                                                                 $state >= 8 => 'success',
                                                                 $state >= 6 => 'warning',
                                                                 $state >= 4 => 'primary',
@@ -1136,14 +1202,14 @@ class HuntersResource extends Resource
                                                             ->label('Called By')
                                                             ->placeholder('Unknown'),
                                                     ])
-                                                
+
                                                     ->columns(2),
                                             ])
                                             ->contained(false)
-                                            // ->query(fn($record) => $record->activities()->where('stage', 'call')->orderBy('created_at', 'desc'))
-                                            // ->emptyStateHeading('No Call Logs Found')
-                                            // ->emptyStateDescription('No calls have been logged for this lead yet.')
-                                            // ->emptyStateIcon('heroicon-o-phone'),
+                                        // ->query(fn($record) => $record->activities()->where('stage', 'call')->orderBy('created_at', 'desc'))
+                                        // ->emptyStateHeading('No Call Logs Found')
+                                        // ->emptyStateDescription('No calls have been logged for this lead yet.')
+                                        // ->emptyStateIcon('heroicon-o-phone'),
                                     ])
                             ])
                             ->columnSpanFull(),
@@ -1153,18 +1219,35 @@ class HuntersResource extends Resource
                 Action::make('viewCallScript')
                     ->label('')
                     ->icon('heroicon-c-phone')
-                    ->visible(fn ($record) => Gate::allows('view', $record))
-                    ->slideOver(),
+                    ->visible(fn($record) => Gate::allows('view', $record))
+                    ->modalHeading('Call Script')
+                    ->modalButton('Close')
+                    ->modalSubmitAction(false) // disables footer buttons except Close
+                    ->action(function ($record, $livewire, $data, $action) {
+                        // Example: Fetch script from API
+                        $response = Http::get('https://your-api.com/call-script/' . $record->id);
+
+                        if ($response->successful()) {
+                            $script = $response->json()['script'] ?? 'No script available.';
+                        } else {
+                            $script = '⚠️ Failed to fetch call script.';
+                        }
+
+                        // Update the modal content dynamically
+                        $action->modalHeading("Call Script for Lead #{$record->id}");
+                        $action->modalContent(view('filament.call-script-modal', ['script' => $script]));
+                    })
+                    ->modalWidth('4xl'),
 
                 EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil')
-                    ->visible(fn ($record) => Gate::allows('update', $record))
+                    ->visible(fn($record) => Gate::allows('update', $record))
                     ->slideOver(),
             ])
             ->headerActions([
                 // Add customize table columns action
-                
+
 
                 \Filament\Actions\Action::make('sync_api_data')
                     ->label('Sync API Data')
@@ -1326,7 +1409,7 @@ class HuntersResource extends Resource
                         ->modalHeading('Delete Property Leads')
                         ->modalDescription('Are you sure you want to delete these property leads? This action cannot be undone.')
                         ->modalSubmitActionLabel('Yes, delete them')
-                        ->visible(fn () => auth()->user()->user_level_id != 1),
+                        ->visible(fn() => auth()->user()->user_level_id != 1),
 
                     // 🔄 Toggle Pin
                     BulkAction::make('toggle_pin')
@@ -1381,7 +1464,7 @@ class HuntersResource extends Resource
                 ]),
             ])
             // ->recordUrl(null) // disable row click
-            ->recordUrl(null);// disable row click
+            ->recordUrl(null); // disable row click
     }
 
     public static function getPages(): array
