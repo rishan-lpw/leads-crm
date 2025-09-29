@@ -13,6 +13,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use App\Filament\Resources\HuntersResource;
+use App\Models\User;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Forms;
@@ -154,16 +155,37 @@ class EditHunters extends EditRecord
                                     ->required()
                                     ->searchable(),
 
-                                TextInput::make('am')
+                                Select::make('am')
                                     ->label('Account Manager')
-                                    ->maxLength(100)
+                                    // ->maxLength(100)
+                                    // Give options as user names from user table whose user_level_id == 1
+                                    ->options(User::query()
+                                        ->where('user_level_id', 1)
+                                        ->whereNotNull('name')
+                                        ->where('name', '!=', '')
+                                        ->pluck('name', 'name')
+                                        ->toArray())
                                     ->placeholder('Enter AM name'),
+                                    
+                                DatePicker::make('posted_date')
+                                ->label('Posted Date')
+                                ->disabled(),
+
+                                DateTimePicker::make('last_update_date')
+                                    ->label('Last Update Date')
+                                    ->default(now())
+                                    ->disabled(),
+
+                                TextInput::make('user_type_id')
+                                    ->label('User Type ID')
+                                    ->disabled(),
                             ]),
                     ])
                     ->collapsible(),
 
                 Section::make('Property Details')
                     ->description('Property and pricing information')
+                    ->collapsed()
                     ->schema([
                         Grid::make(3)
                             ->schema([
@@ -214,12 +236,6 @@ class EditHunters extends EditRecord
                                     ->maxLength(50)
                                     ->placeholder('e.g., 6 months'),
                             ]),
-                    ])
-                    ->collapsible(),
-
-                Section::make('Status & Management')
-                    ->description('Current status and management details')
-                    ->schema([
                         Grid::make(2)
                             ->schema([
                                 Select::make('status')
@@ -247,23 +263,13 @@ class EditHunters extends EditRecord
                                     ->maxLength(100)
                                     ->default(auth()->user()->name ?? 'System')
                                     ->disabled(),
-                            ]),
-                    ])
-                    ->collapsible(),
-
-                Section::make('Comments & Notes')
-                    ->description('Additional information and comments')
-                    ->schema([
-                        Textarea::make('latest_comments')
-                            ->label('Comments')
-                            ->rows(6)
-                            ->placeholder('Enter comments, notes, or follow-up information...')
-                            ->helperText('Use this field to track communication history and important notes.'),
+                            ])
                     ])
                     ->collapsible(),
 
                 Section::make('System Information')
                     ->description('System-managed fields (read-only)')
+                    ->collapsed()
                     ->schema([
                         Grid::make(3)
                             ->schema([
