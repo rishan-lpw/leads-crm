@@ -39,6 +39,10 @@ new #[Layout('layouts.guest')] class extends Component
 
 <div>
     <form wire:submit="register">
+        <div class="flex w-full justify-center mb-6">
+            <!-- logo should be much bigger -->
+            <img src="{{ asset('images/lpw_logo.png') }}" alt="LPW" class="h-12 w-auto">
+        </div>
         <!-- Name -->
         <div>
             <x-input-label for="name" :value="__('Name')" />

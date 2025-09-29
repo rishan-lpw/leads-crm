@@ -39,6 +39,10 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Emerald,
             ])
+            // Set the logo as public/images/lpw_logo.png
+            ->brandLogo(asset('images/lpw_logo.png'))
+            ->brandLogoHeight('3rem')
+            ->favicon(asset('images/favicon.ico'))
             ->sidebarCollapsibleOnDesktop()
             ->sidebarFullyCollapsibleOnDesktop() // Optional
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

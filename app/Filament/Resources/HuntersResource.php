@@ -375,6 +375,7 @@ class HuntersResource extends Resource
                         $type = ucfirst($record->type);
                         $city = ucfirst($record->city);
                         // Render only the first line here; description below will handle the second line. text-xs, gray-500 of propertyType.
+                        // Add a badge to represent the type. For all types apply blue color badge.
                         return "$price - $type";
                     })
                     ->html()
@@ -635,24 +636,6 @@ class HuntersResource extends Resource
                         'villa' => 'Villa',
                         'townhouse' => 'Townhouse',
                     ]),
-                SelectFilter::make('status')
-                    ->label('Status')
-                    ->options([
-                        'new' => 'New',
-                        'follow_up' => 'Follow Up',
-                        'system' => 'System',
-                        'to_be_expired' => 'To Be Expired',
-                        'expired' => 'Expired',
-                    ]),
-
-                // Weight filter for low, high, medium
-                SelectFilter::make('weight')
-                    ->label('Weight')
-                    ->options([
-                        'low' => 'Low',
-                        'medium' => 'Medium',
-                        'high' => 'High',
-                    ]),
 
                 SelectFilter::make('source')
                     ->label('Source')
@@ -663,14 +646,14 @@ class HuntersResource extends Resource
                         'other' => 'Other',
                     ]),
 
-                SelectFilter::make('is_active')
-                    ->label('Status')
-                    ->options([
-                        0 => 'Inactive',
-                        1 => 'Active',
-                        2 => 'Special',
-                        3 => 'Pending',
-                    ]),
+                // SelectFilter::make('is_active')
+                //     ->label('Status')
+                //     ->options([
+                //         0 => 'Inactive',
+                //         1 => 'Active',
+                //         2 => 'Special',
+                //         3 => 'Pending',
+                //     ]),
                 // posted_date filter
                 Filter::make('posted_date')
                     ->schema([
@@ -703,9 +686,19 @@ class HuntersResource extends Resource
                             ->when($data['price_min'], fn(Builder $query, $value) => $query->where('price', '>=', $value))
                             ->when($data['price_max'], fn(Builder $query, $value) => $query->where('price', '<=', $value));
                     })
-                    ->label('Price Range')
+                    ->label('Price Range'),
+                // Weight filter for low, high, medium
+                SelectFilter::make('weight')
+                    ->label('Weight')
+                    ->options([
+                        'low' => 'Low',
+                        'medium' => 'Medium',
+                        'high' => 'High',
+                    ]),
             ])
-
+            // Display layout as a popup modal
+            ->filtersLayout(FiltersLayout::Modal)
+            ->filtersFormColumns(2)
             ->recordActions([
                 ViewAction::make()
                     ->label('')
@@ -1465,6 +1458,12 @@ class HuntersResource extends Resource
             ])
             // ->recordUrl(null) // disable row click
             ->recordUrl(null); // disable row click
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = Lead::where('is_active', 1)->count();
+        return $count > 0 ? (string)$count : null;
     }
 
     public static function getPages(): array

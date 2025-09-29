@@ -26,6 +26,11 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
+    <div class="flex w-full justify-center mb-6">
+        <!-- logo should be much bigger -->
+        <img src="{{ asset('images/lpw_logo.png') }}" alt="LPW" class="h-12 w-auto">
+    </div>
+
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 

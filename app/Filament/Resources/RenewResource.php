@@ -569,6 +569,12 @@ class RenewResource extends Resource
             ->recordUrl(null); // disable row click
     }
 
+    public static function getNavigationBadge(): ?string
+    {
+        $count = Lead::where('status', 'renew')->count();
+        return $count > 0 ? (string)$count : null;
+    }
+
     public static function getRelations(): array
     {
         return [
