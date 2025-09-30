@@ -25,9 +25,12 @@ use App\Filament\Resources\HuntersResource\Pages\EditHunters;
 use App\Filament\Resources\HuntersResource\Pages;
 use App\Filament\Resources\HuntersResource\Pages\ViewActivities;
 use App\Filament\Resources\HuntersResource\RelationManagers;
+use App\Filament\Resources\HuntersResource\Widgets\LeadMonthlyTrend;
+use App\Filament\Resources\HuntersResource\Widgets\LeadStatusChart;
 use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\Lead;
+use App\Models\PaymentStatus;
 use App\Services\LpwApiService;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -37,6 +40,7 @@ use Filament\Actions\ViewAction;
 use Filament\Forms;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Group;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Infolists\Components\Actions;
@@ -705,7 +709,7 @@ class HuntersResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-eye')
                     ->modalHeading(fn($record) => 'Property Details - ' . $record->heading)
-                    ->modalWidth('7xl')
+                    ->modalWidth('6xl')
                     ->visible(fn($record) => Gate::allows('view', $record))
                     ->schema([
                         Tabs::make('PropertyTabs')
@@ -870,18 +874,16 @@ class HuntersResource extends Resource
                                                                         //
                                                                         Action::make('add_activity')
                                                                             ->label('Add Activity')
-                                                                            ->modalWidth('sm')
+                                                                            ->modalWidth('4xl')
                                                                             ->button()
                                                                             // ->dropdown(true)
                                                                             ->icon('heroicon-o-plus')
                                                                             ->form([
-                                                                                Select::make('activity_type')
-                                                                                    ->label('Activity Type')
-                                                                                    ->options([
-                                                                                        'call' => 'Call',
-                                                                                        'meeting' => 'Meeting',
-                                                                                        'note' => 'Note',
-                                                                                    ])
+                                                                                Select::make('payment_status_id')
+                                                                                    ->label('Payment Status')
+                                                                                    // Show options of payment_status.payment_status from payment_status table
+                                                                                    ->options(PaymentStatus::pluck('payment_status', 'payment_status_id'))
+                                                                                    ->searchable()
                                                                                     ->required(),
 
                                                                                 // status
@@ -892,6 +894,20 @@ class HuntersResource extends Resource
                                                                                         'pending' => 'Pending',
                                                                                         'rna' => 'RNA',
                                                                                         'not_interested' => 'Not Interested',
+                                                                                    ])
+                                                                                    ->required(),
+
+                                                                                // Add radio buttons for activity_type with options: email, meeting, site_visit, message, follow_up, call
+                                                                                Radio::make('activity_type')
+                                                                                    ->label('Activity Type')
+                                                                                    ->inline()
+                                                                                    ->options([
+                                                                                        'email' => 'Email',
+                                                                                        'call' => 'Call',
+                                                                                        'meeting' => 'Meeting',
+                                                                                        'whatsapp' => 'WhatsApp',
+                                                                                        'follow_up' => 'Follow Up',
+                                                                                        'reminder' => 'Reminder',
                                                                                     ])
                                                                                     ->required(),
 
@@ -990,95 +1006,21 @@ class HuntersResource extends Resource
                                             ->columns(2),
                                     ]),
 
-                                Tab::make('Status')
+                                Tab::make('Stats')
                                     // icon including letter 'R'
-                                    ->icon('heroicon-o-cog')
+                                    ->icon('heroicon-s-chart-bar-square')
                                     ->schema([
-                                        Section::make('Status Information')
+                                        Section::make('Statistical Information')
                                             ->schema([
-                                                TextEntry::make('status')
-                                                    ->label('Lead Status')
-                                                    ->badge()
-                                                    ->color(fn(string $state): string => match ($state) {
-                                                        'new' => 'gray',
-                                                        'contacted' => 'info',
-                                                        'qualified' => 'warning',
-                                                        'proposal' => 'primary',
-                                                        'negotiation' => 'info',
-                                                        'closed_won' => 'success',
-                                                        'closed_lost' => 'danger',
-                                                        'follow_up' => 'warning',
-                                                        'on_hold' => 'gray',
-                                                        'rejected' => 'danger',
-                                                        default => 'gray',
-                                                    }),
-                                                TextEntry::make('source')
-                                                    ->label('Lead Source')
-                                                    ->badge()
-                                                    ->color(fn(string $state): string => match ($state) {
-                                                        'website' => 'primary',
-                                                        'api' => 'success',
-                                                        'referral' => 'info',
-                                                        'social_media' => 'warning',
-                                                        'advertisement' => 'secondary',
-                                                        'cold_call' => 'gray',
-                                                        'email' => 'info',
-                                                        'walk_in' => 'primary',
-                                                        'other' => 'gray',
-                                                        default => 'gray',
-                                                    }),
-                                                TextEntry::make('is_active')
-                                                    ->label('Active Status')
-                                                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                                                        '0' => 'Inactive',
-                                                        '1' => 'Active',
-                                                        '2' => 'Special',
-                                                        '3' => 'Pending',
-                                                        default => 'Unknown'
-                                                    })
-                                                    ->badge()
-                                                    ->color(fn(string $state): string => match ($state) {
-                                                        '0' => 'danger',
-                                                        '1' => 'success',
-                                                        '2' => 'warning',
-                                                        '3' => 'info',
-                                                        default => 'gray'
-                                                    }),
-                                                TextEntry::make('is_trending')
-                                                    ->label('Trending')
-                                                    ->formatStateUsing(fn($state) => $state ? 'Yes' : 'No')
-                                                    ->badge()
-                                                    ->color(fn($state) => $state ? 'warning' : 'gray'),
-                                                TextEntry::make('blocked')
-                                                    ->label('Blocked')
-                                                    ->formatStateUsing(fn($state) => $state ? 'Yes' : 'No')
-                                                    ->badge()
-                                                    ->color(fn($state) => $state ? 'danger' : 'success'),
-                                                TextEntry::make('created_at')
-                                                    ->label('Created At')
-                                                    ->dateTime('M d, Y H:i'),
-                                                TextEntry::make('updated_at')
-                                                    ->label('Updated At')
-                                                    ->dateTime('M d, Y H:i'),
-                                            ])
-                                            ->columns(2),
-
-                                        Section::make('System Information')
-                                            ->schema([
-                                                TextEntry::make('ad_id')
-                                                    ->label('Advertisement ID'),
-                                                TextEntry::make('cust_id')
-                                                    ->label('Customer ID'),
-                                                TextEntry::make('user_id')
-                                                    ->label('User ID')
-                                                    ->placeholder('Not assigned'),
-                                            ])
-                                            ->columns(3)
-                                            ->collapsed(),
-                                    ]),
+                                                // Add LeadStatusChart here
+                                                // LeadStatusChart::make(),
+                                                // // Add LeadMonthlyTrend here
+                                                // LeadMonthlyTrend::make(),
+                                            ]),
                             ])
                             ->columnSpanFull(),
                     ]),
+                ]),
 
                 ViewAction::make('viewActivities')
                     ->label('')
