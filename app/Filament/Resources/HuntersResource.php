@@ -51,6 +51,7 @@ use Filament\Infolists\Components\ViewEntry;
 use Filament\Tables\Table;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\View;
 use Filament\Support\View\Components\ButtonComponent;
 use Filament\Tables\Columns\IconColumn;
@@ -704,7 +705,7 @@ class HuntersResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-eye')
                     ->modalHeading(fn($record) => 'Property Details - ' . $record->heading)
-                    ->modalWidth('6xl')
+                    ->modalWidth('7xl')
                     ->visible(fn($record) => Gate::allows('view', $record))
                     ->schema([
                         Tabs::make('PropertyTabs')
@@ -743,7 +744,7 @@ class HuntersResource extends Resource
                                                 TextEntry::make('price_type')
                                                     ->label('Price Type'),
                                             ])
-                                            ->columns(2),
+                                            ->columns(3),
 
                                         Section::make('Location')
                                             ->schema([
@@ -760,7 +761,7 @@ class HuntersResource extends Resource
                                                     ->label('Longitude')
                                                     ->placeholder('Not specified'),
                                             ])
-                                            ->columns(2),
+                                            ->columns(3),
 
                                         Section::make('Description')
                                             ->schema([
@@ -769,6 +770,170 @@ class HuntersResource extends Resource
                                                     ->placeholder('No description available')
                                                     ->columnSpanFull()
                                                     ->html(),
+                                            ]),
+                                    ]),
+
+                                // Add a new tab for Activity
+                                Tab::make('Activity')
+                                    ->icon('heroicon-o-clipboard-document-list')
+                                    // Add 2 tabs 'Activity Log' and 'Call Log' inside this tab
+                                    ->schema([
+                                        Tabs::make('ActivitySubTabs')
+                                            ->tabs([
+                                                Tab::make('Activity Log')
+                                                    ->icon('heroicon-o-list-bullet')
+                                                    ->schema([
+                                                        Grid::make(3)
+                                                            ->schema([
+                                                                Section::make('Contact Details')
+                                                                    // Reduce the size of the section
+                                                                    ->icon('iconsax-bul-profile-circle')
+                                                                    ->schema([
+                                                                        // Display customer.name, customer.email, customer.mobile, customer.address, customer.membership_exp_date, customer.payment_exp_date, customer.membership_status
+                                                                        TextEntry::make('customer.name'),
+                                                                        TextEntry::make('customer.email'),
+                                                                        TextEntry::make('customer.mobile'),
+                                                                        TextEntry::make('customer.address'),
+                                                                        TextEntry::make('customer.membership_exp_date'),
+                                                                        TextEntry::make('customer.payment_exp_date'),
+                                                                        TextEntry::make('customer.membership_status'),
+                                                                    ]),
+
+                                                                Section::make('Activity History')
+                                                                    ->columnSpan(2)
+                                                                    ->schema([
+                                                                        // your activity timeline as collapsible list. Heading should be activity_type, Date, done by user included.
+                                                                        RepeatableEntry::make('activities')
+                                                                            ->label('Activities')
+                                                                            ->schema([ 
+                                                                                // Collapsible section for activities list.
+                                                                                Section::make('Activity List')
+                                                                                    ->collapsible()
+                                                                                    // Recent activity should be displayed on top of the list.
+                                                                                    ->heading(function ($record) {
+                                                                                        $activityType = ucfirst($record->activity_type ?? 'Activity');
+                                                                                        return match ($record->activity_type) {
+                                                                                            'email' => '✉️ Email Activity',
+                                                                                            'meeting' => '📅 Meeting',
+                                                                                            'site_visit' => '🏠 Site Visit',
+                                                                                            'message' => '💬 Message',
+                                                                                            'follow_up' => '🔄 Follow Up',
+                                                                                            'call' => '📞 Call',
+                                                                                            default => "📋 {$activityType}",
+                                                                                        };
+                                                                                    })
+                                                                                    ->description(function ($record) {
+                                                                                        $date = $record->created_at ? $record->created_at->format('M d, Y H:i') : 'No date';
+                                                                                        $user = $record->user->name ?? $record->old_am ?? 'Unknown';
+                                                                                        return "{$date} • By: {$user}";
+                                                                                    })
+                                                                                    ->schema([
+                                                                                        TextEntry::make('activity_type')
+                                                                                            ->label('Activity Type')
+                                                                                            ->weight('bold'),
+                                                                                        TextEntry::make('stage')
+                                                                                            ->label('Stage')
+                                                                                            ->badge()
+                                                                                            ->color(fn(string $state): string => match ($state) {
+                                                                                                'contacted' => 'primary',
+                                                                                                'rna' => 'warning',
+                                                                                                'not_interested' => 'danger',
+                                                                                                default => 'gray',
+                                                                                            }),
+                                                                                        TextEntry::make('status')
+                                                                                            ->label('Status')
+                                                                                            ->badge()
+                                                                                            ->color(fn(string $state): string => match ($state) {
+                                                                                                'positive' => 'success',
+                                                                                                'pending' => 'warning',
+                                                                                                'rna' => 'orange',
+                                                                                                'not_interested' => 'danger',
+                                                                                                default => 'gray',
+                                                                                            }),
+                                                                                        TextEntry::make('level_score')
+                                                                                            ->label('Level Score'),
+                                                                                        TextEntry::make('comments')
+                                                                                            ->label('Comments')
+                                                                                            ->placeholder('No comments'),
+                                                                                        TextEntry::make('created_at')
+                                                                                            ->label('Date')
+                                                                                            ->dateTime('M d, Y H:i'),
+                                                                                        TextEntry::make('user.name')
+                                                                                            ->label('Done By')
+                                                                                            ->icon('heroicon-o-user'),
+                                                                                    ])
+                                                                                    ->columns(3)
+                                                                                    ->collapsed(),
+                                                                            ]),
+                                                                    ])
+                                                                    ->headerActions([
+                                                                        //
+                                                                        Action::make('add_activity')
+                                                                            ->label('Add Activity')
+                                                                            ->modalWidth('sm')
+                                                                            ->button()
+                                                                            // ->dropdown(true)
+                                                                            ->icon('heroicon-o-plus')
+                                                                            ->form([
+                                                                                Select::make('activity_type')
+                                                                                    ->label('Activity Type')
+                                                                                    ->options([
+                                                                                        'call' => 'Call',
+                                                                                        'meeting' => 'Meeting',
+                                                                                        'note' => 'Note',
+                                                                                    ])
+                                                                                    ->required(),
+
+                                                                                // status
+                                                                                Select::make('status')
+                                                                                    ->label('Status')
+                                                                                    ->options([
+                                                                                        'positive' => 'Positive',
+                                                                                        'pending' => 'Pending',
+                                                                                        'rna' => 'RNA',
+                                                                                        'not_interested' => 'Not Interested',
+                                                                                    ])
+                                                                                    ->required(),
+
+                                                                                Select::make('stage')
+                                                                                    ->label('Funnel Category')
+                                                                                    ->options([
+                                                                                        'contacted' => 'Contacted',
+                                                                                        'rna' => 'RNA',
+                                                                                        'not_interested' => 'Not Interested',
+                                                                                    ])
+                                                                                    ->required(),
+
+                                                                                // level_score text input numeric between 1 to 10
+                                                                                TextInput::make('level_score')
+                                                                                    ->label('Funnel Stage')
+                                                                                    ->numeric()
+                                                                                    ->minValue(1)
+                                                                                    ->maxValue(10)
+                                                                                    ->placeholder('e.g. 2'),
+
+                                                                                Textarea::make('comments')
+                                                                                    ->label('Comments')
+                                                                                    ->rows(3),
+                                                                            ])
+                                                                            ->action(function (array $data, $record) {
+                                                                                // Save the new activity for this record
+                                                                                $record->activities()->create([
+                                                                                    'activity_type' => $data['activity_type'],
+                                                                                    'stage'         => $data['stage'],
+                                                                                    'status'        => $data['status'],
+                                                                                    'level_score'   => $data['level_score'] ?? null,
+                                                                                    'comments'      => $data['comments'] ?? null,
+                                                                                    // Save current auth id into assigned_by column in the activity table
+                                                                                    'assigned_by'   => auth()->id(),
+                                                                                ]);
+                                                                            }),
+                                                                    ]),
+                                                            ]),
+                                                    ]),
+                                                Tab::make('Call Log')
+                                                    ->icon('heroicon-o-phone')
+                                                    ->schema([]),
                                             ]),
                                     ]),
 
@@ -1207,6 +1372,7 @@ class HuntersResource extends Resource
                             ])
                             ->columnSpanFull(),
                     ]),
+
 
                 // Add a new action to view the call script for each lead.
                 Action::make('viewCallScript')

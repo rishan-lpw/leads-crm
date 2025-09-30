@@ -18,6 +18,7 @@
         "livewire/volt": "^1.7.0",
         "mallardduck/blade-lucide-icons": "^1.23",
         "owenvoke/blade-fontawesome": "^2.9",
+        "saade/blade-iconsax": "^1.2",
         "spatie/laravel-permission": "^6.21"
     },
     "require-dev": {

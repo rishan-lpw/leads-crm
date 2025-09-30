@@ -61,10 +61,10 @@ class CustomerResource extends Resource
                 TextInput::make('address')
                     ->maxLength(255)
                     ->label('Address'),
-                Select::make('role_id')
-                    ->relationship('role', 'role_name')
-                    // ->required()
-                    ->label('Role'),
+                // Select::make('role_id')
+                //     ->relationship('role', 'role_name')
+                //     // ->required()
+                //     ->label('Role'),
             ])->columns(2); // Display form fields in 2 columns
     }
 
@@ -95,11 +95,11 @@ class CustomerResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->limit(50),
-                TextColumn::make('role.role_name')
-                    ->label('Role')
-                    ->searchable()
-                    ->sortable()
-                    ->limit(50),
+                // TextColumn::make('role.role_name')
+                //     ->label('Role')
+                //     ->searchable()
+                //     ->sortable()
+                //     ->limit(50),
             ])
             ->filters([
                 // Add name, email, id filters
