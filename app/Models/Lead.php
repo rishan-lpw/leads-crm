@@ -42,9 +42,4 @@ class Lead extends Model
     {
         return $this->hasMany(Activity::class, 'lead_id');
     }
-
-    public function paymentStatus()
-    {
-        return $this->belongsTo(PaymentStatus::class, 'payment_status_id');
-    }
 }

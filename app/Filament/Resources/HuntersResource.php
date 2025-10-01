@@ -406,82 +406,42 @@ class HuntersResource extends Resource
                     ->toggleable()
                     ->sortable(),
 
-                // Display activity stage with colored dots for level_score
-                // TextColumn::make('latest_activity_stage')
-                //     ->label('Stage')
-                //     ->getStateUsing(function ($record) {
-                //         $latestActivity = $record->activities()
-                //             ->orderBy('created_at', 'desc')
-                //             ->first();
-
-                //         if (!$latestActivity) {
-                //             return 'No Activity';
-                //         }
-
-                //         return ucfirst($latestActivity->stage ?? 'Unknown');
-                //     })
-                //     ->description(function ($record) {
-                //         $latestActivity = $record->activities()
-                //             ->orderBy('created_at', 'desc')
-                //             ->first();
-
-                //         if (!$latestActivity || $latestActivity->level_score === null) {
-                //             return 'Score: N/A';
-                //         }
-
-                //         $score = (int) $latestActivity->level_score;
-                //         $stage = $latestActivity->stage ?? '';
-
-                //        // Use this emojis to represent colored dots
-                //         $dot = match ($stage) {
-                //             'contacted' => '🔵',
-                //             'rna' => '🟠',
-                //             'not_interested' => '🔴',
-                //             default => '⚪', // Default gray dot
-                //         };
-                //         return str_repeat($dot, $score);
-                //     })
-                //     ->html() // allow rendering colored dots
-                //     ->toggleable()
-                //     ->sortable(),
-
-                // Add a column to show the progress of each lead using below emojis:
-                // Positive: 🟢, Pending: 🟡, RNA: 🟠, Not Interested: 🔴
-                // Mark for every activity relevant to the lead using which status of the each activity.
                 TextColumn::make('progress_icons')
                     ->label('Progress')
                     ->html()
-                    // Add last acivity date as the first line. emojis should be in second line.
                     ->getStateUsing(function ($record) {
+                        // Get the last 3 activities (newest first), then reverse to display oldest → newest (most recent at right)
                         $activities = $record->activities()
-                            ->orderBy('created_at', 'asc') // oldest → newest
-                            ->get();
+                            ->with('paymentStatus')
+                            ->orderBy('created_at', 'desc')
+                            ->take(3)
+                            ->get()
+                            ->reverse(); // now oldest -> newest (left -> right)
 
                         if ($activities->isEmpty()) {
-                            return '<span class="text-gray-400">No Progress</span>';
+                            return '🔘'; // default emoji when no activity
                         }
 
-                        $lastActivity = $activities->last();
-                        $lastDate = $lastActivity ? Carbon::parse($lastActivity->created_at)->format('M d, Y') : 'N/A';
+                        // Display last activity date as the first line in small gray text
+                        $lastActivityDate = $activities->last()->created_at->format('M d');
+                        // Map colors to emojis
 
-                        $icons = '';
+                        $map = [
+                            'red'    => '🔴',
+                            'orange' => '🟠',
+                            'yellow' => '🟡',
+                            'green'  => '🟢',
+                            'black'  => '⚫',
+                            
+                        ];
 
+                        $result = [];
                         foreach ($activities as $activity) {
-                            $status = $activity->status ?? null;
-
-                            // Map status → progress emoji
-                            $map = [
-                                'positive'        => '🟢',
-                                'pending'         => '🟡',
-                                'rna'             => '🟠',
-                                'not_interested'  => '🔴',
-                            ];
-
-                            $icons .= $map[$status]; // default gray if status unknown
+                            $color = strtolower(trim((string) ($activity->paymentStatus?->color ?? '')));
+                            $result[] = $map[$color] ?? '🔘'; // use updated default emoji for unknown
                         }
 
-                        $icons = "<div class='text-xs text-gray-500 mb-1'>$lastDate</div>" . $icons;
-                        return $icons;
+                        return "<span class='text-xs text-gray-500'>$lastActivityDate</span><br>" . implode('', $result);
                     })
                     ->toggleable()
                     ->sortable(),
@@ -809,7 +769,7 @@ class HuntersResource extends Resource
                                                                         // your activity timeline as collapsible list. Heading should be activity_type, Date, done by user included.
                                                                         RepeatableEntry::make('activities')
                                                                             ->label('Activities')
-                                                                            ->schema([ 
+                                                                            ->schema([
                                                                                 // Collapsible section for activities list.
                                                                                 Section::make('Activity List')
                                                                                     ->collapsible()
@@ -835,27 +795,19 @@ class HuntersResource extends Resource
                                                                                         TextEntry::make('activity_type')
                                                                                             ->label('Activity Type')
                                                                                             ->weight('bold'),
-                                                                                        TextEntry::make('stage')
-                                                                                            ->label('Stage')
+                                                                                        // paymentStatus relationship to get payment_status from payment_status table
+                                                                                        TextEntry::make('paymentStatus.payment_status')
+                                                                                            ->label('Payment Status')
                                                                                             ->badge()
-                                                                                            ->color(fn(string $state): string => match ($state) {
-                                                                                                'contacted' => 'primary',
-                                                                                                'rna' => 'warning',
-                                                                                                'not_interested' => 'danger',
-                                                                                                default => 'gray',
+                                                                                            ->color(fn($state) => match (strtolower($state)) {
+                                                                                                'Red' => 'danger',
+                                                                                                'Orange' => 'warning',
+                                                                                                'Yellow' => 'yellow',
+                                                                                                'Green' => 'success',
+                                                                                                'Black' => 'dark',
+                                                                                                default => 'secondary',
                                                                                             }),
-                                                                                        TextEntry::make('status')
-                                                                                            ->label('Status')
-                                                                                            ->badge()
-                                                                                            ->color(fn(string $state): string => match ($state) {
-                                                                                                'positive' => 'success',
-                                                                                                'pending' => 'warning',
-                                                                                                'rna' => 'orange',
-                                                                                                'not_interested' => 'danger',
-                                                                                                default => 'gray',
-                                                                                            }),
-                                                                                        TextEntry::make('level_score')
-                                                                                            ->label('Level Score'),
+                                                                                        // 
                                                                                         TextEntry::make('comments')
                                                                                             ->label('Comments')
                                                                                             ->placeholder('No comments'),
@@ -881,21 +833,25 @@ class HuntersResource extends Resource
                                                                             ->form([
                                                                                 Select::make('payment_status_id')
                                                                                     ->label('Payment Status')
-                                                                                    // Show options of payment_status.payment_status from payment_status table
-                                                                                    ->options(PaymentStatus::pluck('payment_status', 'payment_status_id'))
+                                                                                    // Show options of payment_status from paymentStatus relationship
+                                                                                    ->options(function () {
+                                                                                        return PaymentStatus::all()->pluck('payment_status', 'id')->toArray();
+                                                                                    })
                                                                                     ->searchable()
                                                                                     ->required(),
 
-                                                                                // status
-                                                                                Select::make('status')
-                                                                                    ->label('Status')
+                                                                                // Add radio buttons for stage with options: contacted, not_interested, rna
+                                                                                Radio::make('stage')
+                                                                                    ->label('Funnel Category')
+                                                                                    // Display categories from staged_funnel table
                                                                                     ->options([
-                                                                                        'positive' => 'Positive',
-                                                                                        'pending' => 'Pending',
-                                                                                        'rna' => 'RNA',
+                                                                                        'contacted' => 'Contacted',
                                                                                         'not_interested' => 'Not Interested',
+                                                                                        'rna' => 'RNA',
                                                                                     ])
                                                                                     ->required(),
+                                                                                
+                                                                                // Add 
 
                                                                                 // Add radio buttons for activity_type with options: email, meeting, site_visit, message, follow_up, call
                                                                                 Radio::make('activity_type')
@@ -1017,304 +973,10 @@ class HuntersResource extends Resource
                                                 // // Add LeadMonthlyTrend here
                                                 // LeadMonthlyTrend::make(),
                                             ]),
-                            ])
-                            ->columnSpanFull(),
-                    ]),
-                ]),
-
-                ViewAction::make('viewActivities')
-                    ->label('')
-                    ->icon('heroicon-o-clipboard-document-list')
-                    ->modalHeading(fn($record) => 'Activities - ' . $record->heading)
-                    ->modalWidth('6xl')
-                    ->visible(fn($record) => Gate::allows('view', $record))
-                    ->schema([
-                        Tabs::make('ActivityTabs')
-                            ->tabs([
-                                Tab::make('Activities')
-                                    ->icon('heroicon-o-eye')
-                                    ->schema([
-                                        // Activity Details(activity_type != 'call') using collapsible sections for each activity related to this lead
-                                        // Add activity button to display a popup form to add a new activity.
-                                        Action::make('addActivity')
-                                            ->label('Add Activity')
-                                            ->icon('heroicon-o-plus')
-                                            ->schema([
-                                                // Form to add a new activity
-                                                // Should be updated activity table in the database.
-                                                Select::make('activity_type')
-                                                    ->label('Activity Type')
-                                                    ->options([
-                                                        'email' => 'Email',
-                                                        'meeting' => 'Meeting',
-                                                        'site_visit' => 'Site Visit',
-                                                        'follow_up' => 'Follow Up',
-                                                        'note' => 'Note',
-                                                        'other' => 'Other',
-                                                    ])
-                                                    ->required(),
-
-                                                Select::make('status')
-                                                    ->label('Activity Status')
-                                                    ->options([
-                                                        'positive' => 'Positive',
-                                                        'rna' => 'RNA',
-                                                        'pending' => 'Pending',
-                                                        'not_interested' => 'Not Interested',
-                                                    ])
-                                                    ->placeholder('Select status')
-                                                    ->required(),
-                                                // Add fields: stage, level_score, comments, qty, value, date_time, assined_by, old_am
-                                                Select::make('stage')
-                                                    ->label('Funnel Category')
-                                                    ->options([
-                                                        'contacted' => 'Contacted',
-                                                        'rna' => 'RNA',
-                                                        'not_interested' => 'Not Interested',
-                                                    ])
-                                                    ->required(),
-                                                // numerical field to enter level_score.
-                                                TextInput::make('level_score')
-                                                    ->label('Funnel Score')
-                                                    ->numeric()
-                                                    ->minValue(1)
-                                                    ->maxValue(8)
-                                                    ->required(),
-                                                // Select::make('level_score')
-                                                //     ->label('Lead Score')
-                                                //     // Contacted: 1-8, Not Interested: 1-2, RNA: 1-3 - Numerical options.
-                                                //     ->options(fn($record) => match($record->stage) {
-                                                //         'contacted' => [
-                                                //             1 => '1 - Very Low',
-                                                //             2 => '2 - Low',
-                                                //             3 => '3 - Below Average',
-                                                //             4 => '4 - Average',
-                                                //             5 => '5 - Moderate',
-                                                //             6 => '6 - Above Average',
-                                                //             7 => '7 - Good',
-                                                //             8 => '8 - High',
-                                                //         ],
-                                                //         'not_interested' => [
-                                                //             1 => '1 - Very Low',
-                                                //             2 => '2 - Low',
-                                                //         ],
-                                                //         'rna' => [
-                                                //             1 => '1 - Very Low',
-                                                //             2 => '2 - Low',
-                                                //             3 => '3 - Below Average',
-                                                //         ],
-                                                //         default => [],
-                                                //     }),
-                                                Textarea::make('comments')
-                                                    ->label('Comments')
-                                                    ->rows(4)
-                                                    ->placeholder('Enter activity details...'),
-                                                // TextInput::make('qty')
-                                                //     ->label('Quantity')
-                                                //     ->numeric()
-                                                //     ->placeholder('1'),
-                                                // TextInput::make('value')
-                                                //     ->label('Value')
-                                                //     ->numeric(),
-                                                // Date and time picker for date_time
-                                                DateTimePicker::make('date_time')
-                                                    ->label('Activity Date & Time')
-                                                    ->default(now())
-                                                    ->required(),
-                                                // assigned_by as the current logged in user
-                                            ])
-                                            ->action(function (array $data, $record) {
-                                                try {
-                                                    // Create the activity record
-                                                    Activity::create([
-                                                        'lead_id' => $record->id,
-                                                        // 'user_id' => auth()->id(),
-                                                        // 'ad_id' => $record->ad_id,
-                                                        'activity_type' => $data['activity_type'] ?? 'other',
-                                                        'stage' => $data['stage'],
-                                                        'status' => $data['status'],
-                                                        'level_score' => $data['level_score'],
-                                                        'comments' => $data['comments'],
-                                                        'qty' => $data['qty'] ?? 1,
-                                                        'value' => $data['value'] ?? null,
-                                                        'date_time' => $data['date_time'],
-                                                        // 'reminder' => $data['reminder'] ?? null,
-                                                        // 'old_am' => auth()->user()->name ?? 'System',
-                                                        'created_at' => now(),
-                                                        'updated_at' => now(),
-                                                    ]);
-
-                                                    Notification::make()
-                                                        ->title('Activity Added Successfully')
-                                                        ->body("New {$data['stage']} activity has been created for this lead.")
-                                                        ->success()
-                                                        ->duration(5000)
-                                                        ->send();
-                                                } catch (\Exception $e) {
-                                                    Notification::make()
-                                                        ->title('Error Adding Activity')
-                                                        ->body('Failed to create activity: ' . $e->getMessage())
-                                                        ->danger()
-                                                        ->duration(8000)
-                                                        ->send();
-
-                                                    Log::error('Activity creation failed', [
-                                                        'lead_id' => $record->id,
-                                                        // 'user_id' => auth()->id(),
-                                                        'error' => $e->getMessage(),
-                                                        'data' => $data
-                                                    ]);
-                                                }
-                                            })
-                                            ->modalWidth('2xl')
-                                            ->button(),
-
-                                        RepeatableEntry::make('activities')
-                                            ->schema([
-                                                Section::make()
-                                                    ->collapsible()
-                                                    ->collapsed()
-                                                    ->heading(fn($record) => match ($record->activity_type) {
-                                                        'email' => '✉️ Email Activity',
-                                                        'meeting' => '📅 Meeting Activity',
-                                                        'site_visit' => '🏠 Site Visit Activity',
-                                                        'follow_up' => '🔄 Follow Up Activity',
-                                                        'note' => '📝 Note Activity',
-                                                        'other' => '📋 Other Activity',
-                                                        default => '📝 Activity',
-                                                    })
-                                                    ->description(function ($record) {
-                                                        $date = $record->date_time ? $record->date_time->format('M d, Y h:i A') : 'No date';
-                                                        $by = $record->old_am ?? 'Unknown';
-                                                        return "{$date} • By: {$by}";
-                                                    })
-                                                    ->schema([
-                                                        TextEntry::make('stage')
-                                                            ->label('Activity Type')
-                                                            ->badge()
-                                                            ->color(fn($state) => match ($state) {
-                                                                'email' => 'info',
-                                                                'meeting' => 'success',
-                                                                'site_visit' => 'warning',
-                                                                'follow_up' => 'primary',
-                                                                'note' => 'gray',
-                                                                'other' => 'secondary',
-                                                                default => 'gray'
-                                                            }),
-                                                        TextEntry::make('action')
-                                                            ->label('Action Required')
-                                                            ->placeholder('No action specified'),
-                                                        TextEntry::make('comments')
-                                                            ->label('Comments')
-                                                            ->placeholder('No comments')
-                                                            ->columnSpanFull(),
-                                                        TextEntry::make('qty')
-                                                            ->label('Quantity')
-                                                            ->placeholder('N/A'),
-                                                        TextEntry::make('value')
-                                                            ->label('Value')
-                                                            ->formatStateUsing(fn($state) => $state ? 'LKR ' . number_format($state) : 'N/A'),
-                                                        TextEntry::make('level_score')
-                                                            ->label('Lead Score')
-                                                            ->formatStateUsing(fn($state) => $state ? "{$state}/10" : 'No score')
-                                                            ->badge()
-                                                            ->color(fn($state) => match (true) {
-                                                                $state >= 8 => 'success',
-                                                                $state >= 6 => 'warning',
-                                                                $state >= 4 => 'primary',
-                                                                default => 'gray'
-                                                            }),
-                                                        TextEntry::make('reminder')
-                                                            ->label('Reminder Date')
-                                                            ->date('M d, Y')
-                                                            ->placeholder('No reminder'),
-                                                        TextEntry::make('date_time')
-                                                            ->label('Activity Date')
-                                                            ->dateTime('M d, Y h:i A'),
-                                                        TextEntry::make('old_am')
-                                                            ->label('Assigned By')
-                                                            ->placeholder('Unknown'),
-                                                    ])
-                                                    ->columns(2),
-                                            ])
-                                            ->contained(false)
-                                    ]),
-                                Tab::make('Call Log')
-                                    ->icon('heroicon-o-phone')
-                                    ->schema([
-                                        // Call Log Details(activity_type == 'call') using collapsible sections for each call log related to this lead
-                                        RepeatableEntry::make('callLogs')
-                                            ->schema([
-                                                Section::make()
-                                                    ->collapsible()
-                                                    ->collapsed()
-                                                    ->heading(function ($record) {
-                                                        $duration = $record->qty ? " ({$record->qty} min)" : '';
-                                                        return "📞 Call Log{$duration}";
-                                                    })
-                                                    ->description(function ($record) {
-                                                        $date = $record->date_time ? $record->date_time->format('M d, Y h:i A') : 'No date';
-                                                        $by = $record->old_am ?? 'Unknown';
-                                                        $score = $record->level_score ? " • Quality: {$record->level_score}/10" : '';
-                                                        return "{$date} • By: {$by}{$score}";
-                                                    })
-                                                    ->schema([
-                                                        TextEntry::make('action')
-                                                            ->label('Call Purpose')
-                                                            ->placeholder('No purpose specified'),
-                                                        TextEntry::make('qty')
-                                                            ->label('Duration')
-                                                            ->formatStateUsing(fn($state) => $state ? "{$state} minutes" : 'Not recorded'),
-                                                        TextEntry::make('comments')
-                                                            ->label('Call Summary')
-                                                            ->placeholder('No summary provided')
-                                                            ->columnSpanFull(),
-                                                        TextEntry::make('value')
-                                                            ->label('Deal Value Discussed')
-                                                            ->formatStateUsing(fn($state) => $state ? 'LKR ' . number_format($state) : 'Not discussed'),
-                                                        TextEntry::make('level_score')
-                                                            ->label('Lead Quality After Call')
-                                                            ->formatStateUsing(function ($state) {
-                                                                if (!$state) return 'Not rated';
-                                                                return match (true) {
-                                                                    $state >= 9 => "{$state}/10 - Excellent",
-                                                                    $state >= 7 => "{$state}/10 - High Interest",
-                                                                    $state >= 5 => "{$state}/10 - Moderate Interest",
-                                                                    $state >= 3 => "{$state}/10 - Low Interest",
-                                                                    default => "{$state}/10 - Very Low Interest"
-                                                                };
-                                                            })
-                                                            ->badge()
-                                                            ->color(fn($state) => match (true) {
-                                                                $state >= 8 => 'success',
-                                                                $state >= 6 => 'warning',
-                                                                $state >= 4 => 'primary',
-                                                                default => 'danger'
-                                                            }),
-                                                        TextEntry::make('reminder')
-                                                            ->label('Follow-up Reminder')
-                                                            ->date('M d, Y')
-                                                            ->placeholder('No follow-up scheduled'),
-                                                        TextEntry::make('date_time')
-                                                            ->label('Call Date & Time')
-                                                            ->dateTime('M d, Y h:i A'),
-                                                        TextEntry::make('old_am')
-                                                            ->label('Called By')
-                                                            ->placeholder('Unknown'),
-                                                    ])
-
-                                                    ->columns(2),
-                                            ])
-                                            ->contained(false)
-                                        // ->query(fn($record) => $record->activities()->where('stage', 'call')->orderBy('created_at', 'desc'))
-                                        // ->emptyStateHeading('No Call Logs Found')
-                                        // ->emptyStateDescription('No calls have been logged for this lead yet.')
-                                        // ->emptyStateIcon('heroicon-o-phone'),
                                     ])
-                            ])
-                            ->columnSpanFull(),
+                                    ->columnSpanFull(),
+                            ]),
                     ]),
-
 
                 // Add a new action to view the call script for each lead.
                 Action::make('viewCallScript')

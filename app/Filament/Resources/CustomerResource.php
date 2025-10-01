@@ -29,7 +29,7 @@ class CustomerResource extends Resource
 {
     protected static ?string $model = Customer::class;
 
-    protected static ?string $navigationLabel = 'Customer Registration';
+    protected static ?string $navigationLabel = 'Customer Management';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Customers';
 
