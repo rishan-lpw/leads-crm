@@ -49,7 +49,7 @@ class ToolbarActions
                         $toggledCount = 0;
                         foreach ($records as $record) {
                             $record->update([
-                                'is_trending' => $record->is_trending == 1 ? 0 : 1,
+                                'is_favourite' => $record->is_favourite == 1 ? 0 : 1,
                             ]);
                             $toggledCount++;
                         }

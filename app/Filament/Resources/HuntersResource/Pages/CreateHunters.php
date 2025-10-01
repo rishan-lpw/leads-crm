@@ -17,9 +17,9 @@ use Filament\Resources\Pages\CreateRecord;
 use Filament\Schemas\Components\Form as ComponentsForm;
 use Filament\Schemas\Components\Section as ComponentsSection;
 use Filament\Schemas\Schema;
-use Illuminate\Container\Attributes\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class CreateHunters extends CreateRecord
 {

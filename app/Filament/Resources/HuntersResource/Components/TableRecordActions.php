@@ -248,7 +248,12 @@ class TableRecordActions
             })
             ->modalWidth('4xl');
 
-        $editAction = EditAction::make()->label('')->icon('heroicon-o-pencil')->visible(fn($record) => Gate::allows('update', $record))->slideOver();
+        $editAction = EditAction::make()
+            ->label('')
+            ->icon('heroicon-o-pencil')
+            // hide edit button for juniors (user_level_id == 1)
+            ->visible(fn($record) => Gate::allows('update', $record) && optional(auth()->user())->user_level_id !== 1)
+            ->slideOver();
 
         return [$viewAction, $viewCallScript, $editAction];
     }

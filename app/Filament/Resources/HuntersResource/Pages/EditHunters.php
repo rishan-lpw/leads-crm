@@ -30,7 +30,8 @@ class EditHunters extends EditRecord
                 ->requiresConfirmation()
                 ->modalHeading('Delete Hunter Record')
                 ->modalDescription('Are you sure you want to delete this hunter record? This action cannot be undone.')
-                ->modalSubmitActionLabel('Yes, delete it'),
+                ->modalSubmitActionLabel('Yes, delete it')
+                ->visible(fn() => auth()->user()->user_level_id != 1),
 
             Action::make('mark_as_upsell')
                 ->label('Mark as Upsell')

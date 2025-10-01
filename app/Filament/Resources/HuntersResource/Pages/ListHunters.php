@@ -45,8 +45,8 @@ class ListHunters extends ListRecords
                 ->badge(Lead::where('status', 'system')->count())
                 ->badgeColor('info'),
             'favorite' => Tab::make('Favorite')
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'favorite'))
-                ->badge(Lead::where('status', 'favorite')->count())
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('is_favourite', 1))
+                ->badge(Lead::where('is_favourite', 1)->count())
                 ->badgeColor('secondary'),
 
             // Add other 2 categories called 'Éxpired', 'To Be Expired'
