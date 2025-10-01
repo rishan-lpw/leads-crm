@@ -33,7 +33,17 @@ class HuntersResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
+        $query = parent::getEloquentQuery()
+            ->with([
+                // load customer and only common columns
+                'customer:id,firstname,email,mobile',
+                // load activities with nested relations; order in collection left to Collection methods below
+                'activities.paymentStatus',
+                'activities.funnel',
+                // load assigned user
+                'user:id,username,name',
+            ]);
+            
         $user = auth()->user();
 
         if ($user && $user->user_level_id == 1) {

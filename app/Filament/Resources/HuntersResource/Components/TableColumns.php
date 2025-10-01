@@ -85,10 +85,13 @@ class TableColumns
             ColumnText::make('latest_comment')
                 ->label('Latest Comment')
                 ->getStateUsing(function ($record) {
-                    return $record->activities()
-                        ->whereNotNull('comments')
-                        ->orderBy('created_at', 'desc')
-                        ->first()?->comments ?? 'No Comment';
+                    // Use the preloaded activities collection instead of querying per record
+                    $activities = $record->activities ?? collect();
+                    $latest = $activities->filter(fn($a) => !empty($a->comments))
+                                         ->sortByDesc('created_at')
+                                         ->first();
+
+                    return $latest->comments ?? 'No Comment';
                 })
                 ->toggleable()
                 ->sortable(),
@@ -97,18 +100,16 @@ class TableColumns
                 ->label('Progress')
                 ->html()
                 ->getStateUsing(function ($record) {
-                    $activities = $record->activities()
-                        ->with('paymentStatus')
-                        ->orderBy('created_at', 'desc')
-                        ->take(3)
-                        ->get()
-                        ->reverse();
+                    // Use preloaded activities collection to avoid N+1 queries.
+                    $activities = $record->activities ?? collect();
+                    // sort desc and take latest 3 then show oldest->newest (reverse)
+                    $latest = $activities->sortByDesc('created_at')->take(3)->values()->reverse();
 
-                    if ($activities->isEmpty()) {
+                    if ($latest->isEmpty()) {
                         return '🔘';
                     }
 
-                    $lastActivityDate = $activities->last()->created_at->format('M d Y');
+                    $lastActivityDate = $latest->last()->created_at->format('M d Y');
 
                     $map = [
                         'red'    => '🔴',
@@ -119,7 +120,7 @@ class TableColumns
                     ];
 
                     $result = [];
-                    foreach ($activities as $activity) {
+                    foreach ($latest as $activity) {
                         $color = strtolower(trim((string) ($activity->paymentStatus?->color ?? '')));
                         $result[] = $map[$color] ?? '🔘';
                     }
@@ -133,12 +134,10 @@ class TableColumns
                 ->label('Funnel Stage')
                 ->html()
                 ->getStateUsing(function ($record) {
-                    $activities = $record->activities()
-                        ->with('funnel')
-                        ->orderBy('created_at', 'asc')
-                        ->get();
+                    $activities = $record->activities ?? collect();
+                    $activitiesSorted = $activities->sortBy('created_at');
 
-                    if ($activities->isEmpty()) {
+                    if ($activitiesSorted->isEmpty()) {
                         return new HtmlString('<span class="text-gray-400">No Activity</span>');
                     }
 
@@ -150,7 +149,7 @@ class TableColumns
 
                     $icons = [];
 
-                    foreach ($activities as $activity) {
+                    foreach ($activitiesSorted as $activity) {
                         $category = strtolower($activity->funnel?->category ?? '');
                         $stage    = (int) ($activity->funnel?->stage ?? 0);
 
