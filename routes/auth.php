@@ -18,7 +18,9 @@ Route::middleware('guest')->group(function () {
         ->name('password.reset');
 });
 
-Route::middleware('auth')->group(function () {
+// Protect authenticated routes and ensure only Google-linked accounts keep access.
+// The middleware will log out any authenticated user who does not have google_account = true.
+Route::middleware(['auth', 'ensure.google'])->group(function () {
     Volt::route('verify-email', 'pages.auth.verify-email')
         ->name('verification.notice');
 
