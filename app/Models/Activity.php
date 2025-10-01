@@ -63,4 +63,8 @@ class Activity extends Model
         return $this->belongsTo(PaymentStatus::class, 'payment_status_id', 'id');
     }
     
+    public function funnel(): BelongsTo
+    {
+        return $this->belongsTo(Funnel::class, 'funnel_id', 'id');
+    }
 }

@@ -29,6 +29,7 @@ use App\Filament\Resources\HuntersResource\Widgets\LeadMonthlyTrend;
 use App\Filament\Resources\HuntersResource\Widgets\LeadStatusChart;
 use App\Models\Activity;
 use App\Models\Customer;
+use App\Models\Funnel;
 use App\Models\Lead;
 use App\Models\PaymentStatus;
 use App\Services\LpwApiService;
@@ -62,8 +63,10 @@ use Filament\Tables\Columns\IconColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\HtmlString;
 
 class HuntersResource extends Resource
 {
@@ -423,7 +426,7 @@ class HuntersResource extends Resource
                         }
 
                         // Display last activity date as the first line in small gray text
-                        $lastActivityDate = $activities->last()->created_at->format('M d');
+                        $lastActivityDate = $activities->last()->created_at->format('M d Y');
                         // Map colors to emojis
 
                         $map = [
@@ -447,43 +450,55 @@ class HuntersResource extends Resource
                     ->sortable(),
 
                 TextColumn::make('activity_icons')
-                    ->label('Funnel Stage')
-                    ->html() // allow raw HTML rendering
-                    ->getStateUsing(function ($record) {
-                        $activities = $record->activities()
-                            ->orderBy('created_at', 'asc') // oldest → newest
-                            ->get();
+    ->label('Funnel Stage')
+    ->html()
+    ->getStateUsing(function ($record) {
+        // Load activities with funnel relation (to access category & stage)
+        $activities = $record->activities()
+            ->with('funnel')
+            ->orderBy('created_at', 'asc') // oldest → newest
+            ->get();
 
-                        if ($activities->isEmpty()) {
-                            return '<span class="text-gray-400">No Activity</span>';
-                        }
+        if ($activities->isEmpty()) {
+            return new HtmlString('<span class="text-gray-400">No Activity</span>');
+        }
 
-                        $icons = '';
+        // Emoji sets mapped by funnel.category
+        $emojiSets = [
+            'contacted' => ['🔴', '🟠', '🟡', '🟤', '🔵', '🟣', '🟢'], // 7 stages
+            'rna' => ['🟥', '🟧', '🟨'],                              // 3 stages
+            'not_interested' => ['🔶', '🔷'],                         // 2 stages
+        ];
 
-                        foreach ($activities as $activity) {
-                            $stage = $activity->stage ?? null;
-                            $level = (int) ($activity->level_score ?? 0);
+        $icons = [];
 
-                            // Emoji sets by stage
-                            $emojiSets = [
-                                'contacted' => ['🔴', '🟠', '🟡', '🟤', '🔵', '🟣', '🟢'],
-                                'rna' => ['🟥', '🟧', '🟨'],
-                                'not_interested' => ['🔶', '🔷'],
-                            ];
+        foreach ($activities as $activity) {
+            $category = strtolower($activity->funnel?->category ?? '');
+            $stage    = (int) ($activity->funnel?->stage ?? 0); // stage is numeric 1..n
 
-                            if ($stage && isset($emojiSets[$stage])) {
-                                $emojis = $emojiSets[$stage];
+            if ($category && isset($emojiSets[$category])) {
+                $emojis = $emojiSets[$category];
 
-                                // Pick icon based on level
-                                $index = max(0, min($level - 1, count($emojis) - 1));
-                                $icons .= $emojis[$index]; // append without extra space
-                            }
-                        }
+                // stage is 1-based → adjust to 0-based index
+                $index = max(0, min($stage - 1, count($emojis) - 1));
 
-                        return $icons ?: '<span class="text-gray-400">No Activity</span>';
-                    })
-                    ->toggleable()
-                    ->sortable(),
+                $icons[] = sprintf(
+                    '<span class="inline-flex items-center justify-center w-6 h-6 text-sm rounded-full bg-gray-100 shadow-sm" title="%s - Stage %d">%s</span>',
+                    ucfirst(str_replace('_', ' ', $category)),
+                    $stage,
+                    $emojis[$index]
+                );
+            }
+        }
+
+        return new HtmlString(
+            $icons
+                ? '<div class="flex flex-wrap gap-1 mt-1">' . implode('', $icons) . '</div>'
+                : '<span class="text-gray-400">No Activity</span>'
+        );
+    })
+    ->toggleable()
+    ->sortable(),
 
                 BadgeColumn::make('weight')
                     ->label('Weight')
@@ -796,6 +811,17 @@ class HuntersResource extends Resource
                                                                                             ->label('Activity Type')
                                                                                             ->weight('bold'),
                                                                                         // paymentStatus relationship to get payment_status from payment_status table
+                                                                                        
+                                                                                        // 
+                                                                                        TextEntry::make('comments')
+                                                                                            ->label('Comments')
+                                                                                            ->placeholder('No comments'),
+                                                                                        TextEntry::make('created_at')
+                                                                                            ->label('Date')
+                                                                                            ->dateTime('M d, Y H:i'),
+                                                                                        TextEntry::make('user.name')
+                                                                                            ->label('Done By')
+                                                                                            ->icon('heroicon-o-user'),
                                                                                         TextEntry::make('paymentStatus.payment_status')
                                                                                             ->label('Payment Status')
                                                                                             ->badge()
@@ -807,16 +833,6 @@ class HuntersResource extends Resource
                                                                                                 'Black' => 'dark',
                                                                                                 default => 'secondary',
                                                                                             }),
-                                                                                        // 
-                                                                                        TextEntry::make('comments')
-                                                                                            ->label('Comments')
-                                                                                            ->placeholder('No comments'),
-                                                                                        TextEntry::make('created_at')
-                                                                                            ->label('Date')
-                                                                                            ->dateTime('M d, Y H:i'),
-                                                                                        TextEntry::make('user.name')
-                                                                                            ->label('Done By')
-                                                                                            ->icon('heroicon-o-user'),
                                                                                     ])
                                                                                     ->columns(3)
                                                                                     ->collapsed(),
@@ -826,34 +842,34 @@ class HuntersResource extends Resource
                                                                         //
                                                                         Action::make('add_activity')
                                                                             ->label('Add Activity')
-                                                                            ->modalWidth('4xl')
+                                                                            ->modalWidth('xl')
                                                                             ->button()
                                                                             // ->dropdown(true)
                                                                             ->icon('heroicon-o-plus')
                                                                             ->form([
                                                                                 Select::make('payment_status_id')
                                                                                     ->label('Payment Status')
-                                                                                    // Show options of payment_status from paymentStatus relationship
                                                                                     ->options(function () {
                                                                                         return PaymentStatus::all()->pluck('payment_status', 'id')->toArray();
                                                                                     })
                                                                                     ->searchable()
                                                                                     ->required(),
 
-                                                                                // Add radio buttons for stage with options: contacted, not_interested, rna
-                                                                                Radio::make('stage')
-                                                                                    ->label('Funnel Category')
-                                                                                    // Display categories from staged_funnel table
-                                                                                    ->options([
-                                                                                        'contacted' => 'Contacted',
-                                                                                        'not_interested' => 'Not Interested',
-                                                                                        'rna' => 'RNA',
-                                                                                    ])
+                                                                                // changed to funnel_id
+                                                                                Select::make('funnel_id')
+                                                                                    ->label('Funnel (category - stage)')
+                                                                                    ->options(function () {
+                                                                                        return Funnel::orderBy('category')
+                                                                                            ->orderBy('stage')
+                                                                                            ->get()
+                                                                                            ->mapWithKeys(function ($funnel) {
+                                                                                                return [$funnel->id => ucfirst($funnel->category) . ' - Stage ' . $funnel->stage];
+                                                                                            })
+                                                                                            ->toArray();
+                                                                                    })
+                                                                                    ->searchable()
                                                                                     ->required(),
-                                                                                
-                                                                                // Add 
 
-                                                                                // Add radio buttons for activity_type with options: email, meeting, site_visit, message, follow_up, call
                                                                                 Radio::make('activity_type')
                                                                                     ->label('Activity Type')
                                                                                     ->inline()
@@ -865,40 +881,60 @@ class HuntersResource extends Resource
                                                                                         'follow_up' => 'Follow Up',
                                                                                         'reminder' => 'Reminder',
                                                                                     ])
-                                                                                    ->required(),
+                                                                                    ->required()
+                                                                                    ->reactive(),
 
-                                                                                Select::make('stage')
-                                                                                    ->label('Funnel Category')
-                                                                                    ->options([
-                                                                                        'contacted' => 'Contacted',
-                                                                                        'rna' => 'RNA',
-                                                                                        'not_interested' => 'Not Interested',
-                                                                                    ])
-                                                                                    ->required(),
+                                                                                // follow up date/time shown only for follow_up
+                                                                                DateTimePicker::make('follow_up_date_time')
+                                                                                    ->label('Follow Up Date & Time')
+                                                                                    ->visible(fn ($get) => $get('activity_type') === 'follow_up')
+                                                                                    ->required(fn ($get) => $get('activity_type') === 'follow_up')
+                                                                                    ->reactive(),
 
-                                                                                // level_score text input numeric between 1 to 10
-                                                                                TextInput::make('level_score')
-                                                                                    ->label('Funnel Stage')
-                                                                                    ->numeric()
-                                                                                    ->minValue(1)
-                                                                                    ->maxValue(10)
-                                                                                    ->placeholder('e.g. 2'),
+                                                                                // reminder date shown only for reminder
+                                                                                DatePicker::make('reminder_date')
+                                                                                    ->label('Reminder Date')
+                                                                                    ->visible(fn ($get) => $get('activity_type') === 'reminder')
+                                                                                    ->required(fn ($get) => $get('activity_type') === 'reminder')
+                                                                                    ->reactive(),
 
                                                                                 Textarea::make('comments')
                                                                                     ->label('Comments')
-                                                                                    ->rows(3),
+                                                                                    ->rows(4),
                                                                             ])
                                                                             ->action(function (array $data, $record) {
-                                                                                // Save the new activity for this record
-                                                                                $record->activities()->create([
-                                                                                    'activity_type' => $data['activity_type'],
-                                                                                    'stage'         => $data['stage'],
-                                                                                    'status'        => $data['status'],
-                                                                                    'level_score'   => $data['level_score'] ?? null,
-                                                                                    'comments'      => $data['comments'] ?? null,
-                                                                                    // Save current auth id into assigned_by column in the activity table
-                                                                                    'assigned_by'   => auth()->id(),
+                                                                                // create activity (map funnel_id and payment_status_id)
+                                                                                $activity = $record->activities()->create([
+                                                                                    'activity_type'     => $data['activity_type'] ?? null,
+                                                                                    'funnel_id'         => $data['funnel_id'] ?? null,
+                                                                                    'payment_status_id' => $data['payment_status_id'] ?? null,
+                                                                                    'comments'          => $data['comments'] ?? null,
+                                                                                    'assigned_by'       => auth()->id(),
                                                                                 ]);
+
+                                                                                // If follow_up or reminder provided, insert into activity_follow_up
+                                                                                $followUpProvided = ! empty($data['follow_up_date_time']);
+                                                                                $reminderProvided = ! empty($data['reminder_date']);
+
+                                                                                if ($activity && ($followUpProvided || $reminderProvided)) {
+                                                                                    $payload = [
+                                                                                        'activity_id'    => $activity->id,
+                                                                                        // map date_time -> follow_up_time
+                                                                                        'follow_up_time' => $followUpProvided ? $data['follow_up_date_time'] : null,
+                                                                                        // map reminder -> reminder_at
+                                                                                        'reminder_at'    => $reminderProvided ? $data['reminder_date'] : null,
+                                                                                        'created_at'     => now(),
+                                                                                        'updated_at'     => now(),
+                                                                                    ];
+
+                                                                                    // Insert only the provided columns (DB will accept nulls)
+                                                                                    DB::table('activity_follow_up')->insert($payload);
+                                                                                }
+
+                                                                                Notification::make()
+                                                                                    ->title('Activity added')
+                                                                                    ->success()
+                                                                                    ->send();
                                                                             }),
                                                                     ]),
                                                             ]),
