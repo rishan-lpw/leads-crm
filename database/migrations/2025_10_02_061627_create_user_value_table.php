@@ -11,13 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('cron', function (Blueprint $table) {
+        Schema::create('user_value', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            // category, value
             $table->string('category');
-            $table->string('member');
-            $table->integer('rule_1_days');
-            $table->integer('rule_2_days');
+            $table->decimal('value')->nullable();
             $table->timestamps();
         });
     }
@@ -27,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('cron');
+        Schema::dropIfExists('user_value');
     }
 };
