@@ -78,7 +78,13 @@ class TableRecordActions
                                     ]),
 
                                     Section::make('Activity History')->columnSpan(2)->schema([
-                                        RepeatableEntry::make('activities')->label('Activities')->schema([
+                                        RepeatableEntry::make('activities')
+                                        ->label('Activities')
+                                        // Limit activity history into last 4 activities and only required fields to data retrieving optimized.
+                                        ->getStateUsing(function ($record) {
+                                            return $record->activities()->with('user', 'paymentStatus')->latest()->limit(4)->get();
+                                        })
+                                        ->schema([
                                             Section::make('Activity List')
                                                 ->collapsible()
                                                 ->heading(function ($record) {
