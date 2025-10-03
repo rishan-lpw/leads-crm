@@ -39,6 +39,10 @@ class TableColumns
 
             ColumnText::make('posted_date')
                 ->label('Posted Date')
+                // Add 2nd column for updated_at
+                ->description(function ($record) {
+                    return $record->updated_at->format('M d, Y');
+                })
                 ->dateTime('M d, Y')
                 ->sortable(),
 
@@ -54,7 +58,8 @@ class TableColumns
                 ->sortable(),
 
             ColumnText::make('property_summary')
-                ->label('Property Details')
+                ->label('Property Summary Details')
+                // Display data not exceeding 2 lines
                 ->getStateUsing(function ($record) {
                     $priceInMillions = $record->price / 1_000_000;
                     $priceInBillions = $record->price / 1_000_000_000;
@@ -73,6 +78,13 @@ class TableColumns
                     return "$price - $type";
                 })
                 ->html()
+                // Add badge for property type and type. Only apply for the fields type and propty_type.
+                // Add badge color info.
+                // ->badge()
+                // ->colors([
+                //     // Apply info color as the default color.
+                //     'info' => 'default',
+                // ])
                 ->description(function ($record) {
                     $propertyType = ucfirst($record->propty_type);
                     $city = ucfirst($record->city);
@@ -130,6 +142,11 @@ class TableColumns
                 ->toggleable()
                 ->sortable(),
 
+            ColumnText::make('user.username')
+                ->label('AM')
+                ->searchable()
+                ->sortable(),
+
             ColumnText::make('activity_icons')
                 ->label('Funnel Stage')
                 ->html()
@@ -138,7 +155,7 @@ class TableColumns
                     $activitiesSorted = $activities->sortBy('created_at');
 
                     if ($activitiesSorted->isEmpty()) {
-                        return new HtmlString('<span class="text-gray-400">No Activity</span>');
+                        return new HtmlString('<span class="text-gray-400">No-Activity</span>');
                     }
 
                     $emojiSets = [
@@ -175,6 +192,19 @@ class TableColumns
                 ->toggleable()
                 ->sortable(),
 
+            ColumnText::make('status')
+                ->label('Status')
+                ->badge()
+                ->colors([
+                    'primary' => 'new',
+                    'secondary' => 'follow_up',
+                    'success' => 'system',
+                    'warning' => 'to_be_expired',
+                    'danger' => 'expired',
+                ])
+                ->toggleable()
+                ->sortable(),
+
             BadgeColumn::make('weight')
                 ->label('Weight')
                 ->getStateUsing(function ($record) {
@@ -208,24 +238,6 @@ class TableColumns
                 ->trueColor('warning')
                 ->falseColor('secondary')
                 ->toggleable()
-                ->sortable(),
-
-            ColumnText::make('status')
-                ->label('Status')
-                ->badge()
-                ->colors([
-                    'primary' => 'new',
-                    'secondary' => 'follow_up',
-                    'success' => 'system',
-                    'warning' => 'to_be_expired',
-                    'danger' => 'expired',
-                ])
-                ->toggleable()
-                ->sortable(),
-
-            ColumnText::make('user.username')
-                ->label('AM')
-                ->searchable()
                 ->sortable(),
         ];
     }

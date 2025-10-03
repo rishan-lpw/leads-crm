@@ -202,8 +202,8 @@ class TableRecordActions
                                     ]),
                                 ]),
                             ]),
-
-                            Tab::make('Call Log')->icon('heroicon-o-phone')->schema([]),
+                            Tab::make('Call Log')->icon('heroicon-s-phone-arrow-up-right')->schema([]),
+                            Tab::make('Call Script')->icon('heroicon-m-clipboard-document-list')->schema([]),
                         ]),
                     ]),
 

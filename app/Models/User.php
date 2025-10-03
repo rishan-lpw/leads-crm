@@ -81,6 +81,12 @@ class User extends Authenticatable
         return $this->user_level_id >= $level;
     }
 
+    // user_value_id
+    public function userValue()
+    {
+        return $this->belongsTo(UserValue::class, 'user_value_id');
+    }
+
     public function activities()
     {
         return $this->hasMany(Activity::class);

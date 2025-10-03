@@ -18,6 +18,7 @@ use Dom\Text;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use App\Models\UserType;
+use App\Models\UserValue;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -62,11 +63,11 @@ class UserResource extends Resource
                 //     ->maxLength(255),
                 // User Type should be the type_name option from user_type table.
                 // score
-                TextInput::make('score')
+                
+                Select::make('user_value_id')
                     ->required()
-                    ->numeric()
-                    ->default(20)
-                    ->label('Score'),
+                    ->options(UserValue::query()->pluck('category', 'id')->toArray())
+                    ->label('User Value'),
                 Select::make('user_level_id')
                     ->required()
                     ->options(UserLevel::query()->pluck('title', 'id')->toArray())
