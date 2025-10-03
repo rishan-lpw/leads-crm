@@ -62,6 +62,8 @@ class HuntersResource extends Resource
     {
         return $table
             ->columns(TableColumns::getColumns())
+            // Highlight the rows which price is greater than 50000000
+            // ->rowHighlight(fn($record) => $record->price > 50000000 ? 'bg-yellow-100' : null)
             ->filters(TableFilters::getFilters())
             ->filtersLayout(FiltersLayout::Modal)
             ->filtersFormColumns(2)
