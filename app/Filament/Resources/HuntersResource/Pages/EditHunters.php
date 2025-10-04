@@ -102,7 +102,7 @@ class EditHunters extends EditRecord
             Action::make('mark_as_system')
                 ->label('Mark as System')
                 ->icon('heroicon-o-credit-card')
-                ->color('warning')
+                ->color('info')
                 ->requiresConfirmation()
                 ->modalHeading('Mark as System')
                 ->modalDescription('Are you sure you want to mark this lead as system?')
@@ -116,7 +116,7 @@ class EditHunters extends EditRecord
             Action::make('add_comment')
                 ->label('Add Comment')
                 ->icon('heroicon-o-chat-bubble-left-right')
-                ->color('info')
+                ->color('primary')
                 ->schema([
                     Textarea::make('new_comment')
                         ->label('Add New Comment')
