@@ -24,6 +24,7 @@ use Filament\Infolists\Components\TextEntry as TextEntryInfo;
 use Filament\Infolists\Components\ViewEntry;
 use App\Models\PaymentStatus;
 use App\Models\Funnel;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid as ComponentsGrid;
@@ -101,14 +102,16 @@ class TableRecordActions
                                                 })
                                                 ->description(function ($record) {
                                                     $date = $record->created_at ? $record->created_at->format('M d, Y H:i') : 'No date';
-                                                    $user = $record->user->name ?? $record->old_am ?? 'Unknown';
+                                                    // Get the user username by getting the id from assigned_by column and get the name from user table
+                                                    $user = User::find($record->assigned_by)->username ?? 'Unknown';
                                                     return "{$date} • By: {$user}";
                                                 })
                                                 ->schema([
                                                     TextEntry::make('activity_type')->label('Activity Type')->weight('bold'),
                                                     TextEntry::make('comments')->label('Comments')->placeholder('No comments'),
                                                     TextEntry::make('created_at')->label('Date')->dateTime('M d, Y H:i'),
-                                                    TextEntry::make('user.name')->label('Done By')->icon('heroicon-o-user'),
+                                                    // Get the user username by getting the id from assigned_by column and get the name from user table.
+                                                    TextEntry::make('user.username')->label('Done By')->icon('heroicon-o-user'),
                                                     TextEntry::make('paymentStatus.payment_status')->label('Payment Status')->badge(),
                                                 ])
                                                 ->columns(3)

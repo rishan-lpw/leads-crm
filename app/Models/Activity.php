@@ -16,7 +16,7 @@ class Activity extends Model
     protected $table = 'activity';
 
     protected $fillable = [
-        'lead_id', 'user_id', 'activity_type', 'status', 'stage', 'payment_status_id', 'funnel_id', 'level_score', 'action', 'qty', 'value', 'ad_id', 'comments', 'reminder', 'date_time', 'old_am'
+        'lead_id', 'user_id', 'activity_type', 'status', 'stage', 'payment_status_id', 'funnel_id', 'level_score', 'action', 'qty', 'value', 'ad_id', 'comments', 'assigned_by', 'reminder', 'date_time', 'old_am'
     ];
 
     protected $casts = [
@@ -31,13 +31,13 @@ class Activity extends Model
     }
 
     public function scopeForUser($query, $user)
-{
-    if ($user->user_level_id == 1) {
-        // Only show activities for leads assigned to this user
-        return $query->whereHas('lead', function($q) use ($user) {
-            $q->where('user_id', $user->id);
-        });
-    }
+    {
+        if ($user->user_level_id == 1) {
+            // Only show activities for leads assigned to this user
+            return $query->whereHas('lead', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
     
         return $query;
     }
