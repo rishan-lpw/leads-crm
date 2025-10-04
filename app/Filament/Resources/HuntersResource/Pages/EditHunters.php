@@ -39,7 +39,7 @@ class EditHunters extends EditRecord
                 ->color('success')
                 ->requiresConfirmation()
                 ->modalHeading('Mark as Upsell')
-                ->modalDescription('Are you sure you want to mark this hunter as upsell?')
+                ->modalDescription('Are you sure you want to mark this lead as upsell?')
                 ->modalSubmitActionLabel('Mark Upsell')
                 ->action(function () {
                     $this->record->update([
@@ -66,7 +66,7 @@ class EditHunters extends EditRecord
                 ->color('warning')
                 ->requiresConfirmation()
                 ->modalHeading('Mark as Renew')
-                ->modalDescription('Are you sure you want to mark this hunter as renew?')
+                ->modalDescription('Are you sure you want to mark this lead as renew?')
                 ->modalSubmitActionLabel('Mark Renew')
                 ->action(function () {
                     $this->record->update([
@@ -83,6 +83,34 @@ class EditHunters extends EditRecord
                         ->body('The hunter has been moved to renew.')
                         ->success()
                         ->send();
+                }),
+
+            Action::make('mark_as_not_interested')
+                ->label('Mark as Not Interested')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Mark as Not Interested')
+                ->modalDescription('Are you sure you want to mark this lead as not interested?')
+                ->modalSubmitActionLabel('Mark Not Interested')
+                ->action(function () {
+                    $this->record->update([
+                        'status' => 'not_interested',
+                    ]);
+                }),
+
+            Action::make('mark_as_system')
+                ->label('Mark as System')
+                ->icon('heroicon-o-credit-card')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Mark as System')
+                ->modalDescription('Are you sure you want to mark this lead as system?')
+                ->modalSubmitActionLabel('Mark System')
+                ->action(function () {
+                    $this->record->update([
+                        'status' => 'system',
+                    ]);
                 }),
 
             Action::make('add_comment')

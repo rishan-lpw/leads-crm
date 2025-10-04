@@ -67,10 +67,10 @@ class ListHunters extends ListRecords
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'last_day'))
                 ->badge($countFor('last_day', fn($q) => $q->where('status', 'last_day')))
                 ->badgeColor('danger'),
-            'system' => Tab::make('System')
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'system'))
-                ->badge($countFor('system', fn($q) => $q->where('status', 'system')))
-                ->badgeColor('info'),
+            // 'system' => Tab::make('System')
+            //     ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'system'))
+            //     ->badge($countFor('system', fn($q) => $q->where('status', 'system')))
+            //     ->badgeColor('info'),
             'favorite' => Tab::make('Favorite')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('is_favourite', 1))
                 ->badge($countFor('favorite', fn($q) => $q->where('is_favourite', 1)))

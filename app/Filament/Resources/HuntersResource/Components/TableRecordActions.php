@@ -25,13 +25,65 @@ use Filament\Infolists\Components\ViewEntry;
 use App\Models\PaymentStatus;
 use App\Models\Funnel;
 use App\Models\User;
+use Filament\Actions\ButtonAction;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid as ComponentsGrid;
+use Filament\Support\View\Components\ButtonComponent;
 use Illuminate\Support\HtmlString;
 
 class TableRecordActions
 {
+    private static function getActivityListSchema(): array
+    {
+        return [
+            Section::make('Activity List')
+                ->collapsible()
+                ->heading(function ($record) {
+                    $activityType = ucfirst($record->activity_type ?? 'Activity');
+                    return match ($record->activity_type) {
+                        'email' => '✉️ Email Activity',
+                        'meeting' => '📅 Meeting',
+                        'site_visit' => '🏠 Site Visit',
+                        'message' => '💬 Message',
+                        'follow_up' => '🔄 Follow Up',
+                        'call' => '📞 Call',
+                        default => "📋 {$activityType}",
+                    };
+                })
+                ->description(function ($record) {
+                    $date = $record->created_at ? $record->created_at->format('M d, Y H:i') : 'No date';
+                    $user = User::find($record->assigned_by)->username ?? 'Unknown';
+                    return "{$date} • By: {$user}";
+                })
+                ->schema([
+                    TextEntry::make('activity_type')->label('Activity Type')->weight('bold'),
+                    TextEntry::make('comments')->label('Comments')->placeholder('No comments'),
+                    TextEntry::make('created_at')->label('Date')->dateTime('M d, Y H:i'),
+                    TextEntry::make('user.username')->label('Done By')->icon('heroicon-o-user'),
+                    TextEntry::make('paymentStatus.payment_status')->label('Payment Status')->badge(),
+                ])
+                ->columns(3)
+                ->collapsed(),
+        ];
+    }
+
+    private static function createActivityTab(string $label, string $icon, callable $queryModifier): Tab
+    {
+        return Tab::make($label)
+            ->icon($icon)
+            ->schema([
+                RepeatableEntry::make('activities')
+                    ->label($label)
+                    ->getStateUsing(function ($record) use ($queryModifier) {
+                        $query = $record->activities()->with('user', 'paymentStatus');
+                        $queryModifier($query);
+                        return $query->latest()->limit(5)->get();
+                    })
+                    ->schema(self::getActivityListSchema()),
+            ]);
+    }
+
     public static function getRecordActions(): array
     {
         $viewAction = ViewAction::make()
@@ -79,43 +131,10 @@ class TableRecordActions
                                     ]),
 
                                     Section::make('Activity History')->columnSpan(2)->schema([
-                                        RepeatableEntry::make('activities')
-                                        ->label('Activities')
-                                        // Limit activity history into last 4 activities and only required fields to data retrieving optimized.
-                                        ->getStateUsing(function ($record) {
-                                            return $record->activities()->with('user', 'paymentStatus')->latest()->limit(4)->get();
-                                        })
-                                        ->schema([
-                                            Section::make('Activity List')
-                                                ->collapsible()
-                                                ->heading(function ($record) {
-                                                    $activityType = ucfirst($record->activity_type ?? 'Activity');
-                                                    return match ($record->activity_type) {
-                                                        'email' => '✉️ Email Activity',
-                                                        'meeting' => '📅 Meeting',
-                                                        'site_visit' => '🏠 Site Visit',
-                                                        'message' => '💬 Message',
-                                                        'follow_up' => '🔄 Follow Up',
-                                                        'call' => '📞 Call',
-                                                        default => "📋 {$activityType}",
-                                                    };
-                                                })
-                                                ->description(function ($record) {
-                                                    $date = $record->created_at ? $record->created_at->format('M d, Y H:i') : 'No date';
-                                                    // Get the user username by getting the id from assigned_by column and get the name from user table
-                                                    $user = User::find($record->assigned_by)->username ?? 'Unknown';
-                                                    return "{$date} • By: {$user}";
-                                                })
-                                                ->schema([
-                                                    TextEntry::make('activity_type')->label('Activity Type')->weight('bold'),
-                                                    TextEntry::make('comments')->label('Comments')->placeholder('No comments'),
-                                                    TextEntry::make('created_at')->label('Date')->dateTime('M d, Y H:i'),
-                                                    // Get the user username by getting the id from assigned_by column and get the name from user table.
-                                                    TextEntry::make('user.username')->label('Done By')->icon('heroicon-o-user'),
-                                                    TextEntry::make('paymentStatus.payment_status')->label('Payment Status')->badge(),
-                                                ])
-                                                ->columns(3)
-                                                ->collapsed(),
+                                        Tabs::make('ActivityFilterTabs')->tabs([
+                                            self::createActivityTab('All', 'heroicon-o-queue-list', fn($query) => null),
+                                            self::createActivityTab('My Activities', 'heroicon-o-user', fn($query) => $query->where('assigned_by', auth()->id())),
+                                            self::createActivityTab('Call', 'heroicon-o-phone', fn($query) => $query->where('activity_type', 'call')),
                                         ]),
                                     ])->headerActions([
                                         \Filament\Actions\Action::make('add_activity')
@@ -205,16 +224,62 @@ class TableRecordActions
                                     ]),
                                 ]),
                             ]),
-                            Tab::make('Call Log')->icon('heroicon-s-phone-arrow-up-right')->schema([]),
-                            Tab::make('Call Script')->icon('heroicon-m-clipboard-document-list')->schema([]),
+                            Tab::make('Call Log')->icon('heroicon-s-phone-arrow-up-right')->schema([
+                                ComponentsGrid::make(3)->schema([
+                                    Section::make('Contact Details')->icon('iconsax-bul-profile-circle')->schema([
+                                        TextEntry::make('customer.name'),
+                                        TextEntry::make('customer.email'),
+                                        TextEntry::make('customer.mobile'),
+                                        TextEntry::make('customer.address'),
+                                        TextEntry::make('customer.membership_exp_date'),
+                                        TextEntry::make('customer.payment_exp_date'),
+                                        TextEntry::make('customer.membership_status'),
+                                    ]),
+                                    Section::make('Call Log')->icon('heroicon-s-phone-arrow-up-right')->columnSpan(2)->schema([
+                                        TextEntry::make('call_date'),
+                                        TextEntry::make('call_time'),
+                                        TextEntry::make('call_duration'),
+                                        TextEntry::make('call_type'),
+                                        TextEntry::make('call_status'),
+                                    ]),
+                                ]),
+                            ]),
+                            Tab::make('Call Script')->icon('heroicon-m-clipboard-document-list')->schema([
+                                ComponentsGrid::make(3)->schema([
+                                    Section::make('Contact Details')->icon('iconsax-bul-profile-circle')->schema([
+                                        TextEntry::make('customer.name'),
+                                        TextEntry::make('customer.email'),
+                                        TextEntry::make('customer.mobile'),
+                                        TextEntry::make('customer.address'),
+                                        TextEntry::make('customer.membership_exp_date'),
+                                        TextEntry::make('customer.payment_exp_date'),
+                                        TextEntry::make('customer.membership_status'),
+                                    ]),
+                                    Section::make('Call Script')->icon('heroicon-m-clipboard-document-list')->columnSpan(2)->schema([
+                                        TextEntry::make('call_script'),
+                                    ]),
+                                ]),
+                            ]),
                         ]),
                     ]),
 
-                    Tab::make('Contact')->icon('heroicon-o-phone')->schema([
-                        Section::make('Contact Information')->schema([
-                            TextEntry::make('contact_name')->label('Contact Person')->size('lg')->weight('bold'),
-                            TextEntry::make('contact_type')->label('Contact Type')->badge(),
-                            TextEntry::make('email')->label('Email')->icon('heroicon-o-envelope'),
+                    Tab::make('Message')->icon('heroicon-s-chat-bubble-bottom-center-text')->schema([
+                        Section::make('Send Message')->schema([
+                            // Display a form to send a message to the customer
+                            // Add a dropdown to select the Whatsapp message template
+                            Select::make('message_template')
+                                ->label('Message Template')
+                                ->options(function () {
+                                    // return WhatsappMessageTemplate::all()->pluck('template_name', 'id')->toArray();
+                                })
+                                ->searchable(),
+                            Textarea::make('message')
+                                ->label('Message')
+                                ->rows(4),
+                            ButtonAction::make('send_message')
+                                ->label('Send Message')
+                                ->button()
+                                ->icon('heroicon-o-paper-airplane'),
                         ])->columns(2),
                     ]),
 
