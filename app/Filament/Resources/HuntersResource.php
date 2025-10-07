@@ -35,12 +35,8 @@ class HuntersResource extends Resource
     {
         $query = parent::getEloquentQuery()
             ->with([
-                // load customer and only common columns
-                'customer:id,firstname,email,mobile',
-                // load activities with nested relations; order in collection left to Collection methods below
-                'activities.paymentStatus',
-                'activities.funnel',
-                // load assigned user
+                // Only load essential data for list view
+                'customer:id,firstname,email,mobile,membership_status',
                 'user:id,username,name',
             ]);
             

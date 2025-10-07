@@ -39,6 +39,102 @@ use Illuminate\Support\HtmlString;
 
 class TableRecordActions
 {
+    private static function getAddActivityAction(): Action
+    {
+        return Action::make('add_activity')
+            ->label('Add Activity')
+            ->modalWidth('xl')
+            ->button()
+            ->icon('heroicon-o-plus')
+            ->color('primary')
+                ->form([
+                    Radio::make('activity_type')
+                        ->label('Activity Type')
+                        ->inline()
+                        ->options([
+                            'email' => 'Email',
+                            'call' => 'Call',
+                            'meeting' => 'Meeting',
+                            'whatsapp' => 'WhatsApp',
+                        ])
+                        ->required()
+                        ->reactive(),
+
+                    Select::make('payment_status_id')
+                        ->label('Payment Status')
+                        ->options(function () {
+                            return PaymentStatus::all()->pluck('payment_status', 'id')->toArray();
+                        })
+                        ->searchable()
+                        ->required(),
+
+                    Radio::make('follow_up_type')
+                        ->label('Option')
+                        ->inline()
+                        ->options([
+                            'follow_up' => 'Follow Up',
+                            'reminder' => 'Reminder',
+                        ]),
+
+
+                    Select::make('funnel_id')
+                        ->label('Funnel (category - stage)')
+                        ->options(function () {
+                            return Funnel::orderBy('category')
+                                ->orderBy('stage')
+                                ->get()
+                                ->mapWithKeys(function ($funnel) {
+                                    return [$funnel->id => ucfirst($funnel->category) . ' - Stage ' . $funnel->stage];
+                                })
+                                ->toArray();
+                        })
+                        ->searchable()
+                        ->required(),
+
+                    DateTimePicker::make('follow_up_date_time')
+                        ->label('Follow Up Date & Time')
+                        ->visible(fn ($get) => $get('follow_up_type') === 'follow_up')
+                        ->required(fn ($get) => $get('follow_up_type') === 'follow_up')
+                        ->reactive(),
+
+                    DatePicker::make('reminder_date')
+                        ->label('Reminder Date')
+                        ->visible(fn ($get) => $get('follow_up_type') === 'reminder')
+                        ->required(fn ($get) => $get('follow_up_type') === 'reminder')
+                        ->reactive(),
+
+                    Textarea::make('comments')
+                        ->label('Comments')
+                        ->rows(4),
+                ])
+                ->action(function (array $data, $record) {
+                    $activity = $record->activities()->create([
+                        'activity_type'     => $data['activity_type'] ?? null,
+                        'funnel_id'         => $data['funnel_id'] ?? null,
+                        'payment_status_id' => $data['payment_status_id'] ?? null,
+                        'comments'          => $data['comments'] ?? null,
+                        'assigned_by'       => auth()->id(),
+                    ]);
+
+                    $followUpProvided = ! empty($data['follow_up_date_time']);
+                    $reminderProvided = ! empty($data['reminder_date']);
+
+                    if ($activity && ($followUpProvided || $reminderProvided)) {
+                        $payload = [
+                            'activity_id'    => $activity->id,
+                            'follow_up_time' => $followUpProvided ? $data['follow_up_date_time'] : null,
+                            'reminder_at'    => $reminderProvided ? $data['reminder_date'] : null,
+                            'created_at'     => now(),
+                            'updated_at'     => now(),
+                        ];
+
+                        DB::table('activity_follow_up')->insert($payload);
+                    }
+
+                    Notification::make()->title('Activity added')->success()->send();
+            });
+    }
+
     private static function getActivityListSchema(): array
     {
         return [
@@ -59,7 +155,11 @@ class TableRecordActions
                 ->description(function ($record) {
                     $date = $record->created_at ? $record->created_at->format('M d, Y H:i') : 'No date';
                     $user = User::find($record->assigned_by)->username ?? 'Unknown';
-                    return "{$date} • By: {$user}";
+                    // return the paymentStatus in badge.
+                    $paymentStatus = PaymentStatus::find($record->payment_status_id)->payment_status ?? 'Not found';
+                    $funnel = Funnel::find($record->funnel_id)->category ?? 'Not found';
+                    // Display the paymentStatus and funnel in badge as the next line to the user.
+                    return "{$date} | By: {$user} | Payment Status: {$paymentStatus} | Funnel: {$funnel}";
                 })
                 ->schema([
                     TextEntry::make('activity_type')->label('Activity Type')->weight('bold'),
@@ -97,8 +197,13 @@ class TableRecordActions
             ->modalHeading(fn($record) => 'Property Details - ' . $record->heading)
             ->modalWidth('6xl')
             ->visible(fn($record) => Gate::allows('view', $record))
+            // ->stickyModalHeader()
+            // ->stickyModalFooter()
+            ->closeModalByClickingAway(false)
             ->schema([
-                Tabs::make('PropertyTabs')->tabs([
+                Tabs::make('PropertyTabs')
+                    ->persistTabInQueryString()
+                    ->tabs([
                     Tab::make('Overview')->icon('heroicon-o-information-circle')->schema([
                         Section::make('Property Information')->schema([
                             TextEntry::make('heading')->label('Property Heading')->size('lg')->weight('bold'),
@@ -125,169 +230,261 @@ class TableRecordActions
                         Tabs::make('ActivitySubTabs')->tabs([
                             Tab::make('Activity Log')->icon('heroicon-o-list-bullet')->schema([
                                 ComponentsGrid::make(3)->schema([
-                                    Section::make('Contact Details')->icon('iconsax-bul-profile-circle')->schema([
-                                        TextEntry::make('customer.name'),
-                                        TextEntry::make('customer.email'),
-                                        TextEntry::make('customer.mobile'),
-                                        TextEntry::make('customer.address'),
-                                        TextEntry::make('customer.membership_exp_date'),
-                                        TextEntry::make('customer.payment_exp_date'),
-                                        TextEntry::make('customer.membership_status'),
-                                    ]),
+                                    Section::make(fn($record) => $record->customer->firstname ?? 'Contact Details') // ✅ dynamic header with customer name
+                                        ->icon('iconsax-bul-profile-circle')
+                                        ->schema([
+                                            // Email, phone, address without labels
+                                            TextEntry::make('customer.email')
+                                                ->label('') // remove label
+                                                ->icon('heroicon-s-envelope'),
+
+                                            TextEntry::make('customer.mobile')
+                                                ->label('')
+                                                ->icon('heroicon-s-phone'),
+
+                                            TextEntry::make('customer.address')
+                                                ->label('')
+                                                ->icon('heroicon-s-map-pin'),
+
+                                            // Membership and payment dates
+                                            TextEntry::make('customer.membership_exp_date')
+                                                ->label('Membership Exp')
+                                                ->date()
+                                                ->icon('heroicon-o-calendar'),
+
+                                            TextEntry::make('customer.payment_exp_date')
+                                                ->label('Payment Exp')
+                                                ->date()
+                                                ->icon('heroicon-o-calendar'),
+
+                                            // Status badge
+                                            TextEntry::make('customer.membership_status')
+                                                ->label('Status')
+                                                ->badge(),
+                                        ]),
 
                                     Section::make('Activity History')->columnSpan(2)->schema([
-                                        Tabs::make('ActivityFilterTabs')->tabs([
-                                            self::createActivityTab('All', 'heroicon-o-queue-list', fn($query) => null),
-                                            self::createActivityTab('My Activities', 'heroicon-o-user', fn($query) => $query->where('assigned_by', auth()->id())),
-                                            self::createActivityTab('Call', 'heroicon-o-phone', fn($query) => $query->where('activity_type', 'call')),
+                                        Tabs::make('ActivityFilterTabs')
+                                            ->persistTabInQueryString('activity_filter')
+                                            ->tabs([
+                                                self::createActivityTab('All', 'heroicon-o-queue-list', fn($query) => null),
+                                                self::createActivityTab('My Activities', 'heroicon-o-user', fn($query) => $query->where('assigned_by', auth()->id())),
+                                                self::createActivityTab('Call', 'heroicon-o-phone', fn($query) => $query->where('activity_type', 'call')),
                                         ]),
                                     ])->headerActions([
-                                        \Filament\Actions\Action::make('add_activity')
-                                            ->label('Add Activity')
-                                            ->modalWidth('xl')
-                                            ->button()
-                                            ->icon('heroicon-o-plus')
-                                            ->form([
-
-                                                Radio::make('activity_type')
-                                                    ->label('Activity Type')
-                                                    ->inline()
-                                                    ->options([
-                                                        'email' => 'Email',
-                                                        'call' => 'Call',
-                                                        'meeting' => 'Meeting',
-                                                        'whatsapp' => 'WhatsApp',
-                                                    ])
-                                                    ->required()
-                                                    ->reactive(),
-
-                                                Select::make('payment_status_id')
-                                                    ->label('Payment Status')
-                                                    ->options(function () {
-                                                        return PaymentStatus::all()->pluck('payment_status', 'id')->toArray();
-                                                    })
-                                                    ->searchable()
-                                                    ->required(),
-
-                                                Radio::make('follow_up_type')
-                                                    ->label('Option')
-                                                    ->inline()
-                                                    ->options([
-                                                        'follow_up' => 'Follow Up',
-                                                        'reminder' => 'Reminder',
-                                                    ]),
-
-
-                                                Select::make('funnel_id')
-                                                    ->label('Funnel (category - stage)')
-                                                    ->options(function () {
-                                                        return Funnel::orderBy('category')
-                                                            ->orderBy('stage')
-                                                            ->get()
-                                                            ->mapWithKeys(function ($funnel) {
-                                                                return [$funnel->id => ucfirst($funnel->category) . ' - Stage ' . $funnel->stage];
-                                                            })
-                                                            ->toArray();
-                                                    })
-                                                    ->searchable()
-                                                    ->required(),
-
-                                                DateTimePicker::make('follow_up_date_time')
-                                                    ->label('Follow Up Date & Time')
-                                                    ->visible(fn ($get) => $get('follow_up_type') === 'follow_up')
-                                                    ->required(fn ($get) => $get('follow_up_type') === 'follow_up')
-                                                    ->reactive(),
-
-                                                DatePicker::make('reminder_date')
-                                                    ->label('Reminder Date')
-                                                    ->visible(fn ($get) => $get('follow_up_type') === 'reminder')
-                                                    ->required(fn ($get) => $get('follow_up_type') === 'reminder')
-                                                    ->reactive(),
-
-                                                Textarea::make('comments')
-                                                    ->label('Comments')
-                                                    ->rows(4),
-                                            ])
-                                            ->action(function (array $data, $record) {
-                                                $activity = $record->activities()->create([
-                                                    'activity_type'     => $data['activity_type'] ?? null,
-                                                    'funnel_id'         => $data['funnel_id'] ?? null,
-                                                    'payment_status_id' => $data['payment_status_id'] ?? null,
-                                                    'comments'          => $data['comments'] ?? null,
-                                                    'assigned_by'       => auth()->id(),
-                                                ]);
-
-                                                $followUpProvided = ! empty($data['follow_up_date_time']);
-                                                $reminderProvided = ! empty($data['reminder_date']);
-
-                                                if ($activity && ($followUpProvided || $reminderProvided)) {
-                                                    $payload = [
-                                                        'activity_id'    => $activity->id,
-                                                        'follow_up_time' => $followUpProvided ? $data['follow_up_date_time'] : null,
-                                                        'reminder_at'    => $reminderProvided ? $data['reminder_date'] : null,
-                                                        'created_at'     => now(),
-                                                        'updated_at'     => now(),
-                                                    ];
-
-                                                    DB::table('activity_follow_up')->insert($payload);
-                                                }
-
-                                                Notification::make()->title('Activity added')->success()->send();
-                                            }),
+                                        self::getAddActivityAction(),
                                     ]),
                                 ]),
                             ]),
                             Tab::make('Call Log')->icon('heroicon-s-phone-arrow-up-right')->schema([
                                 ComponentsGrid::make(3)->schema([
-                                    Section::make('Contact Details')->icon('iconsax-bul-profile-circle')->schema([
-                                        TextEntry::make('customer.name'),
-                                        TextEntry::make('customer.email'),
-                                        TextEntry::make('customer.mobile'),
-                                        TextEntry::make('customer.address'),
-                                        TextEntry::make('customer.membership_exp_date'),
-                                        TextEntry::make('customer.payment_exp_date'),
-                                        TextEntry::make('customer.membership_status'),
-                                    ]),
-                                    Section::make('Call Log')->icon('heroicon-s-phone-arrow-up-right')->columnSpan(2)->schema([
-                                        ViewEntry::make('call_logs')
-                                            ->view('filament.components.call-logs')
-                                            ->viewData(function ($record) {
+                                    Section::make(fn($record) => $record->customer->firstname ?? 'Contact Details') // ✅ dynamic header with customer name
+                                        ->icon('iconsax-bul-profile-circle')
+                                        ->schema([
+                                            // Email, phone, address without labels
+                                            TextEntry::make('customer.email')
+                                                ->label('') // remove label
+                                                ->icon('heroicon-s-envelope'),
+
+                                            TextEntry::make('customer.mobile')
+                                                ->label('')
+                                                ->icon('heroicon-s-phone'),
+
+                                            TextEntry::make('customer.address')
+                                                ->label('')
+                                                ->icon('heroicon-s-map-pin'),
+
+                                            // Membership and payment dates
+                                            TextEntry::make('customer.membership_exp_date')
+                                                ->label('Membership Exp')
+                                                ->date()
+                                                ->icon('heroicon-o-calendar'),
+
+                                            TextEntry::make('customer.payment_exp_date')
+                                                ->label('Payment Exp')
+                                                ->date()
+                                                ->icon('heroicon-o-calendar'),
+
+                                            // Status badge
+                                            TextEntry::make('customer.membership_status')
+                                                ->label('Status')
+                                                ->badge(),
+                                        ]),
+                                    
+                                    Section::make('Call Logs')->icon('heroicon-s-phone-arrow-up-right')->columnSpan(2)->headerActions([
+                                        self::getAddActivityAction(),
+                                    ])->schema([
+                                        RepeatableEntry::make('call_logs')
+                                            ->label('')
+                                            ->getStateUsing(function ($record) {
+                                                // Only load when tab is accessed
+                                                static $cached = null;
+                                                
+                                                if ($cached !== null) {
+                                                    return $cached;
+                                                }
+                                                
                                                 try {
-                                                    $userId = $record->customer->id ?? null;
+                                                    $userId = $record->cust_id ?? null;
                                                     
                                                     if (!$userId) {
-                                                        return ['callLogs' => [], 'error' => 'No customer ID available'];
+                                                        return $cached = [];
                                                     }
                                                     
                                                     $apiUrl = "https://www.lankapropertyweb.com/api/v3/UserDetails/calllLog?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiYXBpX2tleSJ9.l6YJhp_Jm2tryHhDdodj0E1kui6vfLordQUDXWF3y3U&user_id={$userId}&cache=1";
                                                     
-                                                    $response = Http::timeout(10)->get($apiUrl);
+                                                    // Reduced timeout for faster response
+                                                    $response = Http::timeout(5)->get($apiUrl);
                                                     
                                                     if ($response->successful()) {
                                                         $data = $response->json();
-                                                        return ['callLogs' => $data['data'] ?? [], 'error' => null];
+                                                        // Limit to 10 most recent call logs
+                                                        return $cached = collect($data['data'] ?? [])->take(10)->map(function ($log, $index) {
+                                                            return array_merge($log, ['index' => $index + 1]);
+                                                        })->toArray();
                                                     }
                                                     
-                                                    return ['callLogs' => [], 'error' => 'Failed to fetch call logs'];
+                                                    return $cached = [];
                                                 } catch (\Exception $e) {
-                                                    return ['callLogs' => [], 'error' => $e->getMessage()];
+                                                    return $cached = [];
                                                 }
-                                            }),
+                                            })
+                                            ->schema([
+                                                Section::make()
+                                                    ->heading(fn(array $state): string => '📞 Call Conversation #' . ($state['index'] ?? 'N/A'))
+                                                    ->description(function (array $state): string {
+                                                        $date = $state['date_time'] ?? $state['date'] ?? 'N/A';
+                                                        $duration = $state['duration'] ?? 'N/A';
+                                                        return "🗓️ {$date} • ⏱️ Duration: {$duration}";
+                                                    })
+                                                    ->collapsible()
+                                                    ->compact()
+                                                    ->schema([
+                                                        ComponentsGrid::make(2)->schema([
+                                                            TextEntry::make('call_type')
+                                                                ->label('Call Type')
+                                                                ->badge()
+                                                                ->color('primary')
+                                                                ->default('N/A')
+                                                                ->visible(fn(array $state) => isset($state['call_type'])),
+                                                            
+                                                            TextEntry::make('sentiment')
+                                                                ->label('Sentiment')
+                                                                ->badge()
+                                                                ->color(fn(string $state): string => match(strtolower($state)) {
+                                                                    'positive' => 'success',
+                                                                    'negative' => 'danger',
+                                                                    'neutral' => 'gray',
+                                                                    'mixed' => 'warning',
+                                                                    default => 'info',
+                                                                })
+                                                                ->default('N/A')
+                                                                ->visible(fn(array $state) => isset($state['sentiment'])),
+                                                            
+                                                            TextEntry::make('caller')
+                                                                ->label('Caller')
+                                                                ->icon('heroicon-o-phone-arrow-up-right')
+                                                                ->default('N/A')
+                                                                ->visible(fn(array $state) => isset($state['caller'])),
+                                                            
+                                                            TextEntry::make('receiver')
+                                                                ->label('Receiver')
+                                                                ->icon('heroicon-o-phone-arrow-down-left')
+                                                                ->default('N/A')
+                                                                ->visible(fn(array $state) => isset($state['receiver'])),
+                                                            
+                                                            TextEntry::make('status')
+                                                                ->label('Status')
+                                                                ->badge()
+                                                                ->color('info')
+                                                                ->default('N/A')
+                                                                ->visible(fn(array $state) => isset($state['status'])),
+                                                        ]),
+                                                        
+                                                        TextEntry::make('recording_url')
+                                                            ->label('Recording')
+                                                            ->formatStateUsing(fn(string $state): \Illuminate\Support\HtmlString => 
+                                                                new \Illuminate\Support\HtmlString(
+                                                                    '<audio controls style="width: 100%; max-width: 400px; height: 32px;">
+                                                                        <source src="' . $state . '" type="audio/mpeg">
+                                                                        <source src="' . $state . '" type="audio/wav">
+                                                                        Your browser does not support the audio element.
+                                                                    </audio>'
+                                                                )
+                                                            )
+                                                            ->html()
+                                                            ->visible(fn(array $state) => !empty($state['recording_url']))
+                                                            ->columnSpanFull(),
+                                                        
+                                                        TextEntry::make('summary')
+                                                            ->label('Summary')
+                                                            ->getStateUsing(fn(array $state): string => $state['summary'] ?? $state['summery'] ?? 'No summary available')
+                                                            ->lineClamp(3)
+                                                            ->tooltip(function (array $state): ?string {
+                                                                $summary = $state['summary'] ?? $state['summery'] ?? '';
+                                                                return strlen($summary) > 150 ? $summary : null;
+                                                            })
+                                                            ->columnSpanFull()
+                                                            ->visible(fn(array $state) => isset($state['summary']) || isset($state['summery'])),
+                                                        
+                                                        TextEntry::make('comments')
+                                                            ->label('Comments')
+                                                            ->default('No comments')
+                                                            ->lineClamp(2)
+                                                            ->columnSpanFull()
+                                                            ->visible(fn(array $state) => !empty($state['comments'])),
+                                                    ])
+                                                    ->columnSpanFull(),
+                                            ])
+                                            ->contained(false),
+                                    ])
+                                    ->description('Call logs Details')
+                                    ->headerActions([
+                                        Action::make('refresh')
+                                            ->label('Refresh')
+                                            ->icon('heroicon-o-arrow-path')
+                                            ->color('gray')
+                                            ->action(fn() => null),
                                     ]),
                                 ]),
                             ]),
                             Tab::make('Call Script')->icon('heroicon-m-clipboard-document-list')->schema([
                                 ComponentsGrid::make(3)->schema([
-                                    Section::make('Contact Details')->icon('iconsax-bul-profile-circle')->schema([
-                                        TextEntry::make('customer.name'),
-                                        TextEntry::make('customer.email'),
-                                        TextEntry::make('customer.mobile'),
-                                        TextEntry::make('customer.address'),
-                                        TextEntry::make('customer.membership_exp_date'),
-                                        TextEntry::make('customer.payment_exp_date'),
-                                        TextEntry::make('customer.membership_status'),
-                                    ]),
-                                    Section::make('Call Script')->icon('heroicon-m-clipboard-document-list')->columnSpan(2)->schema([
+                                    Section::make(fn($record) => $record->customer->firstname ?? 'Contact Details') // ✅ dynamic header with customer name
+                                        ->icon('iconsax-bul-profile-circle')
+                                        ->schema([
+                                            // Email, phone, address without labels
+                                            TextEntry::make('customer.email')
+                                                ->label('') // remove label
+                                                ->icon('heroicon-s-envelope'),
+
+                                            TextEntry::make('customer.mobile')
+                                                ->label('')
+                                                ->icon('heroicon-s-phone'),
+
+                                            TextEntry::make('customer.address')
+                                                ->label('')
+                                                ->icon('heroicon-s-map-pin'),
+
+                                            // Membership and payment dates
+                                            TextEntry::make('customer.membership_exp_date')
+                                                ->label('Membership Exp')
+                                                ->date()
+                                                ->icon('heroicon-o-calendar'),
+
+                                            TextEntry::make('customer.payment_exp_date')
+                                                ->label('Payment Exp')
+                                                ->date()
+                                                ->icon('heroicon-o-calendar'),
+
+                                            // Status badge
+                                            TextEntry::make('customer.membership_status')
+                                                ->label('Status')
+                                                ->badge(),
+                                        ]),
+                                    Section::make('Call Script')->icon('heroicon-m-clipboard-document-list')->columnSpan(2)->headerActions([
+                                        self::getAddActivityAction(),
+                                    ])->schema([
                                         TextEntry::make('call_script'),
                                     ]),
                                 ]),
@@ -295,7 +492,7 @@ class TableRecordActions
                         ]),
                     ]),
 
-                    Tab::make('Message')->icon('heroicon-s-chat-bubble-bottom-center-text')->schema([
+                            Tab::make('Message')->icon('heroicon-s-chat-bubble-bottom-center-text')->schema([
                         Section::make('Send Message')->schema([
                             // Display a form to send a message to the customer
                             // Add a dropdown to select the Whatsapp message template
@@ -332,8 +529,8 @@ class TableRecordActions
                     ])->columnSpanFull(),
                 ]),
             ]);
-        
-        
+
+
         $viewCallScript = Action::make('viewCallScript')
             ->label('')
             ->icon('heroicon-c-phone')

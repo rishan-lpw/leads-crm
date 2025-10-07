@@ -70,10 +70,10 @@
 
                 <!-- Recording -->
                 @if(isset($log['recording_url']) && $log['recording_url'])
-                    <div class="mb-3 rounded-md bg-gray-50 p-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm font-medium text-gray-700">Recording:</span>
-                            <audio controls class="h-8 max-w-md" style="height: 32px;">
+                    <div class="mb-3 rounded-lg bg-gray-50 p-3 dark:bg-gray-900/50">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Recording:</span>
+                            <audio controls class="fi-audio h-8 max-w-md">
                                 <source src="{{ $log['recording_url'] }}" type="audio/mpeg">
                                 <source src="{{ $log['recording_url'] }}" type="audio/wav">
                                 <source src="{{ $log['recording_url'] }}" type="audio/ogg">
@@ -90,22 +90,22 @@
                         $summaryId = 'summary-' . $index;
                     @endphp
                     <div class="mt-3">
-                        <h5 class="mb-2 text-sm font-medium text-gray-700">Summary:</h5>
-                        <div class="text-sm text-gray-600">
-                            <div id="{{ $summaryId }}-short" class="line-clamp-2">
+                        <h5 class="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Summary:</h5>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">
+                            <div x-show="!expanded['{{ $summaryId }}']" class="line-clamp-2">
                                 {{ $summary }}
                             </div>
-                            <div id="{{ $summaryId }}-full" class="hidden">
+                            <div x-show="expanded['{{ $summaryId }}']" x-cloak>
                                 {{ $summary }}
                             </div>
                             @if(strlen($summary) > 150)
                                 <button 
                                     type="button"
-                                    onclick="toggleSummary('{{ $summaryId }}')"
-                                    class="mt-2 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 focus:outline-none"
+                                    @click="expanded['{{ $summaryId }}'] = !expanded['{{ $summaryId }}']; $el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })"
+                                    class="mt-2 inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700 focus:outline-none dark:text-primary-400 dark:hover:text-primary-300"
                                 >
-                                    <span id="{{ $summaryId }}-btn-text">Read More</span>
-                                    <svg id="{{ $summaryId }}-icon" class="ml-1 h-4 w-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <span x-text="expanded['{{ $summaryId }}'] ? 'Read Less' : 'Read More'">Read More</span>
+                                    <svg class="ml-1 h-4 w-4 transition-transform" :class="{ 'rotate-180': expanded['{{ $summaryId }}'] }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                     </svg>
                                 </button>
@@ -116,29 +116,29 @@
 
                 <!-- Additional Call Details -->
                 @if(isset($log['call_type']) || isset($log['status']) || isset($log['caller']) || isset($log['receiver']))
-                    <div class="mt-3 grid grid-cols-2 gap-3 border-t border-gray-200 pt-3 text-sm">
+                    <div class="mt-3 grid grid-cols-2 gap-3 border-t border-gray-200 pt-3 text-sm dark:border-gray-700">
                         @if(isset($log['call_type']))
                             <div>
-                                <span class="font-medium text-gray-700">Type:</span>
-                                <span class="ml-1 text-gray-600">{{ $log['call_type'] }}</span>
+                                <span class="font-semibold text-gray-700 dark:text-gray-300">Type:</span>
+                                <span class="ml-1 text-gray-600 dark:text-gray-400">{{ $log['call_type'] }}</span>
                             </div>
                         @endif
                         @if(isset($log['status']))
                             <div>
-                                <span class="font-medium text-gray-700">Status:</span>
-                                <span class="ml-1 text-gray-600">{{ $log['status'] }}</span>
+                                <span class="font-semibold text-gray-700 dark:text-gray-300">Status:</span>
+                                <span class="ml-1 text-gray-600 dark:text-gray-400">{{ $log['status'] }}</span>
                             </div>
                         @endif
                         @if(isset($log['caller']))
                             <div>
-                                <span class="font-medium text-gray-700">Caller:</span>
-                                <span class="ml-1 text-gray-600">{{ $log['caller'] }}</span>
+                                <span class="font-semibold text-gray-700 dark:text-gray-300">Caller:</span>
+                                <span class="ml-1 text-gray-600 dark:text-gray-400">{{ $log['caller'] }}</span>
                             </div>
                         @endif
                         @if(isset($log['receiver']))
                             <div>
-                                <span class="font-medium text-gray-700">Receiver:</span>
-                                <span class="ml-1 text-gray-600">{{ $log['receiver'] }}</span>
+                                <span class="font-semibold text-gray-700 dark:text-gray-300">Receiver:</span>
+                                <span class="ml-1 text-gray-600 dark:text-gray-400">{{ $log['receiver'] }}</span>
                             </div>
                         @endif
                     </div>
@@ -147,43 +147,4 @@
         @endforeach
     @endif
 </div>
-
-<script>
-function toggleSummary(id) {
-    const shortDiv = document.getElementById(id + '-short');
-    const fullDiv = document.getElementById(id + '-full');
-    const btnText = document.getElementById(id + '-btn-text');
-    const icon = document.getElementById(id + '-icon');
-    
-    if (shortDiv.classList.contains('hidden')) {
-        shortDiv.classList.remove('hidden');
-        fullDiv.classList.add('hidden');
-        btnText.textContent = 'Read More';
-        icon.style.transform = 'rotate(0deg)';
-    } else {
-        shortDiv.classList.add('hidden');
-        fullDiv.classList.remove('hidden');
-        btnText.textContent = 'Read Less';
-        icon.style.transform = 'rotate(180deg)';
-    }
-}
-</script>
-
-<style>
-    .line-clamp-2 {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    
-    audio {
-        width: 100%;
-        max-width: 400px;
-    }
-    
-    audio::-webkit-media-controls-panel {
-        background-color: #f3f4f6;
-    }
-</style>
 
