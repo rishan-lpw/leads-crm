@@ -148,6 +148,19 @@ class TableRecordActions
                                             ->button()
                                             ->icon('heroicon-o-plus')
                                             ->form([
+
+                                                Radio::make('activity_type')
+                                                    ->label('Activity Type')
+                                                    ->inline()
+                                                    ->options([
+                                                        'email' => 'Email',
+                                                        'call' => 'Call',
+                                                        'meeting' => 'Meeting',
+                                                        'whatsapp' => 'WhatsApp',
+                                                    ])
+                                                    ->required()
+                                                    ->reactive(),
+
                                                 Select::make('payment_status_id')
                                                     ->label('Payment Status')
                                                     ->options(function () {
@@ -155,6 +168,15 @@ class TableRecordActions
                                                     })
                                                     ->searchable()
                                                     ->required(),
+
+                                                Radio::make('follow_up_type')
+                                                    ->label('Option')
+                                                    ->inline()
+                                                    ->options([
+                                                        'follow_up' => 'Follow Up',
+                                                        'reminder' => 'Reminder',
+                                                    ]),
+
 
                                                 Select::make('funnel_id')
                                                     ->label('Funnel (category - stage)')
@@ -170,30 +192,16 @@ class TableRecordActions
                                                     ->searchable()
                                                     ->required(),
 
-                                                Radio::make('activity_type')
-                                                    ->label('Activity Type')
-                                                    ->inline()
-                                                    ->options([
-                                                        'email' => 'Email',
-                                                        'call' => 'Call',
-                                                        'meeting' => 'Meeting',
-                                                        'whatsapp' => 'WhatsApp',
-                                                        'follow_up' => 'Follow Up',
-                                                        'reminder' => 'Reminder',
-                                                    ])
-                                                    ->required()
-                                                    ->reactive(),
-
                                                 DateTimePicker::make('follow_up_date_time')
                                                     ->label('Follow Up Date & Time')
-                                                    ->visible(fn ($get) => $get('activity_type') === 'follow_up')
-                                                    ->required(fn ($get) => $get('activity_type') === 'follow_up')
+                                                    ->visible(fn ($get) => $get('follow_up_type') === 'follow_up')
+                                                    ->required(fn ($get) => $get('follow_up_type') === 'follow_up')
                                                     ->reactive(),
 
                                                 DatePicker::make('reminder_date')
                                                     ->label('Reminder Date')
-                                                    ->visible(fn ($get) => $get('activity_type') === 'reminder')
-                                                    ->required(fn ($get) => $get('activity_type') === 'reminder')
+                                                    ->visible(fn ($get) => $get('follow_up_type') === 'reminder')
+                                                    ->required(fn ($get) => $get('follow_up_type') === 'reminder')
                                                     ->reactive(),
 
                                                 Textarea::make('comments')
@@ -241,11 +249,30 @@ class TableRecordActions
                                         TextEntry::make('customer.membership_status'),
                                     ]),
                                     Section::make('Call Log')->icon('heroicon-s-phone-arrow-up-right')->columnSpan(2)->schema([
-                                        TextEntry::make('call_date'),
-                                        TextEntry::make('call_time'),
-                                        TextEntry::make('call_duration'),
-                                        TextEntry::make('call_type'),
-                                        TextEntry::make('call_status'),
+                                        ViewEntry::make('call_logs')
+                                            ->view('filament.components.call-logs')
+                                            ->viewData(function ($record) {
+                                                try {
+                                                    $userId = $record->customer->id ?? null;
+                                                    
+                                                    if (!$userId) {
+                                                        return ['callLogs' => [], 'error' => 'No customer ID available'];
+                                                    }
+                                                    
+                                                    $apiUrl = "https://www.lankapropertyweb.com/api/v3/UserDetails/calllLog?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiYXBpX2tleSJ9.l6YJhp_Jm2tryHhDdodj0E1kui6vfLordQUDXWF3y3U&user_id={$userId}&cache=1";
+                                                    
+                                                    $response = Http::timeout(10)->get($apiUrl);
+                                                    
+                                                    if ($response->successful()) {
+                                                        $data = $response->json();
+                                                        return ['callLogs' => $data['data'] ?? [], 'error' => null];
+                                                    }
+                                                    
+                                                    return ['callLogs' => [], 'error' => 'Failed to fetch call logs'];
+                                                } catch (\Exception $e) {
+                                                    return ['callLogs' => [], 'error' => $e->getMessage()];
+                                                }
+                                            }),
                                     ]),
                                 ]),
                             ]),
