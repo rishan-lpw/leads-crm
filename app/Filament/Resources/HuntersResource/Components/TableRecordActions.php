@@ -5,6 +5,8 @@ namespace App\Filament\Resources\HuntersResource\Components;
 use Filament\Actions\ViewAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ActionGroup;
 use Filament\Tables\Actions\Action as TableAction;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -25,7 +27,10 @@ use Filament\Infolists\Components\ViewEntry;
 use App\Models\PaymentStatus;
 use App\Models\Funnel;
 use App\Models\User;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\ButtonAction;
+use Filament\Notifications\Collection;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid as ComponentsGrid;
@@ -300,7 +305,8 @@ class TableRecordActions
                     ])->columnSpanFull(),
                 ]),
             ]);
-
+        
+        
         $viewCallScript = Action::make('viewCallScript')
             ->label('')
             ->icon('heroicon-c-phone')
@@ -329,6 +335,63 @@ class TableRecordActions
             ->visible(fn($record) => Gate::allows('update', $record) && optional(auth()->user())->user_level_id !== 1)
             ->slideOver();
 
-        return [$viewAction, $viewCallScript, $editAction];
+        $actionGroup = ActionGroup::make([
+            Action::make('toggle_pin')
+                ->label(fn($record) => $record->is_active == 1 ? 'Unpin' : 'Pin')
+                ->icon(fn($record) => $record->is_active == 1 ? 'heroicon-s-bookmark' : 'heroicon-o-bookmark')
+                ->color('success')
+                ->action(function ($record) {
+                    $record->update([
+                        'is_active' => $record->is_active == 1 ? 0 : 1,
+                    ]);
+                    
+                    Notification::make()
+                        ->title($record->is_active == 1 ? 'Pinned Successfully' : 'Unpinned Successfully')
+                        ->body('The lead has been ' . ($record->is_active == 1 ? 'pinned' : 'unpinned') . '.')
+                        ->success()
+                        ->send();
+                }),
+
+            Action::make('toggle_favourite')
+                ->label(fn($record) => $record->is_favourite == 1 ? 'Remove from Favourites' : 'Add to Favourites')
+                ->icon(fn($record) => $record->is_favourite == 1 ? 'heroicon-s-heart' : 'heroicon-o-heart')
+                ->color('warning')
+                ->action(function ($record) {
+                    $record->update([
+                        'is_favourite' => $record->is_favourite == 1 ? 0 : 1,
+                    ]);
+                    
+                    Notification::make()
+                        ->title($record->is_favourite == 1 ? 'Added to Favourites' : 'Removed from Favourites')
+                        ->body('The lead has been ' . ($record->is_favourite == 1 ? 'added to favourites' : 'removed from favourites') . '.')
+                        ->success()
+                        ->send();
+                }),
+
+            DeleteAction::make('delete')
+                ->label('Delete')
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Delete Property Lead')
+                ->modalDescription('Are you sure you want to delete this property lead? This action cannot be undone.')
+                ->modalSubmitActionLabel('Yes, delete it')
+                ->visible(fn() => optional(auth()->user())->user_level_id != 1)
+                ->successNotificationTitle('Lead Deleted')
+                ->after(function () {
+                    Notification::make()
+                        ->title('Lead Deleted Successfully')
+                        ->body('The property lead has been permanently deleted.')
+                        ->success()
+                        ->send();
+                }),
+        ])
+        ->label('')
+        ->icon('heroicon-o-ellipsis-vertical')
+        ->size('sm')
+        ->color('gray')
+        ->button();
+
+        return [$viewAction, $viewCallScript, $editAction, $actionGroup];
     }
 }

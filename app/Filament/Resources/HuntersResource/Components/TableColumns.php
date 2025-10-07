@@ -29,7 +29,23 @@ class TableColumns
                     $record->save();
                 })
                 ->tooltip(fn($state): string => $state ? 'Unpin' : 'Pin')
-                ->sortable(),
+                ->sortable()
+                ->toggleable(),
+
+            ColumnIcon::make('is_favourite')
+                ->label('')
+                ->boolean()
+                ->trueIcon('heroicon-s-star')
+                ->falseIcon('heroicon-o-star')
+                ->trueColor('warning')
+                ->falseColor('gray')
+                ->sortable()
+                ->action(function ($record) {
+                    $record->is_favourite = ! $record->is_favourite;
+                    $record->save();
+                })
+                ->tooltip(fn($state): string => $state ? 'Unfavourite' : 'Favourite')
+                ->toggleable(),
 
             ColumnText::make('customer.firstname')
                 ->label('Customer')
@@ -39,9 +55,9 @@ class TableColumns
 
             ColumnText::make('posted_date')
                 ->label('Posted Date')
-                // Add 2nd column for updated_at
+                // Add 2nd column for updated_at as '3 days ago' by using the date difference
                 ->description(function ($record) {
-                    return $record->updated_at->format('M d, Y');
+                    return $record->updated_at->diffForHumans();
                 })
                 ->dateTime('M d, Y')
                 ->sortable(),
@@ -121,7 +137,7 @@ class TableColumns
                         return '🔘';
                     }
 
-                    $lastActivityDate = $latest->last()->created_at->format('M d Y');
+                    $lastActivityDate = $latest->last()->created_at->diffForHumans();
 
                     $map = [
                         'red'    => '🔴',
