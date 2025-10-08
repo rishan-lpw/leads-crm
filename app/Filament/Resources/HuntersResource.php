@@ -66,6 +66,8 @@ class HuntersResource extends Resource
             ->recordActions(TableRecordActions::getRecordActions())
             ->headerActions(TableHeaderActions::getHeaderActions())
             ->toolbarActions(ToolbarActions::getToolbarActions())
+            // By default, Pin records to the top
+            ->defaultSort('is_active', 'desc')
             ->recordUrl(null);
     }
 

@@ -58,7 +58,7 @@ class ListHunters extends ListRecords
             'follow_up' => Tab::make('Follow-Up')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'follow_up'))
                 ->badge($countFor('follow_up', fn($q) => $q->where('status', 'follow_up')))
-                ->badgeColor('primary'),
+                ->badgeColor('info'),
             'reminder' => Tab::make('Reminder')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'reminder'))
                 ->badge($countFor('reminder', fn($q) => $q->where('status', 'reminder')))

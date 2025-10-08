@@ -30,6 +30,8 @@ class TableColumns
                 })
                 ->tooltip(fn($state): string => $state ? 'Unpin' : 'Pin')
                 ->sortable()
+                // Should be only visible to the user_level_id 2, 4, 5.
+                ->visible(fn() => auth()->user()->user_level_id == 2 || auth()->user()->user_level_id == 4 || auth()->user()->user_level_id == 5)
                 ->toggleable(),
 
             ColumnIcon::make('is_favourite')
@@ -40,6 +42,7 @@ class TableColumns
                 ->trueColor('warning')
                 ->falseColor('gray')
                 ->sortable()
+                // if is_favourite is true, then update the is_favourite to 0. Otherwise, update the is_favourite to 1.
                 ->action(function ($record) {
                     $record->is_favourite = ! $record->is_favourite;
                     $record->save();
@@ -61,6 +64,54 @@ class TableColumns
                 })
                 ->dateTime('M d, Y')
                 ->sortable(),
+
+            // Latest activity payment status with color from payment_status.color
+            ColumnText::make('latest_payment_status')
+                ->label('Status')
+                ->badge()
+                // limit to 10 characters
+                ->limit(20)
+                ->getStateUsing(function ($record) {
+                    $activities = $record->activities ?? collect();
+                    $latest = $activities->sortByDesc('created_at')->first();
+                    return $latest?->paymentStatus?->payment_status ?? 'Unknown';
+                })
+                ->tooltip(function ($state, $record) {
+                    $activities = $record->activities ?? collect();
+                    $latest = $activities->sortByDesc('created_at')->first();
+                    return $latest?->paymentStatus?->payment_status ?? 'Unknown';
+                })
+                ->color(function ($state, $record) {
+                    $activities = $record->activities ?? collect();
+                    $latest = $activities->sortByDesc('created_at')->first();
+                    $color = strtolower((string) ($latest?->paymentStatus?->color ?? 'secondary'));
+
+                    return match ($color) {
+                        'red' => 'danger',
+                        'orange' => 'warning',
+                        'yellow' => 'info',
+                        'green' => 'success',
+                        'black' => 'gray',
+                        'grey', 'gray' => 'gray',
+                        'primary', 'success', 'warning', 'danger', 'info', 'secondary' => $color,
+                        default => 'secondary',
+                    };
+                })
+                ->toggleable()
+                ->sortable(),
+
+            // ColumnText::make('status')
+            //     ->label('Status')
+            //     ->badge()
+            //     ->colors([
+            //         'primary' => 'new',
+            //         'secondary' => 'follow_up',
+            //         'success' => 'system',
+            //         'warning' => 'to_be_expired',
+            //         'danger' => 'expired',
+            //     ])
+            //     ->toggleable()
+            //     ->sortable(),
 
             ColumnText::make('source')
                 ->label('Source')
@@ -202,22 +253,9 @@ class TableColumns
                     return new HtmlString(
                         $icons
                             ? '<div class="flex flex-wrap gap-1 mt-1">' . implode('', $icons) . '</div>'
-                            : '<span class="text-gray-400">No Activity</span>'
+                            : '<span class="text-red-400">No Activity</span>'
                     );
                 })
-                ->toggleable()
-                ->sortable(),
-
-            ColumnText::make('status')
-                ->label('Status')
-                ->badge()
-                ->colors([
-                    'primary' => 'new',
-                    'secondary' => 'follow_up',
-                    'success' => 'system',
-                    'warning' => 'to_be_expired',
-                    'danger' => 'expired',
-                ])
                 ->toggleable()
                 ->sortable(),
 

@@ -21,6 +21,58 @@ class LpwApiService
     }
     
     /**
+     * Fetch user details by user_id (cust_id) from LPW API.
+     * Returns an associative array of details or empty array on failure.
+     */
+    public function getUserDetails(int|string $userId, int $cacheMinutes = 10, int|string $cacheFlag = 2): array
+    {
+        $cacheKey = "lpw_user_details_{$userId}_{$cacheFlag}";
+
+        try {
+            return Cache::remember($cacheKey, now()->addMinutes($cacheMinutes), function () use ($userId, $cacheFlag) {
+                $url = "{$this->baseUrl}/UserDetails/detail";
+                $params = [
+                    'token' => $this->apiToken,
+                    'cache' => (string) $cacheFlag,
+                    'user_id' => (string) $userId,
+                ];
+
+                Log::info('LPW getUserDetails request', [
+                    'url' => $url,
+                    'user_id' => $userId,
+                    'cache' => $cacheFlag,
+                ]);
+
+                $response = Http::timeout(6)->get($url, $params);
+
+                if (! $response->successful()) {
+                    Log::warning('LPW getUserDetails failed', [
+                        'status' => $response->status(),
+                        'reason' => $response->reason(),
+                    ]);
+                    return [];
+                }
+
+                $json = $response->json();
+
+                // Some endpoints wrap payload under 'data'
+                $payload = is_array($json) && array_key_exists('data', $json) ? ($json['data'] ?? []) : ($json ?? []);
+
+                if (! is_array($payload)) {
+                    return [];
+                }
+
+                return $payload;
+            });
+        } catch (Exception $e) {
+            Log::error('LPW getUserDetails exception', [
+                'message' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * Get all pending payments from the API
      */
     public function getPendingPayments($dateFrom = null, $cacheDuration = 60)
@@ -76,6 +128,60 @@ class LpwApiService
             Log::error('Exception in LPW API service', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Fetch call logs for a user by user_id (cust_id) from LPW API.
+     * Returns an array of call logs or empty array on failure.
+     */
+    public function getCallLogs(int|string $userId, int $limit = 10, int $cacheMinutes = 5): array
+    {
+        $cacheKey = "lpw_call_logs_{$userId}";
+
+        try {
+            return Cache::remember($cacheKey, now()->addMinutes($cacheMinutes), function () use ($userId, $limit) {
+                $url = "{$this->baseUrl}/UserDetails/calllLog";
+                $params = [
+                    'token' => $this->apiToken,
+                    'user_id' => (string) $userId,
+                    'cache' => '1',
+                ];
+
+                Log::info('LPW getCallLogs request', [
+                    'url' => $url,
+                    'user_id' => $userId,
+                ]);
+
+                $response = Http::timeout(5)->get($url, $params);
+
+                if (! $response->successful()) {
+                    Log::warning('LPW getCallLogs failed', [
+                        'status' => $response->status(),
+                        'reason' => $response->reason(),
+                    ]);
+                    return [];
+                }
+
+                $json = $response->json();
+
+                // Extract data from the response
+                $data = $json['data'] ?? $json['results'] ?? $json ?? [];
+                
+                if (!is_array($data)) {
+                    return [];
+                }
+
+                // Limit results and add index
+                return collect($data)->take($limit)->map(function ($log, $index) {
+                    return array_merge($log, ['index' => $index + 1]);
+                })->toArray();
+            });
+        } catch (Exception $e) {
+            Log::error('LPW getCallLogs exception', [
+                'message' => $e->getMessage(),
             ]);
             return [];
         }
