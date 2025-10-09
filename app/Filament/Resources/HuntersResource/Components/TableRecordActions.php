@@ -137,154 +137,122 @@ class TableRecordActions
     {
         return [
             RepeatableEntry::make('call_logs')
-            ->label('Call Logs')
-            ->contained(false)
-            ->getStateUsing(function ($record) {
-                $logs = self::getCallLogsForRecord($record);
-                if (empty($logs)) {
-                    return [];
-                }
+    ->label('Call Logs')
+    ->contained(false)
+    ->getStateUsing(function ($record) {
+        // Fetch all call logs from your API helper
+        $logs = self::getCallLogsForRecord($record);
 
-                return collect($logs)
-                    ->map(fn($log) => is_array($log) ? (object) $log : (object) $log)
-                    ->values()
-                    ->toArray();
-            })
+        if (empty($logs)) {
+            return [];
+        }
+
+        // Sort by datetime descending (most recent first)
+        return collect($logs)->sortByDesc('datetime')->toArray();
+    })
+    ->schema([
+        Section::make('Call Transcript')
+            ->collapsible()
+            ->collapsed()
+            ->heading(fn($log) => $log
+                ? sprintf(
+                    '%s %s • Duration: %ss • Agent: %s',
+                    match (strtolower((string)($log['sentiment'] ?? ''))) {
+                        'positive' => '😊',
+                        'negative' => '😞',
+                        'neutral' => '😐',
+                        'mixed' => '🤔',
+                        default => '📝',
+                    },
+                    $log['datetime'] ?? 'N/A',
+                    $log['talktime'] ?? 'N/A',
+                    $log['agent'] ?? 'Unknown'
+                )
+                : '📝 Call Transcript'
+            )
+            ->description(fn($log) => $log
+                ? substr($log['transcript'] ?? '', 0, 150) . (strlen($log['transcript'] ?? '') > 150 ? '...' : '')
+                : 'No transcript available'
+            )
             ->schema([
-                Section::make('Call Log')
-                    ->collapsible()
-                    ->collapsed()
-                    ->heading(function ($record) {
-                        // 🔍 Now `$record` works here (each call log object)
-                        // dd($record);
-                        if (empty($record)) {
-                            return '📞 Call Log';
-                        }
+                ComponentsGrid::make(3)->schema([
+                    TextEntry::make('am')
+                        ->label('AM')
+                        ->default(fn($log) => $log['am'] ?? 'Unknown'),
 
-                        $datetime = $record->date_time ?? $record->datetime ?? $record->date ?? 'N/A';
-                        $talktime = $record->talktime ?? $record->talk_time ?? $record->duration ?? 'N/A';
-                        $agent = $record->agent ?? $record->user ?? $record->am ?? 'N/A';
-                        $sentiment = $record->sentiment ?? 'N/A';
+                    TextEntry::make('datetime')
+                        ->label('Date & Time')
+                        ->default(fn($log) => $log['datetime'] ?? 'N/A'),
 
-                        $sentimentIcon = match (strtolower((string) $sentiment)) {
-                            'positive' => '😊',
-                            'negative' => '😞',
-                            'neutral' => '😐',
-                            'mixed' => '🤔',
-                            default => '📞',
-                        };
-                        // dd($datetime, $talktime, $agent);
-                        return "{$sentimentIcon} {$datetime} • {$talktime} • Agent: {$agent}";
-                    })
-                    ->description(function ($record) {
-                        if (empty($record)) {
-                            return 'No data available';
-                        }
+                    TextEntry::make('agent')
+                        ->label('Agent')
+                        ->default(fn($log) => $log['agent'] ?? 'N/A'),
 
-                        $summary = $record->summary ?? $record->summery ?? '';
-                        $status = $record->status ?? 'N/A';
-                        $comments = $record->comments ?? $record->comment ?? '';
+                    TextEntry::make('talktime')
+                        ->label('Duration')
+                        ->default(fn($log) => ($log['talktime'] ?? '0') . ' sec'),
 
-                        $parts = [];
+                    TextEntry::make('event')
+                        ->label('Event')
+                        ->default(fn($log) => $log['event'] ?? 'N/A'),
 
-                        if ($summary) {
-                            $parts[] = "Summary: " . (strlen($summary) > 100 ? substr($summary, 0, 100) . '...' : $summary);
-                        }
+                    TextEntry::make('sentiment')
+                        ->label('Sentiment')
+                        ->badge()
+                        ->color(fn($log) => match (strtolower((string)($log['sentiment'] ?? ''))) {
+                            'positive' => 'success',
+                            'negative' => 'danger',
+                            'neutral' => 'gray',
+                            'mixed' => 'warning',
+                            default => 'info',
+                        })
+                        ->default(fn($log) => $log['sentiment'] ?? 'N/A'),
 
-                        if ($status !== 'N/A') {
-                            $parts[] = "Status: {$status}";
-                        }
+                    TextEntry::make('status')
+                        ->label('Status')
+                        ->badge()
+                        ->color('primary')
+                        ->default(fn($log) => $log['status'] ?? 'Unknown'),
 
-                        if ($comments) {
-                            $commentPreview = strlen($comments) > 20 ? substr($comments, 0, 20) . '...' : $comments;
-                            $parts[] = "Comments: {$commentPreview}";
-                        }
+                    TextEntry::make('language')
+                        ->label('Language')
+                        ->badge()
+                        ->color('gray')
+                        ->default(fn($log) => $log['language'] ?? 'Unknown'),
+                ]),
 
-                        return !empty($parts) ? implode(' | ', $parts) : 'No description available';
-                    })
-                    ->schema([
-                        ComponentsGrid::make(3)->schema([
-                            TextEntry::make('date_time')
-                                ->label('Date & Time')
-                                ->default('N/A')
-                                ->icon('heroicon-o-calendar'),
-
-                            TextEntry::make('talktime')
-                                ->label('Talk Time')
-                                ->default('N/A')
-                                ->icon('heroicon-o-clock'),
-
-                            TextEntry::make('agent')
-                                ->label('Agent')
-                                ->default('N/A')
-                                ->icon('heroicon-o-user'),
-
-                            TextEntry::make('sentiment')
-                                ->label('Sentiment')
-                                ->badge()
-                                ->color(fn($state) => match (strtolower((string)($state ?? ''))) {
-                                    'positive' => 'success',
-                                    'negative' => 'danger',
-                                    'neutral' => 'gray',
-                                    'mixed' => 'warning',
-                                    default => 'info',
-                                })
-                                ->default('N/A'),
-
-                            TextEntry::make('status')
-                                ->label('Status')
-                                ->badge()
-                                ->color('info')
-                                ->default('N/A'),
-
-                            TextEntry::make('call_type')
-                                ->label('Call Type')
-                                ->badge()
-                                ->color('primary')
-                                ->default('N/A'),
-                        ]),
-
-                        TextEntry::make('summary')
-                            ->label('Summary')
-                            ->default('No summary available')
-                            ->columnSpanFull(),
-
-                        TextEntry::make('comments')
-                            ->label('Comments')
-                            ->default('No comments')
-                            ->tooltip(fn($state) => is_string($state) && strlen($state) > 20 ? $state : null)
-                            ->columnSpanFull(),
-
-                        TextEntry::make('recording_url')
-                            ->label('Recording')
-                            ->formatStateUsing(fn($state) =>
-                                new HtmlString(
-                                    $state ? '<audio controls style="width: 100%; max-width: 400px; height: 32px;">
-                                        <source src="' . e($state) . '" type="audio/mpeg">
-                                        <source src="' . e($state) . '" type="audio/wav">
-                                        Your browser does not support the audio element.
-                                    </audio>' : 'No recording available'
-                                )
-                            )
-                            ->html()
-                            ->visible(fn($state) => !empty($state))
-                            ->columnSpanFull(),
-
-                        ComponentsGrid::make(2)->schema([
-                            TextEntry::make('caller')
-                                ->label('Caller')
-                                ->icon('heroicon-o-phone-arrow-up-right')
-                                ->default('N/A'),
-
-                            TextEntry::make('receiver')
-                                ->label('Receiver')
-                                ->icon('heroicon-o-phone-arrow-down-left')
-                                ->default('N/A'),
-                        ]),
-                    ])
-                    
+                // Recording URL
+                TextEntry::make('recording_url')
+                    ->label('Recording URL')
+                    ->default(fn($log) => $log['recording_url'] ?? 'N/A')
                     ->columnSpanFull(),
-            ]),
+
+                // Transcript
+                TextEntry::make('transcript')
+                    ->label('Transcript')
+                    ->default(fn($log) => $log['transcript'] ?? 'No transcript available')
+                    ->columnSpanFull(),
+
+                // Summaries
+                ComponentsGrid::make(3)->schema([
+                    TextEntry::make('summary_si')
+                        ->label('Summary (සිංහල)')
+                        ->default(fn($log) => $log['summary_si'] ?? 'N/A')
+                        ->columnSpanFull(),
+
+                    TextEntry::make('summary_en')
+                        ->label('Summary (English)')
+                        ->default(fn($log) => $log['summary_en'] ?? 'N/A')
+                        ->columnSpanFull(),
+
+                    TextEntry::make('summary_ta')
+                        ->label('Summary (தமிழ்)')
+                        ->default(fn($log) => $log['summary_ta'] ?? 'N/A')
+                        ->columnSpanFull(),
+                ]),
+            ])
+            ->columnSpanFull(),
+    ])
         ];
     }
     
