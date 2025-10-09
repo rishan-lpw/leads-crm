@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\HuntersResource\Pages;
 
 use App\Filament\Resources\HuntersResource;
+use App\Filament\Resources\HuntersResource\Components\SendMessageAction;
 use App\Models\Activity;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
@@ -214,6 +215,8 @@ class ViewActivities extends ViewRecord
                         ]);
                     }
                 }),
+            
+            SendMessageAction::make($this->record),
         ];
     }
 }
