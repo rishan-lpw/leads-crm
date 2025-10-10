@@ -8,6 +8,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn as TablesTextColumn;
 use Filament\Tables\Columns\BadgeColumn as TablesBadge;
 use App\Models\PaymentStatus;
+use Illuminate\Support\Str;
 use Illuminate\Support\HtmlString;
 use Filament\Tables\Columns\TextColumn as ColumnText;
 use Filament\Tables\Columns\IconColumn as ColumnIcon;
@@ -17,6 +18,7 @@ class TableColumns
     public static function getColumns(): array
     {
         return [
+            
             ColumnIcon::make('is_active')
                 ->label('')
                 ->boolean()
@@ -52,7 +54,9 @@ class TableColumns
 
             ColumnText::make('customer.firstname')
                 ->label('Customer')
-                ->description(fn($record) => $record->customer->email)
+                ->limit(14)
+                ->tooltip(fn($record) => $record->customer->email)
+                ->description(fn($record) => Str::limit($record->customer->email ?? '', 16))
                 ->searchable()
                 ->sortable(),
 
@@ -70,7 +74,7 @@ class TableColumns
                 ->label('Status')
                 ->badge()
                 // limit to 10 characters
-                ->limit(20)
+                ->limit(10)
                 ->getStateUsing(function ($record) {
                     $activities = $record->activities ?? collect();
                     $latest = $activities->sortByDesc('created_at')->first();
@@ -125,7 +129,7 @@ class TableColumns
                 ->sortable(),
 
             ColumnText::make('property_summary')
-                ->label('Property Summary Details')
+                ->label('Property Summary')
                 // Display data not exceeding 2 lines
                 ->getStateUsing(function ($record) {
                     $priceInMillions = $record->price / 1_000_000;
@@ -172,6 +176,7 @@ class TableColumns
 
                     return $latest->comments ?? 'No Comment';
                 })
+                ->limit(20)
                 ->toggleable()
                 ->sortable(),
 

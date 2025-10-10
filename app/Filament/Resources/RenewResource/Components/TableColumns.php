@@ -33,6 +33,7 @@ class TableColumns
 
             ColumnText::make('customer.firstname')
                 ->label('Customer')
+                ->limit(10)
                 ->description(fn($record) => $record->customer->email)
                 ->searchable()
                 ->sortable(),

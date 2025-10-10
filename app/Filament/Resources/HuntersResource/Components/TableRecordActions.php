@@ -136,123 +136,224 @@ class TableRecordActions
     private static function callLogSection(): array
     {
         return [
-            RepeatableEntry::make('call_logs')
-    ->label('Call Logs')
-    ->contained(false)
-    ->getStateUsing(function ($record) {
-        // Fetch all call logs from your API helper
-        $logs = self::getCallLogsForRecord($record);
-
-        if (empty($logs)) {
-            return [];
-        }
-
-        // Sort by datetime descending (most recent first)
-        return collect($logs)->sortByDesc('datetime')->toArray();
-    })
-    ->schema([
-        Section::make('Call Transcript')
+            Section::make('📞 Call Logs')
             ->collapsible()
-            ->collapsed()
-            ->heading(fn($log) => $log
-                ? sprintf(
-                    '%s %s • Duration: %ss • Agent: %s',
-                    match (strtolower((string)($log['sentiment'] ?? ''))) {
-                        'positive' => '😊',
-                        'negative' => '😞',
-                        'neutral' => '😐',
-                        'mixed' => '🤔',
-                        default => '📝',
-                    },
-                    $log['datetime'] ?? 'N/A',
-                    $log['talktime'] ?? 'N/A',
-                    $log['agent'] ?? 'Unknown'
-                )
-                : '📝 Call Transcript'
-            )
-            ->description(fn($log) => $log
-                ? substr($log['transcript'] ?? '', 0, 150) . (strlen($log['transcript'] ?? '') > 150 ? '...' : '')
-                : 'No transcript available'
-            )
             ->schema([
-                ComponentsGrid::make(3)->schema([
-                    TextEntry::make('am')
-                        ->label('AM')
-                        ->default(fn($log) => $log['am'] ?? 'Unknown'),
+                RepeatableEntry::make('call_logs')
+                    ->label('')
+                    ->contained(false)
+                    ->getStateUsing(function ($record) {
+                        $logs = self::getCallLogsForRecord($record);
+                        if (empty($logs)) return [];
 
-                    TextEntry::make('datetime')
-                        ->label('Date & Time')
-                        ->default(fn($log) => $log['datetime'] ?? 'N/A'),
-
-                    TextEntry::make('agent')
-                        ->label('Agent')
-                        ->default(fn($log) => $log['agent'] ?? 'N/A'),
-
-                    TextEntry::make('talktime')
-                        ->label('Duration')
-                        ->default(fn($log) => ($log['talktime'] ?? '0') . ' sec'),
-
-                    TextEntry::make('event')
-                        ->label('Event')
-                        ->default(fn($log) => $log['event'] ?? 'N/A'),
-
-                    TextEntry::make('sentiment')
-                        ->label('Sentiment')
-                        ->badge()
-                        ->color(fn($log) => match (strtolower((string)($log['sentiment'] ?? ''))) {
-                            'positive' => 'success',
-                            'negative' => 'danger',
-                            'neutral' => 'gray',
-                            'mixed' => 'warning',
-                            default => 'info',
+                        return collect($logs)
+                            ->sortByDesc('datetime')
+                            ->values()
+                            ->toArray();
+                    })
+                    ->schema([
+                        Section::make(fn($log) => sprintf(
+                            '%s • %s • %ss • %s',
+                            $log['am'] ?? 'Unknown',
+                            $log['datetime'] ?? 'N/A',
+                            $log['talktime'] ?? '0',
+                            ucfirst($log['sentiment'] ?? 'N/A')
+                        ))
+                        ->description(function ($log) {
+                            $agent = $log['agent'] ?? 'Unknown';
+                            $language = $log['language'] ?? 'Unknown';
+                            $sentiment = ucfirst($log['sentiment'] ?? 'N/A');
+                            // $status = ucfirst($log['status'] ?? 'N/A');
+                            return "Agent: {$agent} | Language: {$language} | Sentiment: {$sentiment}";
                         })
-                        ->default(fn($log) => $log['sentiment'] ?? 'N/A'),
+                        ->schema([
+                            // agent name
+                            TextEntry::make('agent')
+                                ->label('Agent')
+                                ->placeholder('N/A'),
 
-                    TextEntry::make('status')
-                        ->label('Status')
-                        ->badge()
-                        ->color('primary')
-                        ->default(fn($log) => $log['status'] ?? 'Unknown'),
+                            TextEntry::make('sentiment')
+                                ->label('Sentiment')
+                                ->badge()
+                                ->color(fn($log) => match (strtolower((string)($log['sentiment'] ?? ''))) {
+                                    'positive' => 'success',
+                                    'negative' => 'danger',
+                                    'neutral' => 'gray',
+                                    'mixed' => 'warning',
+                                    default => 'info',
+                                })
+                                ->default(fn($log) => ucfirst($log['sentiment'] ?? 'N/A')),
 
-                    TextEntry::make('language')
-                        ->label('Language')
-                        ->badge()
-                        ->color('gray')
-                        ->default(fn($log) => $log['language'] ?? 'Unknown'),
-                ]),
+                            TextEntry::make('language')
+                                ->label('Language')
+                                ->placeholder('N/A'),
 
-                // Recording URL
-                TextEntry::make('recording_url')
-                    ->label('Recording URL')
-                    ->default(fn($log) => $log['recording_url'] ?? 'N/A')
-                    ->columnSpanFull(),
+                            TextEntry::make('talktime')
+                                ->label('Talk Time')
+                                ->placeholder('N/A'),
 
-                // Transcript
-                TextEntry::make('transcript')
-                    ->label('Transcript')
-                    ->default(fn($log) => $log['transcript'] ?? 'No transcript available')
-                    ->columnSpanFull(),
+                            TextEntry::make('total_count')
+                                ->label('Total Count')
+                                ->placeholder('N/A'),
 
-                // Summaries
-                ComponentsGrid::make(3)->schema([
-                    TextEntry::make('summary_si')
-                        ->label('Summary (සිංහල)')
-                        ->default(fn($log) => $log['summary_si'] ?? 'N/A')
-                        ->columnSpanFull(),
+                            TextEntry::make('summary_en')
+                                ->label('Summary (English)')
+                                ->columnSpanFull()
+                                ->placeholder('No summary available'),
 
-                    TextEntry::make('summary_en')
-                        ->label('Summary (English)')
-                        ->default(fn($log) => $log['summary_en'] ?? 'N/A')
-                        ->columnSpanFull(),
+                            TextEntry::make('summary_si')
+                                ->label('Summary (Sinhala)')
+                                ->columnSpanFull()
+                                ->placeholder('No summary available'),
 
-                    TextEntry::make('summary_ta')
-                        ->label('Summary (தமிழ்)')
-                        ->default(fn($log) => $log['summary_ta'] ?? 'N/A')
-                        ->columnSpanFull(),
-                ]),
-            ])
-            ->columnSpanFull(),
-    ])
+                            TextEntry::make('summary_ta')
+                                ->label('Summary (Tamil)')
+                                ->columnSpanFull()
+                                ->placeholder('No summary available'),
+
+                            TextEntry::make('transcript')
+                                ->label('Full Transcript')
+                                ->default('No transcript available')
+                                ->columnSpanFull()
+                                ->formatStateUsing(function ($state) {
+                                    if (!$state) {
+                                        return new HtmlString('<span class="fi-text-gray-500 italic">No transcript available</span>');
+                                    }
+
+                                    // Preserve paragraph spacing and format nicely
+                                    $formatted = nl2br(e($state));
+                                    
+                                    return new HtmlString("
+                                        <div class='fi-bg-gray-50 fi-border fi-border-gray-200 fi-rounded-xl fi-p-4 fi-text-sm fi-leading-relaxed'>
+                                            {$formatted}
+                                        </div>
+                                    ");
+                                })
+                                ->html(),
+
+                            TextEntry::make('recording_url')
+                                ->label('Recording URL')
+                                ->columnSpanFull()
+                                ->copyable()
+                                ->copyMessage('Recording URL copied')
+                                ->icon('heroicon-s-link')
+                                ->url(fn($log) => $log['recording_url'] ?? 'N/A')
+                                ->openUrlInNewTab(),
+                        ])
+                        ->columns(3)
+                        ->collapsed(),
+                    ]),
+            ]),
+
+            RepeatableEntry::make('call_logs')
+            // ->label('')
+            // ->contained(false)
+            // ->getStateUsing(function ($record) {
+            //     $logs = self::getCallLogsForRecord($record);
+            //     if (empty($logs)) return [];
+
+            //     // Sort by datetime descending
+            //     return collect($logs)
+            //         ->sortByDesc('datetime')
+            //         ->values()
+            //         ->toArray();
+            // })
+            // ->schema([
+            //     Section::make('')
+            //         // ->collapsible()   // This section can be expanded/collapsed
+            //         // ->collapsed()     // Collapsed by default
+            //         // ->heading(fn($log) => sprintf(
+            //         //     '%s • %s • %ss • %s',
+            //         //     $log['am'] ?? 'Unknown',
+            //         //     $log['datetime'] ?? 'N/A',
+            //         //     $log['talktime'] ?? '0',
+            //         //     ucfirst($log['sentiment'] ?? 'N/A')
+            //         // ))
+            //         ->schema([
+            //             // Main fields always visible in a grid
+            //             ComponentsGrid::make(5)->schema([
+            //                 TextEntry::make('am')
+            //                     ->label('AM')
+            //                     ->default(fn($log) => $log['am'] ?? 'Unknown'),
+
+            //                 TextEntry::make('datetime')
+            //                     ->label('Date & Time')
+            //                     ->default(fn($log) => $log['datetime'] ?? 'N/A'),
+
+            //                 TextEntry::make('talktime')
+            //                     ->label('Duration')
+            //                     ->default(fn($log) => ($log['talktime'] ?? '0') . ' sec'),
+
+            //                 TextEntry::make('sentiment')
+            //                     ->label('Sentiment')
+            //                     ->badge()
+            //                     ->color(fn($log) => match (strtolower((string)($log['sentiment'] ?? ''))) {
+            //                         'positive' => 'success',
+            //                         'negative' => 'danger',
+            //                         'neutral' => 'gray',
+            //                         'mixed' => 'warning',
+            //                         default => 'info',
+            //                     })
+            //                     ->default(fn($log) => $log['sentiment'] ?? 'N/A'),
+
+            //                 TextEntry::make('event')
+            //                     ->label('Event')
+            //                     ->default(fn($log) => $log['event'] ?? 'N/A'),
+
+            //                 TextEntry::make('summary_en')
+            //                     ->label('Summary (English)')
+            //                     ->default(fn($log) => $log['summary_en'] ?? 'N/A')
+            //                     ->columnSpanFull(),
+            //             ]),
+
+            //             // Expandable section for other fields
+            //             Section::make('More Details')
+            //                 ->collapsible()
+            //                 ->collapsed()
+            //                 ->schema([
+            //                     ComponentsGrid::make(3)->schema([
+            //                         TextEntry::make('summary_si')
+            //                             ->label('Summary (සිංහල)')
+            //                             ->default(fn($log) => substr($log['summary_si'] ?? 'N/A', 0, 50))
+            //                             ->columnSpanFull(),
+
+            //                         TextEntry::make('summary_en')
+            //                             ->label('Summary (English)')
+            //                             ->default(fn($log) => $log['summary_en'] ?? 'N/A')
+            //                             ->columnSpanFull(),
+
+            //                         TextEntry::make('summary_ta')
+            //                             ->label('Summary (தமிழ்)')
+            //                             ->default(fn($log) => $log['summary_ta'] ?? 'N/A')
+            //                             ->columnSpanFull(),
+
+            //                         TextEntry::make('agent')
+            //                             ->label('Agent')
+            //                             ->default(fn($log) => $log['agent'] ?? 'Unknown'),
+            
+            //                         TextEntry::make('language')
+            //                             ->label('Language')
+            //                             ->default(fn($log) => $log['language'] ?? 'Unknown'),
+            
+            //                         TextEntry::make('status')
+            //                             ->label('Status')
+            //                             ->badge()
+            //                             ->color('primary')
+            //                             ->default(fn($log) => $log['status'] ?? 'Unknown'),
+            //                     ]),
+            //                     TextEntry::make('recording_url')
+            //                         ->label('Recording URL')
+            //                         ->default(fn($log) => $log['recording_url'] ?? 'N/A'),
+
+            //                     TextEntry::make('transcript')
+            //                         ->label('Transcript')
+            //                         ->default(fn($log) => $log['transcript'] ?? 'No transcript available')
+            //                         ->columnSpanFull(),
+            //                 ])
+            //                 ->columnSpanFull(),
+            //         ])
+            //         ->columnSpanFull(),
+            // ])
         ];
     }
     
@@ -322,10 +423,6 @@ class TableRecordActions
                         ->collapsible()
                         ->collapsed()
                         ->heading(function ($record) {
-                            if (empty($record)) {
-                                return '📝 Call Transcript';
-                            }
-
                             $datetime = $record->date_time ?? 'N/A';
                             $agent = $record->agent ?? 'Unknown';
                             $duration = $record->duration ?? 'N/A';
@@ -338,6 +435,10 @@ class TableRecordActions
                                 'mixed' => '🤔',
                                 default => '📝',
                             };
+
+                            if (empty($record)) {
+                                return '📝 Call Transcript';
+                            }
 
                             return "{$sentimentIcon} {$datetime} • Duration: {$duration} • Agent: {$agent}";
                         })
@@ -430,6 +531,8 @@ class TableRecordActions
             ->schema([
                 TextEntry::make('lpw_email')
                     ->label('')
+                    ->copyable()
+                    ->copyMessage('Email copied')
                     ->icon('heroicon-s-envelope')
                     ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['email'] ?? ($record->customer->email ?? 'N/A')),
 
@@ -479,6 +582,39 @@ class TableRecordActions
                     ->icon('heroicon-s-calendar')
                     ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['latest_commented_at'] ?? ($record->customer->latest_commented_at ?? 'N/A')),
             ]);
+    }
+
+    private static function sendMessageAction(): Action
+    {
+        return Action::make('send_message')
+            ->label('Send Message')
+            ->icon('heroicon-s-chat-bubble-bottom-center-text')
+            ->color('primary')
+            // ->submitAction(false)
+            ->modalWidth('xl')
+            ->schema([
+                Section::make('Send Message')
+                    // ->columns()
+                    ->schema([
+                        Select::make('message_template')
+                            ->label('Message Template')
+                            ->options(function () {
+                                return []; // replace with actual options
+                            })
+                            ->searchable()
+                            ->required(),
+                        Textarea::make('message')
+                            ->label('Message')
+                            ->rows(4)
+                            ->required(),
+                    ]),
+            ])
+            ->action(function (array $data, $record) {
+                // Handle sending message
+                $template = $data['message_template'] ?? null;
+                $message = $data['message'] ?? null;
+                // send logic here
+            });
     }
 
     private static function getAddActivityAction(): Action
@@ -727,21 +863,36 @@ class TableRecordActions
                         ]),
 
                         Tab::make('Message')->icon('heroicon-s-chat-bubble-bottom-center-text')->schema([
-                            Section::make('Send Message')->schema([
-                                Select::make('message_template')
-                                    ->label('Message Template')
-                                    ->options(function () {
-                                        return [];
-                                    })
-                                    ->searchable(),
-                                Textarea::make('message')
-                                    ->label('Message')
-                                    ->rows(4),
-                                ButtonAction::make('send_message')
-                                    ->label('Send Message')
-                                    ->button()
-                                    ->icon('heroicon-o-paper-airplane'),
-                            ])->columns(2),
+                            // Section::make('Send Message')
+                            //     ->columns(2)
+                            //     ->schema([
+                            //         Select::make('message_template')
+                            //             ->label('Message Template')
+                            //             ->options(function () {
+                            //                 return []; // replace with actual options
+                            //             })
+                            //             ->searchable()
+                            //             ->required(), // optional
+
+                            //         Textarea::make('message')
+                            //             ->label('Message')
+                            //             ->rows(4)
+                            //             ->required(), // optional
+
+                            //         ButtonAction::make('send_message')
+                            //             ->label('Send Message')
+                            //             ->icon('heroicon-o-paper-airplane')
+                            //             ->action(function (array $data, $record) {
+                            //                 // Handle sending message
+                            //                 $template = $data['message_template'] ?? null;
+                            //                 $message = $data['message'] ?? null;
+                            //                 // send logic here
+                            //             }),
+                            //     ]),
+
+                            // Send Message Action as a pop-up modal
+                            self::sendMessageAction(),
+
                         ]),
 
                         Tab::make('Media')->icon('heroicon-o-camera')->schema([
@@ -756,6 +907,24 @@ class TableRecordActions
 
                         Tab::make('Stats')->icon('heroicon-s-chart-bar-square')->schema([
                             Section::make('Statistical Information')->schema([
+                                // placeholder for charts
+                            ]),
+                        ])->columnSpanFull(),
+
+                        Tab::make('Payments')->icon('heroicon-s-credit-card')->schema([
+                            Section::make('Payments Information')->schema([
+                                // placeholder for charts
+                            ]),
+                        ])->columnSpanFull(),
+
+                        Tab::make('Billings')->icon('heroicon-s-banknotes')->schema([
+                            Section::make('Billings Information')->schema([
+                                // placeholder for charts
+                            ]),
+                        ])->columnSpanFull(),
+
+                        Tab::make('Add-ons')->icon('heroicon-s-plus-circle')->schema([
+                            Section::make('Add-ons Information')->schema([
                                 // placeholder for charts
                             ]),
                         ])->columnSpanFull(),

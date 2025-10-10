@@ -39,7 +39,7 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Emerald,
             ])
-            ->viteTheme('resources/css/filament/admin/theme.css')
+            // ->viteTheme('resources/css/filament/admin/theme.css')
             // Set the logo as public/images/lpw_logo.png
             ->brandLogo(asset('images/lpw_logo.png'))
             ->brandLogoHeight('3rem')

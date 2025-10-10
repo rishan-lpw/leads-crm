@@ -13,6 +13,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use App\Filament\Resources\HuntersResource;
+use App\Filament\Resources\HuntersResource\Components\SendMessageAction;
 use App\Models\User;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -148,6 +149,8 @@ class EditHunters extends EditRecord
                         ->send();
                 })
                 ->slideOver(),
+            
+            SendMessageAction::make($this->record),
         ];
     }
 
