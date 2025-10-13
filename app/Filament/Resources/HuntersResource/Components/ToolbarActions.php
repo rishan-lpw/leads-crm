@@ -31,7 +31,7 @@ class ToolbarActions
                         $toggledCount = 0;
                         foreach ($records as $record) {
                             $record->update([
-                                'is_active' => $record->is_active == 1 ? 0 : 1,
+                                'is_pin' => $record->is_pin == 1 ? 0 : 1,
                             ]);
                             $toggledCount++;
                         }

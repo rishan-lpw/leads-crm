@@ -19,22 +19,22 @@ class TableColumns
     {
         return [
             
-            ColumnIcon::make('is_active')
-                ->label('')
-                ->boolean()
-                ->trueIcon('bi-pin-fill')
-                ->falseIcon('bi-pin')
-                ->trueColor('primary')
-                ->falseColor('gray')
-                ->action(function ($record) {
-                    $record->is_active = ! $record->is_active;
-                    $record->save();
-                })
-                ->tooltip(fn($state): string => $state ? 'Unpin' : 'Pin')
-                ->sortable()
-                // Should be only visible to the user_level_id 2, 4, 5.
-                ->visible(fn() => auth()->user()->user_level_id == 2 || auth()->user()->user_level_id == 4 || auth()->user()->user_level_id == 5)
-                ->toggleable(),
+            // ColumnIcon::make('is_pin')
+            //     ->label('')
+            //     ->boolean()
+            //     ->trueIcon('bi-pin-fill')
+            //     ->falseIcon('bi-pin')
+            //     ->trueColor('primary')
+            //     ->falseColor('gray')
+            //     ->action(function ($record) {
+            //         $record->is_pin = ! $record->is_pin;
+            //         $record->save();
+            //     })
+            //     ->tooltip(fn($state): string => $state ? 'Unpin' : 'Pin')
+            //     ->sortable()
+            //     // Should be only visible to the user_level_id 2, 4, 5.
+            //     ->visible(fn() => auth()->user()->user_level_id == 2 || auth()->user()->user_level_id == 4 || auth()->user()->user_level_id == 5)
+            //     ->toggleable(),
 
             ColumnIcon::make('is_favourite')
                 ->label('')
@@ -54,7 +54,11 @@ class TableColumns
 
             ColumnText::make('customer.firstname')
                 ->label('Customer')
-                ->limit(14)
+                // ->limit(14)
+                ->formatStateUsing(function ($state, $record) {
+                    // Add 📌 emoji before the name if is_pin == 1
+                    return $record->is_pin ? "📌 {$state}" : $state;
+                })
                 ->tooltip(fn($record) => $record->customer->email)
                 ->description(fn($record) => Str::limit($record->customer->email ?? '', 16))
                 ->searchable()
@@ -129,7 +133,7 @@ class TableColumns
                 ->sortable(),
 
             ColumnText::make('property_summary')
-                ->label('Property Summary')
+                ->label('Property Details Summary')
                 // Display data not exceeding 2 lines
                 ->getStateUsing(function ($record) {
                     $priceInMillions = $record->price / 1_000_000;
@@ -176,7 +180,8 @@ class TableColumns
 
                     return $latest->comments ?? 'No Comment';
                 })
-                ->limit(20)
+                ->limit(25)
+                ->tooltip(fn($record) => $record->latest_comment)
                 ->toggleable()
                 ->sortable(),
 

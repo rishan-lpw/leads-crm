@@ -33,7 +33,7 @@ class PendingPaymentResource extends Resource
     // Override the Eloquent query to filter pending payments
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('source', 'pending payments');
+        return parent::getEloquentQuery()->where('status', 'system');
     }
 
     public static function form(Schema $schema): Schema
@@ -58,7 +58,7 @@ class PendingPaymentResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = Lead::where('source', 'pending payments')->count();
+        $count = Lead::where('status', 'system')->count();
         return $count > 0 ? (string)$count : null;
     }
 

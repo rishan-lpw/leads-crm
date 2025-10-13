@@ -136,9 +136,9 @@ class TableRecordActions
     private static function callLogSection(): array
     {
         return [
-            Section::make('📞 Call Logs')
-            ->collapsible()
-            ->schema([
+            // Section::make('📞 Call Logs')
+            // ->collapsible()
+            // ->schema([
                 RepeatableEntry::make('call_logs')
                     ->label('')
                     ->contained(false)
@@ -243,7 +243,7 @@ class TableRecordActions
                         ->columns(3)
                         ->collapsed(),
                     ]),
-            ]),
+            // ]),
 
             RepeatableEntry::make('call_logs')
             // ->label('')
@@ -520,6 +520,72 @@ class TableRecordActions
                 ]),
         ];
     }
+
+    private static function contactDetailsSectionForOverview(): Section
+    {
+        return Section::make(fn($record) => self::getLpwUserDetailsForRecord($record)['firstname'] ?? ($record->customer->firstname ?? 'Contact Details'))
+            ->icon('iconsax-bul-profile-circle')
+            ->columns(4) // Divide section into 4 columns
+            ->schema([
+
+                    TextEntry::make('lpw_email')
+                        ->label('Email')
+                        ->copyable()
+                        ->copyMessage('Email copied')
+                        ->icon('heroicon-s-envelope')
+                        // ->columnSpan(2) // Email is longer, span 2 columns
+                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['email'] ?? ($record->customer->email ?? 'N/A')),
+
+                    TextEntry::make('lpw_mobile')
+                        ->label('Mobile')
+                        ->icon('heroicon-s-phone')
+                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['mobile'] ?? ($record->customer->mobile ?? 'N/A')),
+
+                    TextEntry::make('lpw_id')
+                        ->label('ID')
+                        ->icon('heroicon-s-identification')
+                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['id'] ?? ($record->customer->id ?? 'N/A')),
+
+                    TextEntry::make('lpw_address')
+                        ->label('Address')
+                        ->icon('heroicon-s-map-pin')
+                        ->columnSpanFull(2) // Full width for long address
+                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['address'] ?? ($record->customer->address ?? 'N/A')),
+
+                    TextEntry::make('lpw_reg_date')
+                        ->label('Registration Date')
+                        ->icon('heroicon-s-calendar')
+                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['reg_date'] ?? ($record->customer->reg_date ?? 'N/A')),
+
+                    TextEntry::make('lpw_source')
+                        ->label('Source')
+                        ->icon('heroicon-s-arrow-path-rounded-square')
+                        // ->columnSpan(2) // Source can be long, span 2 columns
+                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['source'] ?? ($record->customer->source ?? 'N/A')),
+
+                    TextEntry::make('lpw_category')
+                        ->label('Category')
+                        ->icon('heroicon-s-tag')
+                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['category'] ?? ($record->customer->category ?? 'N/A')),
+
+                    TextEntry::make('lpw_payment_status')
+                        ->label('Payment Status')
+                        ->badge()
+                        ->icon('heroicon-s-credit-card')
+                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['payment_status'] ?? ($record->customer->payment_status ?? 'N/A')),
+
+                    TextEntry::make('lpw_payment_exp_date')
+                        ->label('Payment Expiry Date')
+                        ->icon('heroicon-s-calendar')
+                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['payment_exp_date'] ?? ($record->customer->payment_exp_date ?? 'N/A')),
+
+                    TextEntry::make('lpw_latest_commented_at')
+                        ->label('Latest Commented At')
+                        ->icon('heroicon-s-calendar')
+                        ->columnSpan(2) // Long date info can span 2 columns
+                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['latest_commented_at'] ?? ($record->customer->latest_commented_at ?? 'N/A')),
+            ]);
+    }
     
     /**
      * Build the reusable Contact Details section.
@@ -530,19 +596,19 @@ class TableRecordActions
             ->icon('iconsax-bul-profile-circle')
             ->schema([
                 TextEntry::make('lpw_email')
-                    ->label('')
+                    ->label('Email')
                     ->copyable()
                     ->copyMessage('Email copied')
                     ->icon('heroicon-s-envelope')
                     ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['email'] ?? ($record->customer->email ?? 'N/A')),
 
                 TextEntry::make('lpw_mobile')
-                    ->label('')
+                    ->label('Mobile')
                     ->icon('heroicon-s-phone')
                     ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['mobile'] ?? ($record->customer->mobile ?? 'N/A')),
 
                 TextEntry::make('lpw_address')
-                    ->label('')
+                    ->label('Address')
                     ->icon('heroicon-s-map-pin')
                     ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['address'] ?? ($record->customer->address ?? 'N/A')),
 
@@ -593,9 +659,9 @@ class TableRecordActions
             // ->submitAction(false)
             ->modalWidth('xl')
             ->schema([
-                Section::make('Send Message')
+                // Section::make('Send Message')
                     // ->columns()
-                    ->schema([
+                    // ->schema([
                         Select::make('message_template')
                             ->label('Message Template')
                             ->options(function () {
@@ -607,7 +673,7 @@ class TableRecordActions
                             ->label('Message')
                             ->rows(4)
                             ->required(),
-                    ]),
+                    // ]),
             ])
             ->action(function (array $data, $record) {
                 // Handle sending message
@@ -653,7 +719,6 @@ class TableRecordActions
                             'follow_up' => 'Follow Up',
                             'reminder' => 'Reminder',
                         ]),
-
 
                     Select::make('funnel_id')
                         ->label('Funnel (category - stage)')
@@ -749,6 +814,8 @@ class TableRecordActions
         ];
     }
 
+    // create pastActivity function.
+
     private static function createActivityTab(string $label, string $icon, callable $queryModifier): Tab
     {
         return Tab::make($label)
@@ -780,24 +847,29 @@ class TableRecordActions
                     ->tabs([
                     Tab::make('Overview')->icon('heroicon-o-information-circle')->schema([
                         Section::make('Property Information')->schema([
-                            TextEntry::make('heading')->label('Property Heading')->size('lg')->weight('bold'),
+                            TextEntry::make('heading')->label('Property Heading')->columnSpanFull()->size('lg')->weight('bold'),
+                            // description
                             TextEntry::make('type')->label('Listing Type')->badge(),
                             TextEntry::make('propty_type')->label('Property Type')->badge(),
                             TextEntry::make('service_type')->label('Service Type')->badge(),
-                            TextEntry::make('price')->label('Price')->money('LKR')->size('lg')->weight('bold')->color('success'),
+                            TextEntry::make('price')->label('Price')->money('LKR')->size('md')->weight('bold')->color('success'),
                             TextEntry::make('price_type')->label('Price Type'),
-                        ])->columns(3),
+                            TextEntry::make('desc')->label('Property Description')->placeholder('No description available')->columnSpanFull()->html(),
+                        ])->columns(6),
 
                             Section::make('Location')->schema([
                                 TextEntry::make('street')->label('Street Address')->placeholder('Not specified'),
                                 TextEntry::make('city')->label('City')->icon('heroicon-o-map-pin'),
                                 TextEntry::make('lat')->label('Latitude')->placeholder('Not specified'),
                                 TextEntry::make('lng')->label('Longitude')->placeholder('Not specified'),
-                            ])->columns(3),
+                            ])->columns(4),
 
-                            Section::make('Description')->schema([
-                                TextEntry::make('desc')->label('Property Description')->placeholder('No description available')->columnSpanFull()->html(),
-                            ]),
+                            // Add a section to display contact details from the function self::contactDetailsSection()
+                            self::contactDetailsSectionForOverview(),
+
+                            // Section::make('Description')->schema([
+                            //     TextEntry::make('desc')->label('Property Description')->placeholder('No description available')->columnSpanFull()->html(),
+                            // ]),
                         ]),
 
                         Tab::make('Activity')->icon('heroicon-o-clipboard-document-list')->schema([
@@ -960,18 +1032,18 @@ class TableRecordActions
 
         $actionGroup = ActionGroup::make([
             Action::make('toggle_pin')
-                ->label(fn($record) => $record->is_active == 1 ? 'Unpin' : 'Pin')
-                ->icon(fn($record) => $record->is_active == 1 ? 'heroicon-s-bookmark' : 'heroicon-o-bookmark')
+                ->label(fn($record) => $record->is_pin == 1 ? 'Unpin' : 'Pin')
+                ->icon(fn($record) => $record->is_pin == 1 ? 'heroicon-s-bookmark' : 'heroicon-o-bookmark')
                 ->color('success')
                 ->visible(fn() => in_array(auth()->user()->user_level_id, [2, 4, 5]))
                 ->action(function ($record) {
                     $record->update([
-                        'is_active' => $record->is_active == 1 ? 0 : 1,
+                        'is_pin' => $record->is_pin == 1 ? 0 : 1,
                     ]);
                     
                     Notification::make()
-                        ->title($record->is_active == 1 ? 'Pinned Successfully' : 'Unpinned Successfully')
-                        ->body('The lead has been ' . ($record->is_active == 1 ? 'pinned' : 'unpinned') . '.')
+                        ->title($record->is_pin == 1 ? 'Unpinned Successfully' : 'Pinned Successfully')
+                        ->body('The lead has been ' . ($record->is_pin == 1 ? 'pinned' : 'unpinned') . '.')
                         ->success()
                         ->send();
                 }),

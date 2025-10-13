@@ -37,6 +37,8 @@ class UserResource extends Resource
 
     protected static ?string $navigationLabel = 'Manage Users';
 
+    protected static ?int $navigationGroupSort = 3;
+
     // Hide from lower-level users
     public static function shouldRegisterNavigation(): bool
     {

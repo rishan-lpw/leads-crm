@@ -31,6 +31,8 @@ class CustomerResource extends Resource
 
     protected static ?string $navigationLabel = 'Customer Management';
 
+    protected static ?int $navigationGroupSort = 2;
+
     protected static string | \UnitEnum | null $navigationGroup = 'Customers';
 
     protected static string | \BackedEnum | null $navigationIcon = 'fas-user-plus';

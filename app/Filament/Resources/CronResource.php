@@ -17,7 +17,9 @@ use App\Filament\Resources\CronResource\Pages;
 use App\Filament\Resources\CronResource\RelationManagers;
 use App\Models\Cron;
 use App\Models\User;
+use App\Models\UserValue;
 use Filament\Forms;
+use Filament\Forms\Components\Radio;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -44,6 +46,14 @@ class CronResource extends Resource
                 TextInput::make('name')
                     ->label('Cron Name')
                     ->required(),
+
+                Radio::make('user_value')
+                    ->label('Select Level')
+                    // Add options as user_value_id from user_value table
+                    ->options(UserValue::query()->pluck('category', 'id')->toArray())
+                    ->inline()
+                    ->required(),
+            
                 Select::make('category')
                     ->label('Select Channel')
                     ->options([
@@ -57,14 +67,21 @@ class CronResource extends Resource
                 Select::make('member')
                     ->label('Select Member/Members')
                     ->multiple()
-                    // Give options as user names from user table whose user_level_id == 1
-                    ->options(User::query()
-                        ->where('user_level_id', 1)
-                        ->whereNotNull('name')
-                        ->where('name', '!=', '')
-                        ->pluck('name', 'id')
-                        ->toArray())
-                    ->required(),
+                    ->required()
+                    ->options(function (callable $get) {
+                        $userValueId = $get('user_value'); // Get the selected radio value
+
+                        if (!$userValueId) {
+                            return [];
+                        }
+
+                        return User::query()
+                            ->where('user_value_id', $userValueId)
+                            ->whereNotNull('name')
+                            ->where('name', '!=', '')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    }),
 
                 Select::make('rule_1_days')
                     ->label('No. of Days Assigned (Rule 1)')

@@ -27,6 +27,8 @@ class HuntersResource extends Resource
 
     protected static ?string $navigationLabel = 'Hunters';
 
+    protected static ?int $navigationGroupSort = 4;
+
     protected static string | \UnitEnum | null $navigationGroup = 'Private Sellers';
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-users';
@@ -67,7 +69,7 @@ class HuntersResource extends Resource
             ->headerActions(TableHeaderActions::getHeaderActions())
             ->toolbarActions(ToolbarActions::getToolbarActions())
             // By default, Pin records to the top
-            ->defaultSort('is_active', 'desc')
+            ->defaultSort('is_pin', 'desc')
             ->recordUrl(null);
     }
 
