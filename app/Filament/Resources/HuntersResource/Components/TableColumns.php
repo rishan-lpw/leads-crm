@@ -8,6 +8,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn as TablesTextColumn;
 use Filament\Tables\Columns\BadgeColumn as TablesBadge;
 use App\Models\PaymentStatus;
+use Filament\Tables\Columns\Column;
 use Illuminate\Support\Str;
 use Illuminate\Support\HtmlString;
 use Filament\Tables\Columns\TextColumn as ColumnText;
@@ -183,6 +184,7 @@ class TableColumns
                 ->limit(25)
                 ->tooltip(fn($record) => $record->latest_comment)
                 ->toggleable()
+                ->action(TableRecordActions::getAddActivityAction())
                 ->sortable(),
 
             ColumnText::make('progress_icons')
@@ -228,43 +230,7 @@ class TableColumns
                 ->label('Funnel Stage')
                 ->html()
                 ->getStateUsing(function ($record) {
-                    $activities = $record->activities ?? collect();
-                    $activitiesSorted = $activities->sortBy('created_at');
-
-                    if ($activitiesSorted->isEmpty()) {
-                        return new HtmlString('<span class="text-gray-400">No-Activity</span>');
-                    }
-
-                    $emojiSets = [
-                        'contacted' => ['🔴', '🟠', '🟡', '🟤', '🔵', '🟣', '🟢'],
-                        'rna' => ['🟥', '🟧', '🟨'],
-                        'not_interested' => ['🔶', '🔷'],
-                    ];
-
-                    $icons = [];
-
-                    foreach ($activitiesSorted as $activity) {
-                        $category = strtolower($activity->funnel?->category ?? '');
-                        $stage    = (int) ($activity->funnel?->stage ?? 0);
-
-                        if ($category && isset($emojiSets[$category])) {
-                            $emojis = $emojiSets[$category];
-                            $index = max(0, min($stage - 1, count($emojis) - 1));
-
-                            $icons[] = sprintf(
-                                '<span class="inline-flex items-center justify-center w-6 h-6 text-sm rounded-full bg-gray-100 shadow-sm" title="%s - Stage %d">%s</span>',
-                                ucfirst(str_replace('_', ' ', $category)),
-                                $stage,
-                                $emojis[$index]
-                            );
-                        }
-                    }
-
-                    return new HtmlString(
-                        $icons
-                            ? '<div class="flex flex-wrap gap-1 mt-1">' . implode('', $icons) . '</div>'
-                            : '<span class="text-red-400">No Activity</span>'
-                    );
+                    return view('components.funnel-stage-icons', ['record' => $record])->render();
                 })
                 ->toggleable()
                 ->sortable(),

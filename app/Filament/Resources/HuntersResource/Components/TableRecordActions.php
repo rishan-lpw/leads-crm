@@ -37,6 +37,8 @@ use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid as ComponentsGrid;
 use Filament\Support\View\Components\ButtonComponent;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class TableRecordActions
 {
@@ -128,6 +130,143 @@ class TableRecordActions
         } catch (\Throwable $e) {
             return $cache[$userId] = [];
         }
+    }
+
+    /**
+     * Fetch old activities for a given lead record from LPW API.
+     */
+    private static function getOldActivitiesForRecord($record): array
+{
+    static $cache = [];
+
+    $userId = $record->cust_id ?? $record->customer_id ?? null;
+
+    if (!$userId) {
+        Log::warning('getOldActivitiesForRecord: No cust_id found', [
+            'record_id' => $record->id ?? 'unknown',
+        ]);
+        return [];
+    }
+
+    if (array_key_exists($userId, $cache)) {
+        return $cache[$userId];
+    }
+
+    try {
+        $service = app(\App\Services\LpwApiService::class);
+        $response = $service->getOldActivities($userId, 10, 2);
+
+        // Normalize result
+        $activities = [];
+        if (is_array($response)) {
+            if (isset($response['data']) && is_array($response['data'])) {
+                $activities = $response['data'];
+            } elseif (array_is_list($response)) {
+                $activities = $response;
+            }
+        }
+
+        // Log useful debug info
+        Log::info('getOldActivitiesForRecord: normalized', [
+            'user_id' => $userId,
+            'count' => count($activities),
+        ]);
+
+        // Cache and return a safe array
+        return $cache[$userId] = $activities;
+    } catch (\Throwable $e) {
+        Log::error('getOldActivitiesForRecord: Exception', [
+            'user_id' => $userId,
+            'message' => $e->getMessage(),
+        ]);
+        return $cache[$userId] = [];
+    }
+}
+
+
+    private static function oldActivitiesSection(): array
+    {
+        return [
+            RepeatableEntry::make('old_activities')
+            ->label('')
+            ->contained(false)
+            ->getStateUsing(function ($record) {
+                $items = self::getOldActivitiesForRecord($record);
+                if (empty($items)) return [];
+
+                return collect($items)
+                    ->sortByDesc('date_time')
+                    ->values()
+                    ->toArray();
+            })
+            ->schema([
+                Section::make()
+                    ->collapsible()
+                    ->collapsed()
+                    ->heading(fn($item) => sprintf(
+                        '%s • %s%s',
+                        ucfirst($item['action'] ?? 'Activity'),
+                        $item['date_time'] ?? 'N/A',
+                        isset($item['by']) && $item['by'] ? " • by {$item['by']}" : ''
+                    ))
+                    ->description(fn($item) => collect([
+                        'Status' => $item['payment_status'] ?? 'N/A',
+                        'Comments' => $item['comments'] ?? 'N/A',
+                        'Converted' => ($item['is_converted'] ?? '') === 'Y' ? '✅ Yes' : '❌ No',
+                    ])->map(fn($v, $k) => "{$k}: {$v}")->implode(' | '))
+                    ->schema([
+                        ComponentsGrid::make(3)->schema([
+                            TextEntry::make('id')
+                                ->label('Activity ID')
+                                ->placeholder('N/A'),
+
+                            TextEntry::make('uid')
+                                ->label('Customer ID')
+                                ->placeholder('N/A'),
+
+                            TextEntry::make('by')
+                                ->label('Done By')
+                                ->placeholder('N/A'),
+
+                            TextEntry::make('action')
+                                ->label('Action')
+                                ->placeholder('N/A'),
+
+                            TextEntry::make('payment_status')
+                                ->label('Payment Status')
+                                ->badge()
+                                ->color(fn($state) => match (strtolower($state)) {
+                                    'paid', 'completed' => 'success',
+                                    'pending' => 'warning',
+                                    'expired', 'failed' => 'danger',
+                                    default => 'gray',
+                                })
+                                ->placeholder('N/A'),
+
+                            TextEntry::make('value')
+                                ->label('Value')
+                                ->placeholder('N/A'),
+
+                            TextEntry::make('date_time')
+                                ->label('Date & Time')
+                                ->placeholder('N/A'),
+
+                            TextEntry::make('old_am')
+                                ->label('Old AM')
+                                ->placeholder('N/A'),
+
+                            TextEntry::make('reminder')
+                                ->label('Reminder')
+                                ->placeholder('N/A'),
+                        ]),
+
+                        TextEntry::make('comments')
+                            ->label('Comments')
+                            ->columnSpanFull()
+                            ->default('No comments available'),
+                    ]),
+            ]),
+        ];
     }
 
     /**
@@ -481,17 +620,17 @@ class TableRecordActions
                                     ->color(fn($state) => match (strtolower((string)($state ?? ''))) {
                                         'positive' => 'success',
                                         'negative' => 'danger',
-                                        'neutral' => 'gray',
-                                        'mixed' => 'warning',
+                                        'neutral' => 'warning',
+                                        'mixed' => 'gray',
                                         default => 'info',
                                     })
                                     ->default('N/A')
                                     ->visible(fn($state) => $state && $state !== 'N/A'),
 
-                                TextEntry::make('call_type')
-                                    ->label('Call Type')
+                                TextEntry::make('event')
+                                    ->label('Event')
                                     ->badge()
-                                    ->color('primary')
+                                    ->color('info')
                                     ->default('N/A')
                                     ->visible(fn($state) => $state && $state !== 'N/A'),
                             ]),
@@ -549,7 +688,7 @@ class TableRecordActions
                     TextEntry::make('lpw_address')
                         ->label('Address')
                         ->icon('heroicon-s-map-pin')
-                        ->columnSpanFull(2) // Full width for long address
+                        // ->columnSpanFull(2) // Full width for long address
                         ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['address'] ?? ($record->customer->address ?? 'N/A')),
 
                     TextEntry::make('lpw_reg_date')
@@ -683,7 +822,7 @@ class TableRecordActions
             });
     }
 
-    private static function getAddActivityAction(): Action
+    public static function getAddActivityAction(): Action
     {
         return Action::make('add_activity')
             ->label('Add Activity')
@@ -756,7 +895,7 @@ class TableRecordActions
                         'funnel_id'         => $data['funnel_id'] ?? null,
                         'payment_status_id' => $data['payment_status_id'] ?? null,
                         'comments'          => $data['comments'] ?? null,
-                        'assigned_by'       => auth()->id(),
+                        'assigned_by'       => Auth::id(),
                     ]);
 
                     $followUpProvided = ! empty($data['follow_up_date_time']);
@@ -846,30 +985,28 @@ class TableRecordActions
                     ->persistTabInQueryString()
                     ->tabs([
                     Tab::make('Overview')->icon('heroicon-o-information-circle')->schema([
-                        Section::make('Property Information')->schema([
-                            TextEntry::make('heading')->label('Property Heading')->columnSpanFull()->size('lg')->weight('bold'),
-                            // description
-                            TextEntry::make('type')->label('Listing Type')->badge(),
-                            TextEntry::make('propty_type')->label('Property Type')->badge(),
-                            TextEntry::make('service_type')->label('Service Type')->badge(),
-                            TextEntry::make('price')->label('Price')->money('LKR')->size('md')->weight('bold')->color('success'),
-                            TextEntry::make('price_type')->label('Price Type'),
-                            TextEntry::make('desc')->label('Property Description')->placeholder('No description available')->columnSpanFull()->html(),
-                        ])->columns(6),
+                        // Add a section to display contact details from the function self::contactDetailsSection()
+                        self::contactDetailsSectionForOverview(),
+                            // Section::make('Description')->schema([
+                            //     TextEntry::make('desc')->label('Property Description')->placeholder('No description available')->columnSpanFull()->html(),
+                            // ]),
+                        ]),
 
-                            Section::make('Location')->schema([
+                        Tab::make('Property Details')->icon('heroicon-o-information-circle')->schema([
+                            Section::make('Property Information')->schema([
+                                TextEntry::make('heading')->label('Property Heading')->columnSpanFull()->size('lg')->weight('bold'),
+                                // description
+                                TextEntry::make('type')->label('Listing Type')->badge(),
+                                TextEntry::make('propty_type')->label('Property Type')->badge(),
+                                TextEntry::make('service_type')->label('Service Type')->badge(),
+                                TextEntry::make('price')->label('Price')->money('LKR')->size('md')->weight('bold')->color('success'),
+                                TextEntry::make('price_type')->label('Price Type'),
+                                TextEntry::make('desc')->label('Property Description')->columnSpanFull()->html()->placeholder('No description available'),
                                 TextEntry::make('street')->label('Street Address')->placeholder('Not specified'),
                                 TextEntry::make('city')->label('City')->icon('heroicon-o-map-pin'),
                                 TextEntry::make('lat')->label('Latitude')->placeholder('Not specified'),
                                 TextEntry::make('lng')->label('Longitude')->placeholder('Not specified'),
-                            ])->columns(4),
-
-                            // Add a section to display contact details from the function self::contactDetailsSection()
-                            self::contactDetailsSectionForOverview(),
-
-                            // Section::make('Description')->schema([
-                            //     TextEntry::make('desc')->label('Property Description')->placeholder('No description available')->columnSpanFull()->html(),
-                            // ]),
+                            ])->columns(6),
                         ]),
 
                         Tab::make('Activity')->icon('heroicon-o-clipboard-document-list')->schema([
@@ -883,7 +1020,7 @@ class TableRecordActions
                                                 ->persistTabInQueryString('activity_filter')
                                                 ->tabs([
                                                     self::createActivityTab('All', 'heroicon-o-queue-list', fn($query) => null),
-                                                    self::createActivityTab('My Activities', 'heroicon-o-user', fn($query) => $query->where('assigned_by', auth()->id())),
+                                                    self::createActivityTab('My Activities', 'heroicon-o-user', fn($query) => $query->where('assigned_by', Auth::id())),
                                                     self::createActivityTab('Call', 'heroicon-o-phone', fn($query) => $query->where('activity_type', 'call')),
                                                 ]),
                                         ])->headerActions([
@@ -919,7 +1056,7 @@ class TableRecordActions
                                         Section::make('Call Scripts')
                                             ->icon('heroicon-m-clipboard-document-list')
                                             ->columnSpan(2)
-                                            ->description('Call transcripts from conversations')
+                                            ->description('Call script for the customer.')
                                             ->headerActions([
                                                 self::getAddActivityAction(),
                                                 Action::make('refresh')
@@ -930,6 +1067,21 @@ class TableRecordActions
                                             ])
                                             ->schema(self::callScriptSection()),
                                     ]),
+                                ]),
+
+                                Tab::make('Old Activities')->icon('heroicon-o-clock')->schema([
+                                    ComponentsGrid::make(3)->schema([
+                                        self::contactDetailsSection(),
+                                        
+                                        Section::make('Old Activities')
+                                            ->icon('heroicon-o-clock')
+                                            ->columnSpan(2)
+                                            ->description('Old activities of the customer.')
+                                            ->schema(self::oldActivitiesSection()),
+                                    ])
+                                    // ->headerActions([
+                                    //     self::getAddActivityAction(),
+                                    // ]),
                                 ]),
                             ]),
                         ]),
@@ -1027,7 +1179,7 @@ class TableRecordActions
         $editAction = EditAction::make()
             ->label('')
             ->icon('heroicon-o-pencil')
-            ->visible(fn($record) => Gate::allows('update', $record) && optional(auth()->user())->user_level_id !== 1)
+            ->visible(fn($record) => Gate::allows('update', $record) && optional(Auth::user())->user_level_id !== 1)
             ->slideOver();
 
         $actionGroup = ActionGroup::make([
@@ -1035,7 +1187,7 @@ class TableRecordActions
                 ->label(fn($record) => $record->is_pin == 1 ? 'Unpin' : 'Pin')
                 ->icon(fn($record) => $record->is_pin == 1 ? 'heroicon-s-bookmark' : 'heroicon-o-bookmark')
                 ->color('success')
-                ->visible(fn() => in_array(auth()->user()->user_level_id, [2, 4, 5]))
+                ->visible(fn() => in_array(optional(Auth::user())->user_level_id, [2, 4, 5]))
                 ->action(function ($record) {
                     $record->update([
                         'is_pin' => $record->is_pin == 1 ? 0 : 1,
@@ -1073,7 +1225,7 @@ class TableRecordActions
                 ->modalDescription('Are you sure you want to delete this property lead? This action cannot be undone.')
                 ->modalSubmitActionLabel('Yes, delete it')
                 // visible to the user_level_id 2, 4, 5.
-                ->visible(fn() => auth()->user()->user_level_id == 2 || auth()->user()->user_level_id == 4 || auth()->user()->user_level_id == 5)
+                ->visible(fn() => optional(Auth::user())->user_level_id == 2 || optional(Auth::user())->user_level_id == 4 || optional(Auth::user())->user_level_id == 5)
                 ->successNotificationTitle('Lead Deleted')
                 ->after(function () {
                     Notification::make()

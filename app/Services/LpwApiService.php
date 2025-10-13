@@ -133,6 +133,69 @@ class LpwApiService
         }
     }
 
+    public function getOldActivities(int|string $userId, int $cacheMinutes = 10, int|string $cacheFlag = 2): array
+    {
+        $cacheKey = "lpw_old_activities_{$userId}_{$cacheFlag}";
+        
+        try {
+            return Cache::remember($cacheKey, now()->addMinutes($cacheMinutes), function () use ($userId, $cacheFlag) {
+                $url = "{$this->baseUrl}/UserDetails/activity";
+                $params = [
+                    'token' => $this->apiToken,
+                    'cache' => (string) $cacheFlag,
+                    'user_id' => (string) $userId,
+                ];
+                
+                Log::info('LPW getOldActivities request', [
+                    'url' => $url,
+                    'user_id' => $userId,
+                    'cache' => $cacheFlag,
+                ]);
+                
+                $response = Http::timeout(6)->get($url, $params);
+                
+                if (! $response->successful()) {
+                    Log::warning('LPW getOldActivities failed', [
+                        'status' => $response->status(),
+                        'reason' => $response->reason(),
+                        'body' => $response->body(),
+                    ]);
+                    return [];
+                }
+                
+                $json = $response->json();
+                
+                Log::info('LPW getOldActivities response', [
+                    'user_id' => $userId,
+                    'has_data' => isset($json['data']),
+                    'has_results' => isset($json['results']),
+                    'is_array' => is_array($json),
+                    'keys' => is_array($json) ? array_keys($json) : 'not array',
+                ]);
+                
+                $data = $json['data'] ?? $json['results'] ?? $json ?? [];
+                
+                if (!is_array($data)) {
+                    Log::warning('LPW getOldActivities: data is not array', ['type' => gettype($data)]);
+                    return [];
+                }
+                
+                Log::info('LPW getOldActivities: returning data', [
+                    'count' => count($data),
+                    'sample_keys' => !empty($data) ? array_keys($data[0] ?? []) : 'empty'
+                ]);
+                
+                return $data;
+            });
+        } catch (Exception $e) {
+            Log::error('LPW getOldActivities exception', [
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
     /**
      * Fetch call logs for a user by user_id (cust_id) from LPW API.
      * Returns an array of call logs or empty array on failure.
