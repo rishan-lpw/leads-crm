@@ -249,4 +249,46 @@ class LpwApiService
             return [];
         }
     }
+
+    /**
+     * Fetch ads data for a specific user from LPW API
+     */
+    public function getUserAds($userId, $cache = 2)
+    {
+        try {
+            $url = "https://www.lankapropertyweb.com/api/v3/UserDetails/ads";
+            $params = [
+                'token' => config('services.lpw.token'),
+                'cache' => $cache,
+                'user_id' => $userId
+            ];
+
+            $response = Http::timeout(30)->get($url, $params);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                // Log successful response
+                Log::info('LPW getUserAds successful', [
+                    'user_id' => $userId,
+                    'response_size' => is_array($data) ? count($data) : 'unknown'
+                ]);
+
+                return $data;
+            } else {
+                Log::error('LPW getUserAds failed', [
+                    'user_id' => $userId,
+                    'status' => $response->status(),
+                    'response' => $response->body()
+                ]);
+                return [];
+            }
+        } catch (Exception $e) {
+            Log::error('LPW getUserAds exception', [
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
 }
