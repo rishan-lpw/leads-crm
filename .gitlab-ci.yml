@@ -1,0 +1,20 @@
+stages:
+  - upgrade_filament4.0
+
+deploy_to_server:
+  stage: upgrade_filament4.0
+  only:
+    - upgrade_filament4.0
+  before_script:
+    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - ssh $SERVER_USER@$SERVER_IP "cd /home/srilankaproperty.lk/leads-crm.srilankaproperty.lk && ./.scripts/deploy.sh"
+  environment:
+    name: production
+    url: https://leads-crm.srilankaproperty.lk
