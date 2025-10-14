@@ -356,7 +356,7 @@ class TableColumns
                 ->searchable()
                 ->sortable()
                 // limit column width size to 100px
-                ->limit(25)
+                ->limit(20)
                 ->tooltip(fn($record) => $record->street)
                 ->toggleable(),
 
