@@ -226,14 +226,117 @@ class TableColumns
                 ->searchable()
                 ->sortable(),
 
+            // ColumnText::make('activity_icons')->label('Funnel Stage')->html()->getStateUsing(
+            //     function ($record) {
+            //         $activities = $record->activities ?? collect();
+            //         $activitiesSorted = $activities->sortBy('created_at');
+            //         if ($activitiesSorted->isEmpty()) {
+            //             return new HtmlString('<span class="text-gray-400">No-Activity</span>');
+            //         }
+            //         $emojiSets = ['contacted' => ['🔴', '🟠', '🟡', '🟤', '🔵', '🟣', '🟢'], 'rna' => ['🟥', '🟧', '🟨'], 'not_interested' => ['🔶', '🔷'],];
+            //         $icons = [];
+            //         foreach ($activitiesSorted as $activity) {
+            //             $category = strtolower($activity->funnel?->category ?? '');
+            //             $stage = (int) ($activity->funnel?->stage ?? 0);
+            //             if ($category && isset($emojiSets[$category])) {
+            //                 $emojis = $emojiSets[$category];
+            //                 $index = max(0, min($stage - 1, count($emojis) - 1));
+            //                 $icons[] = sprintf('<span class="inline-flex items-center justify-center w-6 h-6 text-sm rounded-full bg-gray-100 shadow-sm" title="%s - Stage %d">%s</span>', ucfirst(str_replace('_', ' ', $category)), $stage, $emojis[$index]);
+            //             }
+            //         }
+            //     }),
+
             ColumnText::make('activity_icons')
                 ->label('Funnel Stage')
                 ->html()
                 ->getStateUsing(function ($record) {
-                    return view('components.funnel-stage-icons', ['record' => $record])->render();
+                    // Load activities with funnel relationship only when needed
+                    $activities = $record->activities()->with('funnel')->get();
+
+                    // Track the latest completed stage per category
+                    $latestStages = [
+                        'contacted' => 0,
+                        'rna' => 0,
+                        'not_interested' => 0,
+                    ];
+
+                    foreach ($activities as $activity) {
+                        $category = strtolower($activity->funnel?->category ?? '');
+                        $stage = (int) ($activity->funnel?->stage ?? 0);
+
+                        if (array_key_exists($category, $latestStages) && $stage > $latestStages[$category]) {
+                            $latestStages[$category] = $stage;
+                        }
+                    }
+
+                    // Define total stages per category
+                    $stagesCount = [
+                        'contacted' => 7,
+                        'rna' => 3,
+                        'not_interested' => 2,
+                    ];
+
+                    // Build the HTML lines for each category
+                    $lines = [];
+
+                    foreach ($stagesCount as $category => $count) {
+                        $completed = $latestStages[$category];
+                        $iconsHtml = [];
+
+                        for ($i = 1; $i <= $count; $i++) {
+                            if ($i <= $completed) {
+                                // Completed stage - filled circle with color
+                                $color = match($category) {
+                                    'contacted' => 'color: #10b981;',
+                                    'rna' => 'color: #f59e0b;',
+                                    'not_interested' => 'color: #ef4444;',
+                                    default => 'color: #6b7280;'
+                                };
+                                $iconsHtml[] = sprintf(
+                                    '<i class="bi bi-%d-circle-fill w-4 h-4 inline-block mx-0.5" style="%s" title="%s - Stage %d"></i>',
+                                    $i, $color, ucfirst(str_replace('_', ' ', $category)), $i
+                                );
+                            } else {
+                                // Empty stage - outline circle
+                                $iconsHtml[] = sprintf(
+                                    '<i class="bi bi-%d-circle w-4 h-4 inline-block mx-0.5" style="color: #d1d5db;" title="%s - Stage %d"></i>',
+                                    $i, ucfirst(str_replace('_', ' ', $category)), $i
+                                );
+                            }
+                        }
+
+                        $label = ucfirst(str_replace('_', ' ', $category));
+                        $lines[] = sprintf(
+                            '<div class="leading-tight text-sm flex items-center space-x-1" title="%s">%s</div>',
+                            $label,
+                            implode('', $iconsHtml)
+                        );
+                    }
+
+                    // If no activities, show default empty state
+                    if ($activities->isEmpty()) {
+                        $lines = [];
+                        foreach ($stagesCount as $category => $count) {
+                            $iconsHtml = [];
+                            for ($i = 1; $i <= $count; $i++) {
+                                $iconsHtml[] = sprintf(
+                                    '<i class="bi bi-%d-circle w-4 h-4 inline-block mx-0.5" style="color: #d1d5db;" title="%s - Stage %d"></i>',
+                                    $i, ucfirst(str_replace('_', ' ', $category)), $i
+                                );
+                            }
+                            $label = ucfirst(str_replace('_', ' ', $category));
+                            $lines[] = sprintf(
+                                '<div class="leading-tight text-sm flex items-center space-x-1" title="%s">%s</div>',
+                                $label,
+                                implode('', $iconsHtml)
+                            );
+                        }
+                    }
+
+                    return new HtmlString(implode('', $lines));
                 })
-                ->toggleable()
                 ->sortable(),
+
 
             BadgeColumn::make('weight')
                 ->label('Weight')
@@ -252,13 +355,16 @@ class TableColumns
                 ->label('Street')
                 ->searchable()
                 ->sortable()
+                // limit column width size to 100px
+                ->limit(20)
+                ->tooltip(fn($record) => $record->street)
                 ->toggleable(),
 
-            ColumnText::make('service_type')
-                ->label('Service Type')
-                ->searchable()
-                ->sortable()
-                ->toggleable(),
+            // ColumnText::make('service_type')
+            //     ->label('Service Type')
+            //     ->searchable()
+            //     ->sortable()
+            //     ->toggleable(),
 
             ColumnIcon::make('is_trending')
                 ->label('Trending')

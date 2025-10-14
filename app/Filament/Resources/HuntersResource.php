@@ -37,9 +37,10 @@ class HuntersResource extends Resource
     {
         $query = parent::getEloquentQuery()
             ->with([
-                // Only load essential data for list view
+                // Only load essential data for list view - remove activities.funnel to optimize
                 'customer:id,firstname,email,mobile,membership_status',
                 'user:id,username,name',
+                // 'activities.funnel', // Removed - will be loaded lazily when needed
             ]);
             
         $user = auth()->user();

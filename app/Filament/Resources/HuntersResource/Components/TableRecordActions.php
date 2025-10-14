@@ -125,8 +125,17 @@ class TableRecordActions
 
         try {
             $service = app(LpwApiService::class);
-            // dd($service->getCallLogs($userId, 10, 5));
-            return $cache[$userId] = $service->getCallLogs($userId, 10, 5);
+            // Cache for 5 minutes to reduce API calls
+            $cacheKey = "call_logs_{$userId}";
+            $cached = cache()->get($cacheKey);
+            
+            if ($cached !== null) {
+                return $cache[$userId] = $cached;
+            }
+            
+            $result = $service->getCallLogs($userId, 10, 5);
+            cache()->put($cacheKey, $result, 300); // 5 minutes cache
+            return $cache[$userId] = $result;
         } catch (\Throwable $e) {
             return $cache[$userId] = [];
         }
@@ -153,6 +162,14 @@ class TableRecordActions
     }
 
     try {
+        // Check cache first
+        $cacheKey = "old_activities_{$userId}";
+        $cached = cache()->get($cacheKey);
+        
+        if ($cached !== null) {
+            return $cache[$userId] = $cached;
+        }
+
         $service = app(\App\Services\LpwApiService::class);
         $response = $service->getOldActivities($userId, 10, 2);
 
@@ -166,6 +183,9 @@ class TableRecordActions
             }
         }
 
+        // Cache for 5 minutes to reduce API calls
+        cache()->put($cacheKey, $activities, 300);
+        
         // Log useful debug info
         Log::info('getOldActivitiesForRecord: normalized', [
             'user_id' => $userId,
@@ -188,17 +208,19 @@ class TableRecordActions
     {
         return [
             RepeatableEntry::make('old_activities')
-            ->label('')
-            ->contained(false)
-            ->getStateUsing(function ($record) {
-                $items = self::getOldActivitiesForRecord($record);
-                if (empty($items)) return [];
+                ->label('')
+                ->contained(false)
+                ->lazy() // Enable lazy loading
+                ->getStateUsing(function ($record) {
+                    // Only load data when this tab is actually accessed
+                    $items = self::getOldActivitiesForRecord($record);
+                    if (empty($items)) return [];
 
-                return collect($items)
-                    ->sortByDesc('date_time')
-                    ->values()
-                    ->toArray();
-            })
+                    return collect($items)
+                        ->sortByDesc('date_time')
+                        ->values()
+                        ->toArray();
+                })
             ->schema([
                 Section::make()
                     ->collapsible()
@@ -275,21 +297,20 @@ class TableRecordActions
     private static function callLogSection(): array
     {
         return [
-            // Section::make('📞 Call Logs')
-            // ->collapsible()
-            // ->schema([
-                RepeatableEntry::make('call_logs')
-                    ->label('')
-                    ->contained(false)
-                    ->getStateUsing(function ($record) {
-                        $logs = self::getCallLogsForRecord($record);
-                        if (empty($logs)) return [];
+            RepeatableEntry::make('call_logs')
+                ->label('')
+                ->contained(false)
+                ->lazy() // Enable lazy loading
+                ->getStateUsing(function ($record) {
+                    // Only load data when this tab is actually accessed
+                    $logs = self::getCallLogsForRecord($record);
+                    if (empty($logs)) return [];
 
-                        return collect($logs)
-                            ->sortByDesc('datetime')
-                            ->values()
-                            ->toArray();
-                    })
+                    return collect($logs)
+                        ->sortByDesc('datetime')
+                        ->values()
+                        ->toArray();
+                })
                     ->schema([
                         Section::make(fn($log) => sprintf(
                             '%s • %s • %ss • %s',
@@ -544,18 +565,15 @@ class TableRecordActions
             RepeatableEntry::make('call_scripts')
                 ->label('')
                 ->contained(false)
+                ->lazy() // Enable lazy loading
                 ->getStateUsing(function ($record) {
-                    // Get the recent call script and return the recent call script
-                    // Arrange the call scripts in descending order of date_time
+                    // Only load data when this tab is actually accessed
                     $scripts = self::getCallScriptForRecord($record);
                     if (empty($scripts)) {
                         return [];
                     }
 
                     return collect($scripts)->sortByDesc('date_time')->toArray();
-                    // return the recent call script
-                    return $scripts[0];
-                    // return the recent call script
                 })
                 ->schema([
                     Section::make('Call Transcript')
@@ -665,6 +683,7 @@ class TableRecordActions
         return Section::make(fn($record) => self::getLpwUserDetailsForRecord($record)['firstname'] ?? ($record->customer->firstname ?? 'Contact Details'))
             ->icon('iconsax-bul-profile-circle')
             ->columns(4) // Divide section into 4 columns
+            ->lazy() // Enable lazy loading for contact details
             ->schema([
 
                     TextEntry::make('lpw_email')
@@ -733,6 +752,7 @@ class TableRecordActions
     {
         return Section::make(fn($record) => self::getLpwUserDetailsForRecord($record)['firstname'] ?? ($record->customer->firstname ?? 'Contact Details'))
             ->icon('iconsax-bul-profile-circle')
+            ->lazy() // Enable lazy loading for contact details
             ->schema([
                 TextEntry::make('lpw_email')
                     ->label('Email')
@@ -1039,11 +1059,6 @@ class TableRecordActions
                                             ->description('Call logs Details')
                                             ->headerActions([
                                                 self::getAddActivityAction(),
-                                                // Action::make('refresh')
-                                                //     ->label('Refresh')
-                                                //     ->icon('heroicon-o-arrow-path')
-                                                //     ->color('gray')
-                                                //     ->action(fn() => null),
                                             ])
                                             ->schema(self::callLogSection()),
                                     ]),
