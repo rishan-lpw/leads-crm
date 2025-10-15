@@ -44,5 +44,18 @@ export default {
         },
     },
 
+    safelist: [
+        // Text
+        'text-xs', 'text-sm', 'text-gray-400', 'text-gray-500', 'leading-tight',
+        // Layout
+        'inline-flex', 'inline-block', 'items-center', 'justify-center', 'flex', 'flex-wrap', 'gap-1', 'space-x-1', 'mt-1', 'mx-0.5',
+        // Sizing & shape
+        'w-4', 'h-4', 'w-6', 'h-6', 'rounded-full',
+        // Backgrounds & shadows
+        'bg-gray-100', 'shadow-sm',
+        // Badges used in HTML strings
+        'px-2', 'py-0.5', 'rounded-full', 'bg-blue-100', 'text-blue-700', 'bg-orange-100', 'text-orange-700',
+    ],
+
     plugins: [forms, typography],
 };

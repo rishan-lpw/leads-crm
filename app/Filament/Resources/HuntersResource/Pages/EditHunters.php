@@ -150,7 +150,7 @@ class EditHunters extends EditRecord
                 })
                 ->slideOver(),
             
-            SendMessageAction::make($this->record),
+            // SendMessageAction::make($this->record),
         ];
     }
 

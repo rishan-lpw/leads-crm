@@ -84,21 +84,10 @@ class UserResource extends Resource
             ->columns([
                 TextColumn::make('name'),
                 TextColumn::make('email'),
-                // Score > 80 : High, 50-80 : Medium, <50 : Low
-                // Add badges for each 3 levels using colors: High - success, Medium - warning, Low - danger
-                TextColumn::make('score')
-                    ->label('Priority Score')
-                    ->formatStateUsing(fn ($state) => match (true) {
-                        $state > 80 => 'High',
-                        $state > 50 => 'Medium',
-                        default => 'Low',
-                    })
-                    ->colors([
-                        'success' => fn ($state) => $state === 'High',
-                        'warning' => fn ($state) => $state === 'Medium',
-                        'danger' => fn ($state) => $state === 'Low',
-                    ]),
-                
+                // User value category
+                TextColumn::make('userValue.category')->label('User Value'),
+                // Department name from departments table
+                TextColumn::make('department.name')->label('Department'),
                 // level name from user_levels table
                 TextColumn::make('level.title')->label('User Level'),
             ])

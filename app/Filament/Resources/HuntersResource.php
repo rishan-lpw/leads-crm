@@ -18,6 +18,8 @@ use App\Filament\Resources\HuntersResource\Components\ToolbarActions;
 use App\Filament\Resources\HuntersResource\Pages\ListHunters;
 use App\Filament\Resources\HuntersResource\Pages\CreateHunters;
 use App\Filament\Resources\HuntersResource\Pages\EditHunters;
+use App\Filament\Resources\HuntersResource\Pages;
+use App\Filament\Resources\HuntersResource\Pages\CustomerAds;
 
 class HuntersResource extends Resource
 {
@@ -86,6 +88,7 @@ class HuntersResource extends Resource
             'index' => ListHunters::route('/'),
             'create' => CreateHunters::route('/create'),
             'edit' => EditHunters::route('/{record}/edit'),
+            'customer-ads' => CustomerAds::route('/{record}/customer-ads'),
         ];
     }
 }

@@ -137,6 +137,23 @@ class TableColumns
                 ->label('Property Details Summary')
                 // Display data not exceeding 2 lines
                 ->getStateUsing(function ($record) {
+                    $type = ucfirst($record->type);
+                    $propertyType = ucfirst($record->propty_type);
+
+                    $typeBadge = "<span class='px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 font-medium'>$type</span>";
+                    $propertyTypeBadge = "<span class='px-2 py-0.5 text-xs rounded-full bg-orange-100 text-orange-700 font-medium'>$propertyType</span>";
+
+                    return "$typeBadge - $propertyTypeBadge";
+                })
+                ->html()
+                // Add badge for property type and type. Only apply for the fields type and propty_type.
+                // Add badge color info.
+                // ->badge()
+                // ->colors([
+                //     // Apply info color as the default color.
+                //     'info' => 'default',
+                // ])
+                ->description(function ($record) {
                     $priceInMillions = $record->price / 1_000_000;
                     $priceInBillions = $record->price / 1_000_000_000;
                     $priceInThousands = $record->price / 1_000;
@@ -149,22 +166,9 @@ class TableColumns
                     } else {
                         $priceFormatted = number_format($record->price);
                     }
-                    $price = 'LKR ' . $priceFormatted;
-                    $type = ucfirst($record->type);
-                    return "$price - $type";
-                })
-                ->html()
-                // Add badge for property type and type. Only apply for the fields type and propty_type.
-                // Add badge color info.
-                // ->badge()
-                // ->colors([
-                //     // Apply info color as the default color.
-                //     'info' => 'default',
-                // ])
-                ->description(function ($record) {
-                    $propertyType = ucfirst($record->propty_type);
+                    $price = $priceFormatted;
                     $city = ucfirst($record->city);
-                    return "$propertyType | $city";
+                    return "$price | $city";
                 })
                 ->searchable(['type', 'propty_type', 'city', 'price'])
                 ->sortable()
@@ -204,8 +208,8 @@ class TableColumns
 
                     $map = [
                         'red'    => '🔴',
-                        'orange' => '🟠',
-                        'yellow' => '🟡',
+                        'orange' => '🟡',
+                        // 'yellow' => '🟡',
                         'green'  => '🟢',
                         'black'  => '⚫',
                     ];
@@ -336,7 +340,6 @@ class TableColumns
                     return new HtmlString(implode('', $lines));
                 })
                 ->sortable(),
-
 
             BadgeColumn::make('weight')
                 ->label('Weight')

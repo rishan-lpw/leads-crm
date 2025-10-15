@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\HuntersResource\Components;
 
+use App\Filament\Resources\HuntersResource;
 use Filament\Actions\ViewAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\Action;
@@ -881,17 +882,38 @@ class TableRecordActions
 
                     Select::make('funnel_id')
                         ->label('Funnel (category - stage)')
-                        ->options(function () {
-                            return Funnel::orderBy('category')
-                                ->orderBy('stage')
-                                ->get()
-                                ->mapWithKeys(function ($funnel) {
-                                    return [$funnel->id => ucfirst($funnel->category) . ' - Stage ' . $funnel->stage];
-                                })
+                        ->options(function (callable $get) {
+                            $paymentStatusId = (int) $get('payment_status_id');
+                    
+                            // Determine which funnel IDs to show
+                            if (in_array($paymentStatusId, [2, 3])) {
+                                $allowedIds = [1, 2, 3, 4, 5, 6, 7];
+                            } elseif (in_array($paymentStatusId, [1, 15, 14])) {
+                                $allowedIds = [8, 9, 10];
+                            } elseif (in_array($paymentStatusId, [4, 9, 10])) {
+                                $allowedIds = [11, 12];
+                            } else {
+                                $allowedIds = []; // empty means show all
+                            }
+                    
+                            $query = Funnel::query()
+                                ->orderBy('category')
+                                ->orderBy('stage');
+                    
+                            if (!empty($allowedIds)) {
+                                $query->whereIn('id', $allowedIds);
+                            }
+                    
+                            return $query->get()
+                                ->mapWithKeys(fn ($funnel) => [
+                                    $funnel->id => ucfirst($funnel->category) . ' - Stage ' . $funnel->stage
+                                ])
                                 ->toArray();
                         })
                         ->searchable()
-                        ->required(),
+                        ->required()
+                        ->reactive()
+                        ->hint('Filtered by payment status'),
 
                     DateTimePicker::make('follow_up_date_time')
                         ->label('Follow Up Date & Time')
@@ -1026,7 +1048,16 @@ class TableRecordActions
                                 TextEntry::make('city')->label('City')->icon('heroicon-o-map-pin'),
                                 TextEntry::make('lat')->label('Latitude')->placeholder('Not specified'),
                                 TextEntry::make('lng')->label('Longitude')->placeholder('Not specified'),
-                            ])->columns(6),
+                            ])->columns(6)
+                            ->headerActions([
+                                Action::make('view_customer_ads')
+                                    ->label('View Customer Ads')
+                                    ->icon('heroicon-o-newspaper')
+                                    ->color('primary')
+                                    ->url(fn($record) => HuntersResource::getUrl('customer-ads', ['record' => $record->cust_id]))
+                                    // ->openUrlInNewTab()
+                                    ->visible(fn($record) => !empty($record->cust_id)),
+                            ]),
                         ]),
 
                         Tab::make('Activity')->icon('heroicon-o-clipboard-document-list')->schema([

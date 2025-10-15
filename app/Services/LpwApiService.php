@@ -255,19 +255,19 @@ class LpwApiService
      */
     public function getUserAds($userId, $cache = 2)
     {
+        
         try {
             $url = "https://www.lankapropertyweb.com/api/v3/UserDetails/ads";
             $params = [
-                'token' => config('services.lpw.token'),
+                'token' => 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiYXBpX2tleSJ9.l6YJhp_Jm2tryHhDdodj0E1kui6vfLordQUDXWF3y3U',
                 'cache' => $cache,
                 'user_id' => $userId
             ];
 
             $response = Http::timeout(30)->get($url, $params);
-
+            // dd($response->json());
             if ($response->successful()) {
                 $data = $response->json();
-                
                 // Log successful response
                 Log::info('LPW getUserAds successful', [
                     'user_id' => $userId,
