@@ -22,6 +22,12 @@ class LpwApiService
         $this->apiToken = env('LPW_API_TOKEN', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiYXBpX2tleSJ9.l6YJhp_Jm2tryHhDdodj0E1kui6vfLordQUDXWF3y3U');
         $this->callScriptBaseUrl = env('LPW_CALLSCRIPT_BASE_URL', 'https://dev2.srilankaproperty.lk/api/v3');
         $this->callScriptToken = env('LPW_CALLSCRIPT_TOKEN', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIxNTM2NzUifQ.qIjXBn2QhO00-SRd0gycGMFKXU8plWTvtjenSsdPnrE');
+
+        // Guard against blank env values overriding defaults
+        $this->baseUrl = trim((string) $this->baseUrl) !== '' ? $this->baseUrl : 'https://www.lankapropertyweb.com/api/v3';
+        $this->apiToken = trim((string) $this->apiToken) !== '' ? $this->apiToken : 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiYXBpX2tleSJ9.l6YJhp_Jm2tryHhDdodj0E1kui6vfLordQUDXWF3y3U';
+        $this->callScriptBaseUrl = trim((string) $this->callScriptBaseUrl) !== '' ? $this->callScriptBaseUrl : 'https://dev2.srilankaproperty.lk/api/v3';
+        $this->callScriptToken = trim((string) $this->callScriptToken) !== '' ? $this->callScriptToken : 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIxNTM2NzUifQ.qIjXBn2QhO00-SRd0gycGMFKXU8plWTvtjenSsdPnrE';
     }
     
     /**
@@ -58,6 +64,16 @@ class LpwApiService
                 }
 
                 $json = $response->json();
+                // Fallback: some servers may send application/octet-stream or text/plain
+                if ($json === null) {
+                    $rawBody = $response->body();
+                    if (is_string($rawBody) && $rawBody !== '') {
+                        $decoded = json_decode($rawBody, true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $json = $decoded;
+                        }
+                    }
+                }
 
                 // Some endpoints wrap payload under 'data'
                 $payload = is_array($json) && array_key_exists('data', $json) ? ($json['data'] ?? []) : ($json ?? []);
@@ -323,7 +339,7 @@ class LpwApiService
                     'token_length' => strlen($this->callScriptToken),
                 ]);
 
-                $response = Http::timeout(15)->get($url, $params);
+                $response = Http::acceptJson()->timeout(20)->get($url, $params);
                 
                 Log::info('LPW getCallScript response', [
                     'status' => $response->status(),

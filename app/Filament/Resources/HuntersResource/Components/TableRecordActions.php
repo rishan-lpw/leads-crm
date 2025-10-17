@@ -31,6 +31,7 @@ use App\Models\User;
 use App\Services\LpwApiService;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
+use Illuminate\Support\Str;
 use Filament\Actions\ButtonAction;
 use Filament\Forms\Components\Repeater;
 use Filament\Notifications\Collection;
@@ -41,6 +42,7 @@ use Filament\Support\View\Components\ButtonComponent;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use App\Filament\Resources\HuntersResource\Widgets\ActivityTimelineChart;
 use App\Filament\Resources\HuntersResource\Widgets\ActivityTypeChart;
 use App\Filament\Resources\HuntersResource\Widgets\ActivityScoreChart;
@@ -96,14 +98,18 @@ class TableRecordActions
                 'address' => $normalize(['company_address', 'address', 'address1', 'addr']),
                 'membership_exp_date' => $normalize(['expiry', 'membership_exp_date', 'membership_expiry', 'membership_exp']),
                 'payment_exp_date' => $normalize(['payment_exp_date', 'expiry', 'payment_expiry', 'payment_exp']),
-                'membership_status' => $normalize(['payment', 'membership_status', 'status']),
+                'membership_status' => $normalize(['membership_status', 'status']),
                 'firstname' => $normalize(['firstname', 'first_name', 'name']),
                 'last_activity' => $normalize(['latest_action', 'last_activity', 'last_activity_at', 'latest_activity']),
                 'id' => $normalize(['UID', 'uid', 'id', 'user_id']),
                 'reg_date' => $normalize(['reg_date', 'registered_at', 'registration_date', 'member_since']),
                 'source' => $normalize(['source', 'source_type']),
                 'category' => $normalize(['category', 'type']),
-                'payment_status' => $normalize(['payment', 'payment_status']),
+                'customer_remarks' => $normalize(['customer_remarks', 'remarks']),
+                'payment' => $normalize(['payment']),
+                'latest_action' => $normalize(['latest_action']),
+                'latest_comment' => $normalize(['latest_comment']),
+                'payment_status' => $normalize(['status', 'payment_status']),
                 'latest_commented_at' => $normalize(['latest_commented_at', 'last_commented_at']),
                 'company_name' => $normalize(['company_name', 'company']),
             ];
@@ -515,6 +521,10 @@ class TableRecordActions
                                 TextEntry::make('transcript')
                                     ->label('Transcript')
                                     ->default(fn($log) => $log['transcript'] ?? 'No transcript available')
+                                    // Add text formatting for the transcript
+                                    ->formatStateUsing(function ($state) {
+                                        return new HtmlString($state);
+                                    })
                                     ->columnSpanFull(),
                             ])
                             ->columnSpanFull(),
@@ -522,6 +532,131 @@ class TableRecordActions
                     ->columnSpanFull(),
             ])
         ];
+    }
+    
+    /**
+     * Fetch LPW user ads for the given record and normalize the payload.
+     */
+    private static function getUserAdsForRecord($record): array
+    {
+        static $cache = [];
+
+        $userId = $record->cust_id ?? $record->customer_id ?? null;
+        if (!$userId) {
+            return [];
+        }
+
+        if (array_key_exists($userId, $cache)) {
+            return $cache[$userId];
+        }
+
+        try {
+            $service = app(LpwApiService::class);
+            $raw = $service->getUserAds($userId, 2);
+
+            // Normalize possible response shapes
+            if (is_array($raw)) {
+                if (isset($raw['results']) && is_array($raw['results'])) {
+                    return $cache[$userId] = $raw['results'];
+                }
+                if (isset($raw['data']) && is_array($raw['data'])) {
+                    return $cache[$userId] = $raw['data'];
+                }
+                if (array_is_list($raw)) {
+                    return $cache[$userId] = $raw;
+                }
+                // Single object payload
+                return $cache[$userId] = [$raw];
+            }
+
+            return $cache[$userId] = [];
+        } catch (\Throwable $e) {
+            return $cache[$userId] = [];
+        }
+    }
+
+    /**
+     * Return the first ad (normalized) for the record's user, for display in Property Details tab.
+     */
+    private static function getFirstUserAdForRecord($record): array
+    {
+        $ads = self::getUserAdsForRecord($record);
+        if (empty($ads)) {
+            return [];
+        }
+
+        $ad = (array) ($ads[0] ?? []);
+
+        $normalize = function ($keys, $default = null) use ($ad) {
+            foreach ((array) $keys as $key) {
+                $value = data_get($ad, $key);
+                if (!is_null($value) && $value !== '') {
+                    return $value;
+                }
+            }
+            return $default;
+        };
+
+        // Map various potential keys from the LPW API to our UI fields
+        return [
+            'heading' => $normalize(['heading', 'adtitle', 'title']),
+            'type' => $normalize(['type', 'ad_type', 'listing_type']),
+            'propty_type' => $normalize(['propty_type', 'property_type', 'ptype']),
+            'service_type' => $normalize(['service_type', 'stype', 'service']),
+            'price' => $normalize(['price', 'amount', 'price_lkr']),
+            'price_type' => $normalize(['price_type', 'priceType']),
+            'desc' => $normalize(['desc', 'description', 'details', 'body']),
+            'street' => $normalize(['street', 'address1', 'address', 'location']),
+            'city' => $normalize(['city', 'town', 'district']),
+            'lat' => $normalize(['lat', 'latitude']),
+            'lng' => $normalize(['lng', 'longitude']),
+        ];
+    }
+
+    /**
+     * Return normalized list of ads for repeatable rendering.
+     */
+    private static function getNormalizedUserAdsForRecord($record): array
+    {
+        $ads = self::getUserAdsForRecord($record);
+        if (empty($ads) || !is_array($ads)) {
+            return [];
+        }
+
+        $normalizeOne = function ($ad) {
+            $ad = (array) $ad;
+            $normalize = function ($keys, $default = null) use ($ad) {
+                foreach ((array) $keys as $key) {
+                    $value = data_get($ad, $key);
+                    if (!is_null($value) && $value !== '') {
+                        return $value;
+                    }
+                }
+                return $default;
+            };
+
+            return [
+                'heading' => $normalize(['heading', 'adtitle', 'title']),
+                'type' => $normalize(['type', 'ad_type', 'listing_type']),
+                'propty_type' => $normalize(['propty_type', 'property_type', 'ptype']),
+                'service_type' => $normalize(['service_type', 'stype', 'service']),
+                'price' => $normalize(['price', 'amount', 'price_lkr']),
+                'price_type' => $normalize(['price_type', 'priceType']),
+                'desc' => $normalize(['desc', 'description', 'details', 'body']),
+                'street' => $normalize(['street', 'address1', 'address', 'location']),
+                'city' => $normalize(['city', 'town', 'district']),
+                'lat' => $normalize(['lat', 'latitude']),
+                'lng' => $normalize(['lng', 'longitude']),
+            ];
+        };
+
+        return collect($ads)
+            ->map(fn($ad) => $normalizeOne($ad))
+            ->filter(function ($ad) {
+                return array_filter($ad, fn($v) => !is_null($v) && $v !== '');
+            })
+            ->values()
+            ->toArray();
     }
     
     /**
@@ -544,8 +679,10 @@ class TableRecordActions
         try {
             $service = app(LpwApiService::class);
             // dd($service);
+            // Force clear cache if empty result encountered previously
+            Cache::forget("lpw_call_script_{$userId}");
             $raw = $service->getCallScript($userId, 10);
-            
+            // dd($raw);
             // Debug: Uncomment to check raw API response
             // dd([
             //     'userId' => $userId,
@@ -593,7 +730,7 @@ class TableRecordActions
                     ];
                 }
             }
-            
+            // dd($formatted);
             Log::info('getCallScriptForRecord: Formatted data', [
                 'user_id' => $userId,
                 'formatted_count' => count($formatted),
@@ -627,7 +764,6 @@ class TableRecordActions
                     Section::make()
                         ->heading(fn($state) => ($state['category'] ?? 'Script') . ' • ' . ($state['title'] ?? ''))
                         ->collapsible()
-                        ->collapsed()
                         ->schema([
                             TextEntry::make('content')
                                 ->label('')
@@ -714,11 +850,39 @@ class TableRecordActions
                     ->icon('heroicon-s-calendar')
                     ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['payment_exp_date'] ?? ($record->customer->payment_exp_date ?? 'N/A')),
 
+                TextEntry::make('lpw_payment')
+                    ->label('Payment')
+                    ->icon('heroicon-s-credit-card')
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['payment'] ?? ($record->customer->payment ?? 'N/A')),
+
+                TextEntry::make('lpw_latest_action')
+                    ->label('Latest Action')
+                    ->icon('heroicon-s-clock')
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['latest_action'] ?? ($record->customer->latest_action ?? 'N/A')),
+
+                TextEntry::make('lpw_latest_comment')
+                    ->label('Latest Comment')
+                    ->icon('heroicon-s-chat-bubble-bottom-center-text')
+                    ->columnSpan(2) // Long comment can span 2 columns
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['latest_comment'] ?? ($record->customer->latest_comment ?? 'N/A')),
+
                 TextEntry::make('lpw_latest_commented_at')
                     ->label('Latest Commented At')
                     ->icon('heroicon-s-calendar')
                     ->columnSpan(2) // Long date info can span 2 columns
                     ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['latest_commented_at'] ?? ($record->customer->latest_commented_at ?? 'N/A')),
+            
+                TextEntry::make('lpw_company_name')
+                    ->label('Company Name')
+                    ->icon('heroicon-s-building-office')
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['company_name'] ?? ($record->customer->company_name ?? 'N/A')),
+                
+                // Remarks
+                TextEntry::make('lpw_customer_remarks')
+                    ->label('Customer Remarks')
+                    ->icon('heroicon-s-chat-bubble-bottom-center-text')
+                    ->columnSpan(2) // Long comment can span 2 columns
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['customer_remarks'] ?? ($record->customer->customer_remarks ?? 'N/A')),
             ]);
     }
     
@@ -1011,20 +1175,33 @@ class TableRecordActions
                         ]),
 
                         Tab::make('Property Details')->icon('heroicon-o-information-circle')->schema([
-                            Section::make('Property Information')->schema([
-                                TextEntry::make('heading')->label('Property Heading')->columnSpanFull()->size('lg')->weight('bold'),
-                                // description
-                                TextEntry::make('type')->label('Listing Type')->badge(),
-                                TextEntry::make('propty_type')->label('Property Type')->badge(),
-                                TextEntry::make('service_type')->label('Service Type')->badge(),
-                                TextEntry::make('price')->label('Price')->money('LKR')->size('md')->weight('bold')->color('success'),
-                                TextEntry::make('price_type')->label('Price Type'),
-                                TextEntry::make('desc')->label('Property Description')->columnSpanFull()->html()->placeholder('No description available'),
-                                TextEntry::make('street')->label('Street Address')->placeholder('Not specified'),
-                                TextEntry::make('city')->label('City')->icon('heroicon-o-map-pin'),
-                                TextEntry::make('lat')->label('Latitude')->placeholder('Not specified'),
-                                TextEntry::make('lng')->label('Longitude')->placeholder('Not specified'),
-                            ])->columns(6)
+                            Section::make('Property Information')
+                            ->schema([
+                                RepeatableEntry::make('user_ads')
+                                    ->label('')
+                                    ->contained(false)
+                                    ->lazy()
+                                    ->getStateUsing(fn($record) => self::getNormalizedUserAdsForRecord($record))
+                                    ->schema([
+                                        Section::make(fn($item) => ($item['heading'] ?? 'Property') . (isset($item['city']) && $item['city'] ? " • {$item['city']}" : ''))
+                                            // ->collapsible()
+                                            // ->collapsed()
+                                            ->schema([
+                                                TextEntry::make('heading')->label('Property Heading')->columnSpanFull()->size('lg')->weight('bold'),
+                                                TextEntry::make('type')->label('Listing Type')->badge(),
+                                                TextEntry::make('propty_type')->label('Property Type')->badge(),
+                                                TextEntry::make('service_type')->label('Service Type')->badge(),
+                                                TextEntry::make('price')->label('Price')->money('LKR')->size('md')->weight('bold')->color('success'),
+                                                TextEntry::make('price_type')->label('Price Type'),
+                                                TextEntry::make('desc')->label('Property Description')->columnSpanFull()->html()->placeholder('No description available'),
+                                                TextEntry::make('street')->label('Street Address')->placeholder('Not specified'),
+                                                TextEntry::make('city')->label('City')->icon('heroicon-o-map-pin'),
+                                                TextEntry::make('lat')->label('Latitude')->placeholder('Not specified'),
+                                                TextEntry::make('lng')->label('Longitude')->placeholder('Not specified'),
+                                            ])
+                                            ->columns(6),
+                                    ]),
+                            ])
                             ->headerActions([
                                 Action::make('view_customer_ads')
                                     ->label('View Customer Ads')
@@ -1056,40 +1233,46 @@ class TableRecordActions
                                     ]),
                                 ]),
                                 
-                                Tab::make('Call Log')->icon('heroicon-s-phone-arrow-up-right')->schema([
-                                    ComponentsGrid::make(3)->schema([
-                                        self::contactDetailsSection(),
+                                // Tab::make('Call Log')->icon('heroicon-s-phone-arrow-up-right')->schema([
+                                //     ComponentsGrid::make(3)->schema([
+                                //         self::contactDetailsSection(),
                                         
-                                        Section::make('Call Logs')
-                                            ->icon('heroicon-s-phone-arrow-up-right')
-                                            ->columnSpan(2)
-                                            ->description('Call logs Details')
-                                            ->headerActions([
-                                                self::getAddActivityAction(),
-                                            ])
-                                            ->schema(self::callLogSection()),
-                                    ]),
-                                ]),
+                                //         Section::make('Call Logs')
+                                //             ->icon('heroicon-s-phone-arrow-up-right')
+                                //             ->columnSpan(2)
+                                //             ->description('Call logs Details')
+                                //             ->headerActions([
+                                //                 self::getAddActivityAction(),
+                                //             ])
+                                //             ->schema(self::callLogSection()),
+                                //     ]),
+                                // ]),
                                 
-                                Tab::make('Call Script')->icon('heroicon-m-clipboard-document-list')->schema([
-                                    ComponentsGrid::make(3)->schema([
-                                        self::contactDetailsSection(),
+                                // Tab::make('Call Script')->icon('heroicon-m-clipboard-document-list')->schema([
+                                //     ComponentsGrid::make(3)->schema([
+                                //         self::contactDetailsSection(),
                                         
-                                        Section::make('Call Scripts')
-                                            ->icon('heroicon-m-clipboard-document-list')
-                                            ->columnSpan(2)
-                                            ->description('Call script for the customer.')
-                                            ->headerActions([
-                                                self::getAddActivityAction(),
-                                                Action::make('refresh')
-                                                    ->label('Refresh')
-                                                    ->icon('heroicon-o-arrow-path')
-                                                    ->color('gray')
-                                                    ->action(fn() => null),
-                                            ])
-                                            ->schema(self::callScriptSection()),
-                                    ]),
-                                ]),
+                                //         Section::make('Call Scripts')
+                                //             ->icon('heroicon-m-clipboard-document-list')
+                                //             ->columnSpan(2)
+                                //             ->description('Call script for the customer.')
+                                //             ->headerActions([
+                                //                 self::getAddActivityAction(),
+                                //                 Action::make('refresh')
+                                //                     ->label('Refresh')
+                                //                     ->icon('heroicon-o-arrow-path')
+                                //                     ->color('gray')
+                                //                     ->action(function ($record) {
+                                //                         $userId = $record->cust_id ?? $record->customer_id ?? null;
+                                //                         if ($userId) {
+                                //                             Cache::forget("lpw_call_script_{$userId}");
+                                //                         }
+                                //                         Notification::make()->title('Call script refreshed')->success()->send();
+                                //                     }),
+                                //             ])
+                                //             ->schema(self::callScriptSection()),
+                                //     ]),
+                                // ]),
 
                                 Tab::make('Old Activities')->icon('heroicon-o-clock')->schema([
                                     ComponentsGrid::make(3)->schema([
@@ -1221,49 +1404,12 @@ class TableRecordActions
                                     //     ])
                                     //     ->columnSpanFull(),
 
-                                    // Activity Breakdown Section
-                                    Section::make('Activity Breakdown')
-                                        ->icon('heroicon-s-chart-pie')
-                                        ->description('Activities by type')
-                                        ->collapsible()
-                                        ->schema([
-                                            RepeatableEntry::make('activity_stats')
-                                                ->label('')
-                                                ->contained(false)
-                                                ->getStateUsing(function ($record) {
-                                                    return $record->activities()
-                                                        ->selectRaw('stage, COUNT(*) as count')
-                                                        ->groupBy('stage')
-                                                        ->get()
-                                                        ->map(function ($item) {
-                                                            return [
-                                                                'type' => ucfirst($item->stage ?? 'Other'),
-                                                                'count' => $item->count,
-                                                            ];
-                                                        })
-                                                        ->toArray();
-                                                })
-                                                ->schema([
-                                                    ComponentsGrid::make(2)->schema([
-                                                        TextEntry::make('type')
-                                                            ->label('Type')
-                                                            ->badge()
-                                                            ->color('primary'),
-                                                        TextEntry::make('count')
-                                                            ->label('Count')
-                                                            ->badge()
-                                                            ->color('success'),
-                                                    ]),
-                                                ]),
-                                        ])
-                                        ->columnSpanFull(),
-
                                     // Activity Summary by Date Range
                                     Section::make('Activity Summary')
                                         ->icon('heroicon-s-calendar-days')
                                         ->description('Activities distribution over time')
                                         ->collapsible()
-                                        ->collapsed()
+                                        
                                         ->schema([
                                             ComponentsGrid::make(4)->schema([
                                                 TextEntry::make('today_activities')
@@ -1310,8 +1456,70 @@ class TableRecordActions
                                             ]),
                                         ])
                                         ->columnSpanFull(),
+
+                                    // Activity Breakdown Section
+                                    Section::make('Activity Breakdown')
+                                        ->icon('heroicon-s-chart-pie')
+                                        ->description('Activities by type')
+                                        ->collapsible()
+                                        ->collapsed()
+                                        ->schema([
+                                            RepeatableEntry::make('activity_stats')
+                                                ->label('')
+                                                ->contained(false)
+                                                ->getStateUsing(function ($record) {
+                                                    return $record->activities()
+                                                        ->selectRaw('stage, COUNT(*) as count')
+                                                        ->groupBy('stage')
+                                                        ->get()
+                                                        ->map(function ($item) {
+                                                            return [
+                                                                'type' => ucfirst($item->stage ?? 'Other'),
+                                                                'count' => $item->count,
+                                                            ];
+                                                        })
+                                                        ->toArray();
+                                                })
+                                                ->schema([
+                                                    ComponentsGrid::make(2)->schema([
+                                                        TextEntry::make('type')
+                                                            ->label('Type')
+                                                            ->badge()
+                                                            ->color('primary'),
+                                                        TextEntry::make('count')
+                                                            ->label('Count')
+                                                            ->badge()
+                                                            ->color('success'),
+                                                    ]),
+                                                ]),
+                                        ])
+                                        ->columnSpanFull(),
                                 ]),
-                                Tab::make('Call Script')->schema(self::callScriptSection()),
+                                Tab::make('Call Script')->schema([
+                                    ComponentsGrid::make(3)->schema([
+                                        self::contactDetailsSection(),
+                                        
+                                        Section::make('Call Scripts')
+                                            ->icon('heroicon-m-clipboard-document-list')
+                                            ->columnSpan(2)
+                                            ->description('Call script for the customer.')
+                                            ->headerActions([
+                                                self::getAddActivityAction(),
+                                                Action::make('refresh')
+                                                    ->label('Refresh')
+                                                    ->icon('heroicon-o-arrow-path')
+                                                    ->color('gray')
+                                                    ->action(function ($record) {
+                                                        $userId = $record->cust_id ?? $record->customer_id ?? null;
+                                                        if ($userId) {
+                                                            Cache::forget("lpw_call_script_{$userId}");
+                                                        }
+                                                        Notification::make()->title('Call script refreshed')->success()->send();
+                                                    }),
+                                            ])
+                                            ->schema(self::callScriptSection()),
+                                    ]),
+                                ]),
                             ]),
                         ]),
 
