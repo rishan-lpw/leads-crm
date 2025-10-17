@@ -38,7 +38,7 @@ class CustomerAds extends Page implements HasTable, HasForms
         // Load from record if provided (from route parameter)
         if ($record) {
             // Extract cust_id from the record object
-            $this->customerId = $record->cust_id ?? $record->customer_id ?? '';
+            $this->customerId = $record;
         } else {
             // Load from query param if provided
             $this->customerId = request()->query('user_id', '');
@@ -48,6 +48,7 @@ class CustomerAds extends Page implements HasTable, HasForms
             // dd($this->customerId);
             $this->loadAds();
         }
+        // dd($this->adsData);
     }
 
     public function loadAds(): void
@@ -110,65 +111,65 @@ class CustomerAds extends Page implements HasTable, HasForms
     public function table(Tables\Table $table): Tables\Table
     {
         return $table
-            ->records(fn() => collect($this->adsData))
+            ->records(fn() => collect($this->adsData)->map(fn($item) => (object) $item))
             ->columns([
                 TextColumn::make('ad_id')
                     ->label('Ad ID')
                     ->sortable()
                     ->copyable()
                     ->searchable(),
-                    
+
                 TextColumn::make('heading')
                     ->label('Title')
                     ->limit(50)
-                    ->tooltip(fn($record) => $record['heading'] ?? null)
+                    ->tooltip(fn($record) => $record->heading ?? null)
                     ->searchable()
                     ->wrap(),
-                    
+
                 TextColumn::make('type')
                     ->label('Type')
                     ->badge()
                     ->color(fn($state) => match(strtolower($state ?? '')) {
-                        'sales' => 'success',
+                        'sale' => 'success',
                         'rent' => 'warning',
                         'land' => 'info',
                         default => 'gray'
                     }),
-                    
+
                 TextColumn::make('propty_type')
                     ->label('Property Type')
                     ->badge()
                     ->color('primary'),
-                    
+
                 TextColumn::make('price')
                     ->label('Price')
                     ->money('LKR')
                     ->sortable(),
-                    
+
                 TextColumn::make('city')
                     ->label('City')
                     ->searchable(),
-                    
+
                 TextColumn::make('street')
                     ->label('Street')
                     ->limit(40)
-                    ->tooltip(fn($record) => $record['street'] ?? null)
+                    ->tooltip(fn($record) => $record->street ?? null)
                     ->toggleable(),
-                    
+
                 TextColumn::make('posted_date')
                     ->label('Posted Date')
                     ->dateTime()
                     ->sortable(),
-                    
+
                 TextColumn::make('contact_name')
                     ->label('Contact')
                     ->toggleable(isToggledHiddenByDefault: true),
-                    
+
                 TextColumn::make('email')
                     ->label('Email')
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                    
+
                 TextColumn::make('is_active')
                     ->label('Status')
                     ->badge()
@@ -207,9 +208,9 @@ class CustomerAds extends Page implements HasTable, HasForms
                 Action::make('view')
                     ->label('View')
                     ->icon('heroicon-o-eye')
-                    ->url(fn($record) => $record['url'] ?? '#')
+                    ->url(fn($record) => $record->url ?? '#')
                     ->openUrlInNewTab()
-                    ->visible(fn($record) => !empty($record['url'])),
+                    ->visible(fn($record) => !empty($record->url)),
 
                 Action::make('copy_id')
                     ->label('Copy ID')
@@ -217,7 +218,7 @@ class CustomerAds extends Page implements HasTable, HasForms
                     ->action(function ($record) {
                         Notification::make()
                             ->title('Ad ID Copied')
-                            ->body('Ad ID: ' . ($record['ad_id'] ?? 'N/A'))
+                            ->body('Ad ID: ' . ($record->ad_id ?? 'N/A'))
                             ->success()
                             ->send();
                     }),
@@ -252,6 +253,5 @@ class CustomerAds extends Page implements HasTable, HasForms
             ->emptyStateIcon('heroicon-o-newspaper')
             ->defaultSort('posted_date', 'desc');
     }
-
 }
 

@@ -74,7 +74,7 @@ class ListHunters extends ListRecords
             'favorite' => Tab::make('Favorite')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('is_favourite', 1))
                 ->badge($countFor('favorite', fn($q) => $q->where('is_favourite', 1)))
-                ->badgeColor('secondary'),
+                ->badgeColor('gray'),
 
             'all' => Tab::make('All')
                 ->badge($countFor('all'))

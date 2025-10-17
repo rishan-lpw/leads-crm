@@ -53,18 +53,9 @@ class LeadStatusManageCron extends Command
          * If note = NULL within rule_1_days
          */
         Lead::where('status', 'new')
-            ->whereDate('posted_date', '<=', $now->copy()->subDays($rule1Days))
-            ->whereNull('note')
+            // When an activity has come, status should be follow_up
+            ->whereHas('activities')
             ->update(['status' => 'follow_up']);
-
-        /**
-         * Rule 3: follow_up -> system
-         * If note = NULL within rule_2_days
-         */
-        Lead::where('status', 'follow_up')
-            ->whereDate('posted_date', '<=', $now->copy()->subDays($rule2Days))
-            ->whereNull('note')
-            ->update(['status' => 'system']);
 
         /**
          * Rule 4: system -> to_be_expired

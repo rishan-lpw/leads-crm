@@ -32,6 +32,7 @@ use App\Services\LpwApiService;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\ButtonAction;
+use Filament\Forms\Components\Repeater;
 use Filament\Notifications\Collection;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
@@ -40,6 +41,11 @@ use Filament\Support\View\Components\ButtonComponent;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Filament\Resources\HuntersResource\Widgets\ActivityTimelineChart;
+use App\Filament\Resources\HuntersResource\Widgets\ActivityTypeChart;
+use App\Filament\Resources\HuntersResource\Widgets\ActivityScoreChart;
+use App\Filament\Resources\HuntersResource\Widgets\MonthlyActivityChart;
+use Livewire\Component as LivewireComponent;
 
 class TableRecordActions
 {
@@ -298,152 +304,40 @@ class TableRecordActions
     private static function callLogSection(): array
     {
         return [
-            RepeatableEntry::make('call_logs')
-                ->label('')
-                ->contained(false)
-                ->lazy() // Enable lazy loading
-                ->getStateUsing(function ($record) {
-                    // Only load data when this tab is actually accessed
-                    $logs = self::getCallLogsForRecord($record);
-                    if (empty($logs)) return [];
+            // RepeatableEntry::make('call_logs')
+            //     ->label('')
+            //     ->contained(false)
+            //     ->lazy() // Enable lazy loading
+            //     ->getStateUsing(function ($record) {
+            //         // Only load data when this tab is actually accessed
+            //         $logs = self::getCallLogsForRecord($record);
+            //         if (empty($logs)) return [];
 
-                    return collect($logs)
-                        ->sortByDesc('datetime')
-                        ->values()
-                        ->toArray();
-                })
-                    ->schema([
-                        Section::make(fn($log) => sprintf(
-                            '%s • %s • %ss • %s',
-                            $log['am'] ?? 'Unknown',
-                            $log['datetime'] ?? 'N/A',
-                            $log['talktime'] ?? '0',
-                            ucfirst($log['sentiment'] ?? 'N/A')
-                        ))
-                        ->description(function ($log) {
-                            $agent = $log['agent'] ?? 'Unknown';
-                            $language = $log['language'] ?? 'Unknown';
-                            $sentiment = ucfirst($log['sentiment'] ?? 'N/A');
-                            // $status = ucfirst($log['status'] ?? 'N/A');
-                            return "Agent: {$agent} | Language: {$language} | Sentiment: {$sentiment}";
-                        })
-                        ->schema([
-                            // agent name
-                            TextEntry::make('agent')
-                                ->label('Agent')
-                                ->placeholder('N/A'),
-
-                            TextEntry::make('sentiment')
-                                ->label('Sentiment')
-                                ->badge()
-                                ->color(fn($log) => match (strtolower((string)($log['sentiment'] ?? ''))) {
-                                    'positive' => 'success',
-                                    'negative' => 'danger',
-                                    'neutral' => 'gray',
-                                    'mixed' => 'warning',
-                                    default => 'info',
-                                })
-                                ->default(fn($log) => ucfirst($log['sentiment'] ?? 'N/A')),
-
-                            TextEntry::make('language')
-                                ->label('Language')
-                                ->placeholder('N/A'),
-
-                            TextEntry::make('talktime')
-                                ->label('Talk Time')
-                                ->placeholder('N/A'),
-
-                            TextEntry::make('total_count')
-                                ->label('Total Count')
-                                ->placeholder('N/A'),
-
-                            TextEntry::make('summary_en')
-                                ->label('Summary (English)')
-                                ->columnSpanFull()
-                                ->placeholder('No summary available'),
-
-                            TextEntry::make('summary_si')
-                                ->label('Summary (Sinhala)')
-                                ->columnSpanFull()
-                                ->placeholder('No summary available'),
-
-                            TextEntry::make('summary_ta')
-                                ->label('Summary (Tamil)')
-                                ->columnSpanFull()
-                                ->placeholder('No summary available'),
-
-                            TextEntry::make('transcript')
-                                ->label('Full Transcript')
-                                ->default('No transcript available')
-                                ->columnSpanFull()
-                                ->formatStateUsing(function ($state) {
-                                    if (!$state) {
-                                        return new HtmlString('<span class="fi-text-gray-500 italic">No transcript available</span>');
-                                    }
-
-                                    // Preserve paragraph spacing and format nicely
-                                    $formatted = nl2br(e($state));
-                                    
-                                    return new HtmlString("
-                                        <div class='fi-bg-gray-50 fi-border fi-border-gray-200 fi-rounded-xl fi-p-4 fi-text-sm fi-leading-relaxed'>
-                                            {$formatted}
-                                        </div>
-                                    ");
-                                })
-                                ->html(),
-
-                            TextEntry::make('recording_url')
-                                ->label('Recording URL')
-                                ->columnSpanFull()
-                                ->copyable()
-                                ->copyMessage('Recording URL copied')
-                                ->icon('heroicon-s-link')
-                                ->url(fn($log) => $log['recording_url'] ?? 'N/A')
-                                ->openUrlInNewTab(),
-                        ])
-                        ->columns(3)
-                        ->collapsed(),
-                    ]),
-            // ]),
-
-            RepeatableEntry::make('call_logs')
-            // ->label('')
-            // ->contained(false)
-            // ->getStateUsing(function ($record) {
-            //     $logs = self::getCallLogsForRecord($record);
-            //     if (empty($logs)) return [];
-
-            //     // Sort by datetime descending
-            //     return collect($logs)
-            //         ->sortByDesc('datetime')
-            //         ->values()
-            //         ->toArray();
-            // })
-            // ->schema([
-            //     Section::make('')
-            //         // ->collapsible()   // This section can be expanded/collapsed
-            //         // ->collapsed()     // Collapsed by default
-            //         // ->heading(fn($log) => sprintf(
-            //         //     '%s • %s • %ss • %s',
-            //         //     $log['am'] ?? 'Unknown',
-            //         //     $log['datetime'] ?? 'N/A',
-            //         //     $log['talktime'] ?? '0',
-            //         //     ucfirst($log['sentiment'] ?? 'N/A')
-            //         // ))
+            //         return collect($logs)
+            //             ->sortByDesc('datetime')
+            //             ->values()
+            //             ->toArray();
+            //     })
             //         ->schema([
-            //             // Main fields always visible in a grid
-            //             ComponentsGrid::make(5)->schema([
-            //                 TextEntry::make('am')
-            //                     ->label('AM')
-            //                     ->default(fn($log) => $log['am'] ?? 'Unknown'),
-
-            //                 TextEntry::make('datetime')
-            //                     ->label('Date & Time')
-            //                     ->default(fn($log) => $log['datetime'] ?? 'N/A'),
-
-            //                 TextEntry::make('talktime')
-            //                     ->label('Duration')
-            //                     ->default(fn($log) => ($log['talktime'] ?? '0') . ' sec'),
+            //             Section::make(fn($log) => sprintf(
+            //                 '%s • %s • %ss • %s',
+            //                 $log['am'] ?? 'Unknown',
+            //                 $log['datetime'] ?? 'N/A',
+            //                 $log['talktime'] ?? '0',
+            //                 ucfirst($log['sentiment'] ?? 'N/A')
+            //             ))
+            //             ->description(function ($log) {
+            //                 $agent = $log['agent'] ?? 'Unknown';
+            //                 $language = $log['language'] ?? 'Unknown';
+            //                 $sentiment = ucfirst($log['sentiment'] ?? 'N/A');
+            //                 // $status = ucfirst($log['status'] ?? 'N/A');
+            //                 return "Agent: {$agent} | Language: {$language} | Sentiment: {$sentiment}";
+            //             })
+            //             ->schema([
+            //                 // agent name
+            //                 TextEntry::make('agent')
+            //                     ->label('Agent')
+            //                     ->placeholder('N/A'),
 
             //                 TextEntry::make('sentiment')
             //                     ->label('Sentiment')
@@ -455,66 +349,178 @@ class TableRecordActions
             //                         'mixed' => 'warning',
             //                         default => 'info',
             //                     })
-            //                     ->default(fn($log) => $log['sentiment'] ?? 'N/A'),
+            //                     ->default(fn($log) => ucfirst($log['sentiment'] ?? 'N/A')),
 
-            //                 TextEntry::make('event')
-            //                     ->label('Event')
-            //                     ->default(fn($log) => $log['event'] ?? 'N/A'),
+            //                 TextEntry::make('language')
+            //                     ->label('Language')
+            //                     ->placeholder('N/A'),
+
+            //                 TextEntry::make('talktime')
+            //                     ->label('Talk Time')
+            //                     ->placeholder('N/A'),
+
+            //                 TextEntry::make('total_count')
+            //                     ->label('Total Count')
+            //                     ->placeholder('N/A'),
 
             //                 TextEntry::make('summary_en')
             //                     ->label('Summary (English)')
-            //                     ->default(fn($log) => $log['summary_en'] ?? 'N/A')
-            //                     ->columnSpanFull(),
-            //             ]),
+            //                     ->columnSpanFull()
+            //                     ->placeholder('No summary available'),
 
-            //             // Expandable section for other fields
-            //             Section::make('More Details')
-            //                 ->collapsible()
-            //                 ->collapsed()
-            //                 ->schema([
-            //                     ComponentsGrid::make(3)->schema([
-            //                         TextEntry::make('summary_si')
-            //                             ->label('Summary (සිංහල)')
-            //                             ->default(fn($log) => substr($log['summary_si'] ?? 'N/A', 0, 50))
-            //                             ->columnSpanFull(),
+            //                 TextEntry::make('summary_si')
+            //                     ->label('Summary (Sinhala)')
+            //                     ->columnSpanFull()
+            //                     ->placeholder('No summary available'),
 
-            //                         TextEntry::make('summary_en')
-            //                             ->label('Summary (English)')
-            //                             ->default(fn($log) => $log['summary_en'] ?? 'N/A')
-            //                             ->columnSpanFull(),
+            //                 TextEntry::make('summary_ta')
+            //                     ->label('Summary (Tamil)')
+            //                     ->columnSpanFull()
+            //                     ->placeholder('No summary available'),
 
-            //                         TextEntry::make('summary_ta')
-            //                             ->label('Summary (தமிழ்)')
-            //                             ->default(fn($log) => $log['summary_ta'] ?? 'N/A')
-            //                             ->columnSpanFull(),
+            //                 TextEntry::make('transcript')
+            //                     ->label('Full Transcript')
+            //                     ->default('No transcript available')
+            //                     ->columnSpanFull()
+            //                     ->formatStateUsing(function ($state) {
+            //                         if (!$state) {
+            //                             return new HtmlString('<span class="fi-text-gray-500 italic">No transcript available</span>');
+            //                         }
 
-            //                         TextEntry::make('agent')
-            //                             ->label('Agent')
-            //                             ->default(fn($log) => $log['agent'] ?? 'Unknown'),
+            //                         // Preserve paragraph spacing and format nicely
+            //                         $formatted = nl2br(e($state));
+                                    
+            //                         return new HtmlString("
+            //                             <div class='fi-bg-gray-50 fi-border fi-border-gray-200 fi-rounded-xl fi-p-4 fi-text-sm fi-leading-relaxed'>
+            //                                 {$formatted}
+            //                             </div>
+            //                         ");
+            //                     })
+            //                     ->html(),
+
+            //                 TextEntry::make('recording_url')
+            //                     ->label('Recording URL')
+            //                     ->columnSpanFull()
+            //                     ->copyable()
+            //                     ->copyMessage('Recording URL copied')
+            //                     ->icon('heroicon-s-link')
+            //                     ->url(fn($log) => $log['recording_url'] ?? 'N/A')
+            //                     ->openUrlInNewTab(),
+            //             ])
+            //             ->columns(3)
+            //             ->collapsed(),
+            //         ]),
+            // ]),
+
+            RepeatableEntry::make('call_logs')
+            ->label('')
+            ->contained(false)
+            ->getStateUsing(function ($record) {
+                $logs = self::getCallLogsForRecord($record);
+                if (empty($logs)) return [];
+
+                // Sort by datetime descending
+                return collect($logs)
+                    ->sortByDesc('datetime')
+                    ->values()
+                    ->toArray();
+            })
+            ->schema([
+                Section::make('')
+                    // ->collapsible()   // This section can be expanded/collapsed
+                    // ->collapsed()     // Collapsed by default
+                    // ->heading(fn($log) => sprintf(
+                    //     '%s • %s • %ss • %s',
+                    //     $log['am'] ?? 'Unknown',
+                    //     $log['datetime'] ?? 'N/A',
+                    //     $log['talktime'] ?? '0',
+                    //     ucfirst($log['sentiment'] ?? 'N/A')
+                    // ))
+                    ->schema([
+                        // Main fields always visible in a grid
+                        ComponentsGrid::make(5)->schema([
+                            TextEntry::make('am')
+                                ->label('AM')
+                                ->default(fn($log) => $log['am'] ?? 'Unknown'),
+
+                            TextEntry::make('datetime')
+                                ->label('Date & Time')
+                                ->default(fn($log) => $log['datetime'] ?? 'N/A'),
+
+                            TextEntry::make('talktime')
+                                ->label('Duration')
+                                ->default(fn($log) => ($log['talktime'] ?? '0') . ' sec'),
+
+                            TextEntry::make('sentiment')
+                                ->label('Sentiment')
+                                ->badge()
+                                ->color(fn($log) => match (strtolower((string)($log['sentiment'] ?? ''))) {
+                                    'positive' => 'success',
+                                    'negative' => 'danger',
+                                    'neutral' => 'gray',
+                                    'mixed' => 'warning',
+                                    default => 'info',
+                                })
+                                ->default(fn($log) => $log['sentiment'] ?? 'N/A'),
+
+                            TextEntry::make('event')
+                                ->label('Event')
+                                ->default(fn($log) => $log['event'] ?? 'N/A'),
+
+                            TextEntry::make('summary_en')
+                                ->label('Summary (English)')
+                                ->default(fn($log) => $log['summary_en'] ?? 'N/A')
+                                ->columnSpanFull(),
+                        ]),
+
+                        // Expandable section for other fields
+                        Section::make('More Details')
+                            ->collapsible()
+                            ->collapsed()
+                            ->schema([
+                                ComponentsGrid::make(3)->schema([
+                                    TextEntry::make('summary_si')
+                                        ->label('Summary (සිංහල)')
+                                        ->default(fn($log) => substr($log['summary_si'] ?? 'N/A', 0, 50))
+                                        ->columnSpanFull(),
+
+                                    TextEntry::make('summary_en')
+                                        ->label('Summary (English)')
+                                        ->default(fn($log) => $log['summary_en'] ?? 'N/A')
+                                        ->columnSpanFull(),
+
+                                    TextEntry::make('summary_ta')
+                                        ->label('Summary (தமிழ்)')
+                                        ->default(fn($log) => $log['summary_ta'] ?? 'N/A')
+                                        ->columnSpanFull(),
+
+                                    TextEntry::make('agent')
+                                        ->label('Agent')
+                                        ->default(fn($log) => $log['agent'] ?? 'Unknown'),
             
-            //                         TextEntry::make('language')
-            //                             ->label('Language')
-            //                             ->default(fn($log) => $log['language'] ?? 'Unknown'),
+                                    TextEntry::make('language')
+                                        ->label('Language')
+                                        ->default(fn($log) => $log['language'] ?? 'Unknown'),
             
-            //                         TextEntry::make('status')
-            //                             ->label('Status')
-            //                             ->badge()
-            //                             ->color('primary')
-            //                             ->default(fn($log) => $log['status'] ?? 'Unknown'),
-            //                     ]),
-            //                     TextEntry::make('recording_url')
-            //                         ->label('Recording URL')
-            //                         ->default(fn($log) => $log['recording_url'] ?? 'N/A'),
+                                    TextEntry::make('status')
+                                        ->label('Status')
+                                        ->badge()
+                                        ->color('primary')
+                                        ->default(fn($log) => $log['status'] ?? 'Unknown'),
+                                ]),
+                                TextEntry::make('recording_url')
+                                    ->label('Recording URL')
+                                    ->default(fn($log) => $log['recording_url'] ?? 'N/A'),
 
-            //                     TextEntry::make('transcript')
-            //                         ->label('Transcript')
-            //                         ->default(fn($log) => $log['transcript'] ?? 'No transcript available')
-            //                         ->columnSpanFull(),
-            //                 ])
-            //                 ->columnSpanFull(),
-            //         ])
-            //         ->columnSpanFull(),
-            // ])
+                                TextEntry::make('transcript')
+                                    ->label('Transcript')
+                                    ->default(fn($log) => $log['transcript'] ?? 'No transcript available')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
+            ])
         ];
     }
     
@@ -524,37 +530,83 @@ class TableRecordActions
      */
     private static function getCallScriptForRecord($record): array
     {
-        $callLogs = self::getCallLogsForRecord($record);
+        static $cache = [];
         
-        if (empty($callLogs)) {
+        $userId = $record->cust_id ?? $record->customer_id ?? null;
+        if (!$userId) {
             return [];
         }
+        
+        if (array_key_exists($userId, $cache)) {
+            return $cache[$userId];
+        }
+        
+        try {
+            $service = app(LpwApiService::class);
+            // dd($service);
+            $raw = $service->getCallScript($userId, 10);
+            
+            // Debug: Uncomment to check raw API response
+            // dd([
+            //     'userId' => $userId,
+            //     'raw' => $raw,
+            //     'is_array' => is_array($raw),
+            //     'count' => is_array($raw) ? count($raw) : 0,
+            //     'keys' => is_array($raw) ? array_keys($raw) : null,
+            // ]);
+            
+            Log::info('getCallScriptForRecord: Raw API response', [
+                'user_id' => $userId,
+                'is_array' => is_array($raw),
+                'count' => is_array($raw) ? count($raw) : 0,
+                'keys' => is_array($raw) ? array_keys($raw) : null,
+            ]);
+            
+            // Handle malformed or empty response
+            if (empty($raw) || !is_array($raw)) {
+                Log::warning('getCallScriptForRecord: Empty or invalid response', [
+                    'user_id' => $userId,
+                    'is_empty' => empty($raw),
+                    'is_array' => is_array($raw),
+                ]);
+                return $cache[$userId] = [];
+            }
 
-        // Helper function to extract transcript from different possible field names
-        $getTranscript = function ($log) {
-            return $log['transcript'] 
-                ?? $log['transcription'] 
-                ?? $log['text'] 
-                ?? $log['script'] 
-                ?? $log['conversation'] 
-                ?? null;
-        };
+            // Flatten nested sections like "New leads/ hunters", "Pending Payment", etc.
+            $formatted = [];
+            
+            foreach ($raw as $category => $scripts) {
+                if (is_array($scripts)) {
+                    foreach ($scripts as $title => $content) {
+                        $formatted[] = [
+                            'category' => (string) $category,
+                            'title' => (string) $title,
+                            'content' => (string) $content,
+                        ];
+                    }
+                } else {
+                    // Sometimes the value itself can be text, not array
+                    $formatted[] = [
+                        'category' => (string) $category,
+                        'title' => (string) $category,
+                        'content' => (string) $scripts,
+                    ];
+                }
+            }
+            
+            Log::info('getCallScriptForRecord: Formatted data', [
+                'user_id' => $userId,
+                'formatted_count' => count($formatted),
+            ]);
 
-        // Extract and filter logs that have transcripts
-        return collect($callLogs)
-            ->filter(fn($log) => !empty($getTranscript($log)))
-            ->map(function ($log) use ($getTranscript) {
-                return [
-                    'transcript' => $getTranscript($log),
-                    'date_time' => $log['date_time'] ?? $log['datetime'] ?? $log['date'] ?? 'N/A',
-                    'agent' => $log['agent'] ?? $log['user'] ?? $log['am'] ?? 'Unknown',
-                    'duration' => $log['talktime'] ?? $log['talk_time'] ?? $log['duration'] ?? 'N/A',
-                    'sentiment' => $log['sentiment'] ?? 'N/A',
-                    'call_type' => $log['call_type'] ?? 'N/A',
-                ];
-            })
-            ->values()
-            ->toArray();
+            return $cache[$userId] = $formatted;
+        } catch (\Throwable $e) {
+            Log::error('getCallScriptForRecord exception', [
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+            ]);
+            return $cache[$userId] = [];
+        }
     }
 
     /**
@@ -566,108 +618,32 @@ class TableRecordActions
             RepeatableEntry::make('call_scripts')
                 ->label('')
                 ->contained(false)
-                ->lazy() // Enable lazy loading
+                ->lazy()
                 ->getStateUsing(function ($record) {
-                    // Only load data when this tab is actually accessed
                     $scripts = self::getCallScriptForRecord($record);
-                    if (empty($scripts)) {
-                        return [];
-                    }
-
-                    return collect($scripts)->sortByDesc('date_time')->toArray();
+                    return $scripts;
                 })
                 ->schema([
-                    Section::make('Call Transcript')
+                    Section::make()
+                        ->heading(fn($state) => ($state['category'] ?? 'Script') . ' • ' . ($state['title'] ?? ''))
                         ->collapsible()
                         ->collapsed()
-                        ->heading(function ($record) {
-                            $datetime = $record->date_time ?? 'N/A';
-                            $agent = $record->agent ?? 'Unknown';
-                            $duration = $record->duration ?? 'N/A';
-                            $sentiment = $record->sentiment ?? 'N/A';
-
-                            $sentimentIcon = match (strtolower((string) $sentiment)) {
-                                'positive' => '😊',
-                                'negative' => '😞',
-                                'neutral' => '😐',
-                                'mixed' => '🤔',
-                                default => '📝',
-                            };
-
-                            if (empty($record)) {
-                                return '📝 Call Transcript';
-                            }
-
-                            return "{$sentimentIcon} {$datetime} • Duration: {$duration} • Agent: {$agent}";
-                        })
-                        ->description(function ($record) {
-                            // Take the recent transcript
-                            $transcript = $record->transcript ?? '';
-                            if (empty($transcript)) {
-                                return 'No transcript available';
-                            }
-
-                            if (!empty($transcript)) {
-                                return strlen($transcript) > 150 
-                                    ? substr($transcript, 0, 150) . '...' 
-                                    : $transcript;
-                            }
-
-                            // Show first 150 characters as preview
-                            return 'No transcript available';
-                        })
                         ->schema([
-                            ComponentsGrid::make(3)->schema([
-                                TextEntry::make('date_time')
-                                    ->label('Date & Time')
-                                    ->default('N/A')
-                                    ->icon('heroicon-o-calendar'),
-
-                                TextEntry::make('agent')
-                                    ->label('Agent')
-                                    ->default('Unknown')
-                                    ->icon('heroicon-o-user'),
-
-                                TextEntry::make('duration')
-                                    ->label('Duration')
-                                    ->default('N/A')
-                                    ->icon('heroicon-o-clock'),
-
-                                TextEntry::make('sentiment')
-                                    ->label('Sentiment')
-                                    ->badge()
-                                    ->color(fn($state) => match (strtolower((string)($state ?? ''))) {
-                                        'positive' => 'success',
-                                        'negative' => 'danger',
-                                        'neutral' => 'warning',
-                                        'mixed' => 'gray',
-                                        default => 'info',
-                                    })
-                                    ->default('N/A')
-                                    ->visible(fn($state) => $state && $state !== 'N/A'),
-
-                                TextEntry::make('event')
-                                    ->label('Event')
-                                    ->badge()
-                                    ->color('info')
-                                    ->default('N/A')
-                                    ->visible(fn($state) => $state && $state !== 'N/A'),
-                            ]),
-
-                            TextEntry::make('transcript')
-                                ->label('Full Transcript')
-                                ->default('No transcript available')
+                            TextEntry::make('content')
+                                ->label('')
                                 ->columnSpanFull()
-                                ->formatStateUsing(function ($state) {
-                                    if (!$state) {
-                                        return new HtmlString('<span class="fi-text-gray-500 italic">No transcript available</span>');
+                                ->formatStateUsing(function ($state, $record) {
+                                    $content = is_array($record) ? ($record['content'] ?? '') : ($state ?? '');
+                                    
+                                    if (empty($content)) {
+                                        return new HtmlString('<span class="text-gray-500 italic">No content available</span>');
                                     }
-
-                                    // Preserve paragraph spacing and format nicely
-                                    $formatted = nl2br(e($state));
+                                    
+                                    // Replace newlines with breaks and preserve whitespace
+                                    $formatted = nl2br(e($content));
                                     
                                     return new HtmlString("
-                                        <div class='fi-bg-gray-50 fi-border fi-border-gray-200 fi-rounded-xl fi-p-4 fi-text-sm fi-leading-relaxed'>
+                                        <div class='bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap'>
                                             {$formatted}
                                         </div>
                                     ");
@@ -675,74 +651,74 @@ class TableRecordActions
                                 ->html(),
                         ])
                         ->columnSpanFull(),
-                ]),
+                ])
+                ->columnSpanFull(),
         ];
     }
 
     private static function contactDetailsSectionForOverview(): Section
     {
         return Section::make(fn($record) => self::getLpwUserDetailsForRecord($record)['firstname'] ?? ($record->customer->firstname ?? 'Contact Details'))
-            ->icon('iconsax-bul-profile-circle')
+            // ->icon('iconsax-bul-profile-circle')
             ->columns(4) // Divide section into 4 columns
             ->lazy() // Enable lazy loading for contact details
             ->schema([
+                TextEntry::make('lpw_email')
+                    ->label('Email')
+                    ->copyable()
+                    ->copyMessage('Email copied')
+                    ->icon('heroicon-s-envelope')
+                    // ->columnSpan(2) // Email is longer, span 2 columns
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['email'] ?? ($record->customer->email ?? 'N/A')),
 
-                    TextEntry::make('lpw_email')
-                        ->label('Email')
-                        ->copyable()
-                        ->copyMessage('Email copied')
-                        ->icon('heroicon-s-envelope')
-                        // ->columnSpan(2) // Email is longer, span 2 columns
-                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['email'] ?? ($record->customer->email ?? 'N/A')),
+                TextEntry::make('lpw_mobile')
+                    ->label('Mobile')
+                    ->icon('heroicon-s-phone')
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['mobile'] ?? ($record->customer->mobile ?? 'N/A')),
 
-                    TextEntry::make('lpw_mobile')
-                        ->label('Mobile')
-                        ->icon('heroicon-s-phone')
-                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['mobile'] ?? ($record->customer->mobile ?? 'N/A')),
+                TextEntry::make('lpw_id')
+                    ->label('ID')
+                    ->icon('heroicon-s-identification')
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['id'] ?? ($record->customer->id ?? 'N/A')),
 
-                    TextEntry::make('lpw_id')
-                        ->label('ID')
-                        ->icon('heroicon-s-identification')
-                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['id'] ?? ($record->customer->id ?? 'N/A')),
+                TextEntry::make('lpw_address')
+                    ->label('Address')
+                    ->icon('heroicon-s-map-pin')
+                    // ->columnSpanFull(2) // Full width for long address
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['address'] ?? ($record->customer->address ?? 'N/A')),
 
-                    TextEntry::make('lpw_address')
-                        ->label('Address')
-                        ->icon('heroicon-s-map-pin')
-                        // ->columnSpanFull(2) // Full width for long address
-                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['address'] ?? ($record->customer->address ?? 'N/A')),
+                TextEntry::make('lpw_reg_date')
+                    ->label('Registration Date')
+                    ->icon('heroicon-s-calendar')
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['reg_date'] ?? ($record->customer->reg_date ?? 'N/A')),
 
-                    TextEntry::make('lpw_reg_date')
-                        ->label('Registration Date')
-                        ->icon('heroicon-s-calendar')
-                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['reg_date'] ?? ($record->customer->reg_date ?? 'N/A')),
+                TextEntry::make('lpw_source')
+                    ->label('Source')
+                    ->icon('heroicon-s-arrow-path-rounded-square')
+                    // ->columnSpan(2) // Source can be long, span 2 columns
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['source'] ?? ($record->customer->source ?? 'N/A')),
 
-                    TextEntry::make('lpw_source')
-                        ->label('Source')
-                        ->icon('heroicon-s-arrow-path-rounded-square')
-                        // ->columnSpan(2) // Source can be long, span 2 columns
-                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['source'] ?? ($record->customer->source ?? 'N/A')),
+                TextEntry::make('lpw_category')
+                    ->label('Category')
+                    ->icon('heroicon-s-tag')
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['category'] ?? ($record->customer->category ?? 'N/A')),
 
-                    TextEntry::make('lpw_category')
-                        ->label('Category')
-                        ->icon('heroicon-s-tag')
-                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['category'] ?? ($record->customer->category ?? 'N/A')),
+                TextEntry::make('lpw_payment_status')
+                    ->label('Payment Status')
+                    ->badge()
+                    ->icon('heroicon-s-credit-card')
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['payment_status'] ?? ($record->customer->payment_status ?? 'N/A')),
 
-                    TextEntry::make('lpw_payment_status')
-                        ->label('Payment Status')
-                        ->badge()
-                        ->icon('heroicon-s-credit-card')
-                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['payment_status'] ?? ($record->customer->payment_status ?? 'N/A')),
+                TextEntry::make('lpw_payment_exp_date')
+                    ->label('Payment Expiry Date')
+                    ->icon('heroicon-s-calendar')
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['payment_exp_date'] ?? ($record->customer->payment_exp_date ?? 'N/A')),
 
-                    TextEntry::make('lpw_payment_exp_date')
-                        ->label('Payment Expiry Date')
-                        ->icon('heroicon-s-calendar')
-                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['payment_exp_date'] ?? ($record->customer->payment_exp_date ?? 'N/A')),
-
-                    TextEntry::make('lpw_latest_commented_at')
-                        ->label('Latest Commented At')
-                        ->icon('heroicon-s-calendar')
-                        ->columnSpan(2) // Long date info can span 2 columns
-                        ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['latest_commented_at'] ?? ($record->customer->latest_commented_at ?? 'N/A')),
+                TextEntry::make('lpw_latest_commented_at')
+                    ->label('Latest Commented At')
+                    ->icon('heroicon-s-calendar')
+                    ->columnSpan(2) // Long date info can span 2 columns
+                    ->getStateUsing(fn($record) => self::getLpwUserDetailsForRecord($record)['latest_commented_at'] ?? ($record->customer->latest_commented_at ?? 'N/A')),
             ]);
     }
     
@@ -1132,6 +1108,213 @@ class TableRecordActions
                             ]),
                         ]),
 
+                        Tab::make('Calls')->icon('heroicon-o-phone')->schema([
+                            // Add 3 tabs for call logs, stats, and call scripts.
+                            Tabs::make('CallSubTabs')->tabs([
+                                Tab::make('Call Logs')->icon('heroicon-o-list-bullet')->schema([
+                                    ComponentsGrid::make(3)->schema([
+                                        self::contactDetailsSection(),
+                                        
+                                        Section::make('Call Logs')
+                                            ->icon('heroicon-s-phone-arrow-up-right')
+                                            ->columnSpan(2)
+                                            ->description('Call logs Details')
+                                            ->headerActions([
+                                                self::getAddActivityAction(),
+                                            ])
+                                            ->schema(self::callLogSection()),
+                                    ]),
+                                ]),
+                                Tab::make('Stats')->icon('heroicon-s-chart-bar-square')->schema([
+                                    ComponentsGrid::make(3)->schema([
+                                        // Total Activities Stat
+                                        Section::make()
+                                            ->schema([
+                                                TextEntry::make('total_activities')
+                                                    ->label('Total Activities')
+                                                    ->icon('heroicon-s-clipboard-document-list')
+                                                    ->size('lg')
+                                                    ->weight('bold')
+                                                    ->color('success')
+                                                    ->getStateUsing(fn($record) => $record->activities()->count()),
+                                            ])
+                                            ->columnSpan(1),
+
+                                        // Recent Calls Stat
+                                        Section::make()
+                                            ->schema([
+                                                TextEntry::make('recent_calls')
+                                                    ->label('Calls (Last 30 Days)')
+                                                    ->icon('heroicon-s-phone')
+                                                    ->size('lg')
+                                                    ->weight('bold')
+                                                    ->color('primary')
+                                                    ->getStateUsing(function ($record) {
+                                                        return $record->activities()
+                                                            ->where('stage', 'call')
+                                                            ->where('created_at', '>=', now()->subDays(30))
+                                                            ->count();
+                                                    }),
+                                            ])
+                                            ->columnSpan(1),
+
+                                        // Average Score Stat
+                                        Section::make()
+                                            ->schema([
+                                                TextEntry::make('avg_score')
+                                                    ->label('Average Lead Score')
+                                                    ->icon('heroicon-s-star')
+                                                    ->size('lg')
+                                                    ->weight('bold')
+                                                    ->color('warning')
+                                                    ->getStateUsing(function ($record) {
+                                                        $avg = $record->activities()
+                                                            ->whereNotNull('level_score')
+                                                            ->avg('level_score');
+                                                        return $avg ? number_format($avg, 1) . '/10' : 'N/A';
+                                                    }),
+                                            ])
+                                            ->columnSpan(1),
+                                    ]),
+
+                                    // Chart Widgets Section
+                                    // Section::make('Charts & Analytics')
+                                    //     ->icon('heroicon-s-chart-bar')
+                                    //     ->description('Visual representation of activities and trends')
+                                    //     ->collapsible()
+                                    //     ->schema([
+                                    //         ComponentsGrid::make(2)->schema([
+                                    //             ViewEntry::make('activity_timeline_chart')
+                                    //                 // ->view('filament.widgets.chart-widget-view')
+                                    //                 ->viewData(fn($record) => [
+                                    //                     'widget' => ActivityTimelineChart::class,
+                                    //                     'record' => $record,
+                                    //                 ])
+                                    //                 ->columnSpan(1),
+
+                                    //             ViewEntry::make('activity_type_chart')
+                                    //                 ->view('filament.widgets.chart-widget-view')
+                                    //                 ->viewData(fn($record) => [
+                                    //                     'widget' => ActivityTypeChart::class,
+                                    //                     'record' => $record,
+                                    //                 ])
+                                    //                 ->columnSpan(1),
+                                    //         ]),
+
+                                    //         ComponentsGrid::make(2)->schema([
+                                    //             ViewEntry::make('monthly_activity_chart')
+                                    //                 // ->view('filament.widgets.chart-widget-view')
+                                    //                 ->viewData(fn($record) => [
+                                    //                     'widget' => MonthlyActivityChart::class,
+                                    //                     'record' => $record,
+                                    //                 ])
+                                    //                 ->columnSpan(1),
+
+                                    //             ViewEntry::make('activity_score_chart')
+                                    //                 ->view('filament.widgets.chart-widget-view')
+                                    //                 ->viewData(fn($record) => [
+                                    //                     'widget' => ActivityScoreChart::class,
+                                    //                     'record' => $record,
+                                    //                 ])
+                                    //                 ->columnSpan(1),
+                                    //         ]),
+                                    //     ])
+                                    //     ->columnSpanFull(),
+
+                                    // Activity Breakdown Section
+                                    Section::make('Activity Breakdown')
+                                        ->icon('heroicon-s-chart-pie')
+                                        ->description('Activities by type')
+                                        ->collapsible()
+                                        ->schema([
+                                            RepeatableEntry::make('activity_stats')
+                                                ->label('')
+                                                ->contained(false)
+                                                ->getStateUsing(function ($record) {
+                                                    return $record->activities()
+                                                        ->selectRaw('stage, COUNT(*) as count')
+                                                        ->groupBy('stage')
+                                                        ->get()
+                                                        ->map(function ($item) {
+                                                            return [
+                                                                'type' => ucfirst($item->stage ?? 'Other'),
+                                                                'count' => $item->count,
+                                                            ];
+                                                        })
+                                                        ->toArray();
+                                                })
+                                                ->schema([
+                                                    ComponentsGrid::make(2)->schema([
+                                                        TextEntry::make('type')
+                                                            ->label('Type')
+                                                            ->badge()
+                                                            ->color('primary'),
+                                                        TextEntry::make('count')
+                                                            ->label('Count')
+                                                            ->badge()
+                                                            ->color('success'),
+                                                    ]),
+                                                ]),
+                                        ])
+                                        ->columnSpanFull(),
+
+                                    // Activity Summary by Date Range
+                                    Section::make('Activity Summary')
+                                        ->icon('heroicon-s-calendar-days')
+                                        ->description('Activities distribution over time')
+                                        ->collapsible()
+                                        ->collapsed()
+                                        ->schema([
+                                            ComponentsGrid::make(4)->schema([
+                                                TextEntry::make('today_activities')
+                                                    ->label('Today')
+                                                    ->icon('heroicon-s-clock')
+                                                    ->badge()
+                                                    ->color('success')
+                                                    ->getStateUsing(function ($record) {
+                                                        return $record->activities()
+                                                            ->whereDate('created_at', today())
+                                                            ->count();
+                                                    }),
+
+                                                TextEntry::make('week_activities')
+                                                    ->label('This Week')
+                                                    ->icon('heroicon-s-calendar')
+                                                    ->badge()
+                                                    ->color('primary')
+                                                    ->getStateUsing(function ($record) {
+                                                        return $record->activities()
+                                                            ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
+                                                            ->count();
+                                                    }),
+
+                                                TextEntry::make('month_activities')
+                                                    ->label('This Month')
+                                                    ->icon('heroicon-s-calendar-days')
+                                                    ->badge()
+                                                    ->color('warning')
+                                                    ->getStateUsing(function ($record) {
+                                                        return $record->activities()
+                                                            ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+                                                            ->count();
+                                                    }),
+
+                                                TextEntry::make('all_time_activities')
+                                                    ->label('All Time')
+                                                    ->icon('heroicon-s-chart-bar')
+                                                    ->badge()
+                                                    ->color('info')
+                                                    ->getStateUsing(function ($record) {
+                                                        return $record->activities()->count();
+                                                    }),
+                                            ]),
+                                        ])
+                                        ->columnSpanFull(),
+                                ]),
+                                Tab::make('Call Script')->schema(self::callScriptSection()),
+                            ]),
+                        ]),
+
                         Tab::make('Message')->icon('heroicon-s-chat-bubble-bottom-center-text')->schema([
                             // Section::make('Send Message')
                             //     ->columns(2)
@@ -1174,12 +1357,6 @@ class TableRecordActions
                                 TextEntry::make('image_360')->label('360° Image')->placeholder('No 360° image')->formatStateUsing(fn($state) => $state ?: 'No 360° image'),
                             ])->columns(2),
                         ]),
-
-                        Tab::make('Stats')->icon('heroicon-s-chart-bar-square')->schema([
-                            Section::make('Statistical Information')->schema([
-                                // placeholder for charts
-                            ]),
-                        ])->columnSpanFull(),
 
                         Tab::make('Payments')->icon('heroicon-s-credit-card')->schema([
                             Section::make('Payments Information')->schema([

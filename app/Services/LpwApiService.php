@@ -13,11 +13,15 @@ class LpwApiService
 {
     protected string $baseUrl;
     protected string $apiToken;
+    protected string $callScriptBaseUrl;
+    protected string $callScriptToken;
     
     public function __construct()
     {
         $this->baseUrl = env('LPW_API_BASE_URL', 'https://www.lankapropertyweb.com/api/v3');
         $this->apiToken = env('LPW_API_TOKEN', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiYXBpX2tleSJ9.l6YJhp_Jm2tryHhDdodj0E1kui6vfLordQUDXWF3y3U');
+        $this->callScriptBaseUrl = env('LPW_CALLSCRIPT_BASE_URL', 'https://dev2.srilankaproperty.lk/api/v3');
+        $this->callScriptToken = env('LPW_CALLSCRIPT_TOKEN', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIxNTM2NzUifQ.qIjXBn2QhO00-SRd0gycGMFKXU8plWTvtjenSsdPnrE');
     }
     
     /**
@@ -287,6 +291,86 @@ class LpwApiService
             Log::error('LPW getUserAds exception', [
                 'user_id' => $userId,
                 'message' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Fetch call script for a given user id from LPW API (dev2 endpoint).
+     * Returns the raw associative array from the API, or empty array on failure.
+     */
+    public function getCallScript(int|string $userId, int $cacheMinutes = 10): array
+    {
+        if (empty($userId)) {
+            Log::warning('LPW getCallScript: Empty user ID provided');
+            return [];
+        }
+
+        $cacheKey = "lpw_call_script_{$userId}";
+
+        try {
+            return Cache::remember($cacheKey, now()->addMinutes($cacheMinutes), function () use ($userId) {
+                $url = rtrim($this->callScriptBaseUrl, '/') . '/CallScript';
+                $params = [
+                    'token' => $this->callScriptToken,
+                    'user_id' => (string) $userId,
+                ];
+
+                Log::info('LPW getCallScript request', [
+                    'url' => $url,
+                    'user_id' => $userId,
+                    'token_length' => strlen($this->callScriptToken),
+                ]);
+
+                $response = Http::timeout(15)->get($url, $params);
+                
+                Log::info('LPW getCallScript response', [
+                    'status' => $response->status(),
+                    'user_id' => $userId,
+                    'body_length' => strlen($response->body()),
+                ]);
+
+                if (! $response->successful()) {
+                    Log::warning('LPW getCallScript failed', [
+                        'status' => $response->status(),
+                        'reason' => $response->reason(),
+                        'body' => $response->body(),
+                        'user_id' => $userId,
+                    ]);
+                    return [];
+                }
+
+                $json = $response->json();
+                
+                if (! is_array($json)) {
+                    Log::warning('LPW getCallScript: Response is not an array', [
+                        'user_id' => $userId,
+                        'type' => gettype($json),
+                    ]);
+                    return [];
+                }
+
+                if (empty($json)) {
+                    Log::info('LPW getCallScript: Empty response array', [
+                        'user_id' => $userId,
+                    ]);
+                    return [];
+                }
+
+                Log::info('LPW getCallScript success', [
+                    'user_id' => $userId,
+                    'sections_count' => count($json),
+                    'sections' => array_keys($json),
+                ]);
+
+                return $json;
+            });
+        } catch (Exception $e) {
+            Log::error('LPW getCallScript exception', [
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
             return [];
         }
