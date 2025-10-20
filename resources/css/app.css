@@ -2,8 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-.fi-ta {
-    @apply text-gray-900 dark:text-red-500;
-    @apply max-w-8xl mx-auto;
-    @apply px-4 sm:px-8 lg:px-10;
+/* Import admin/theme.css */
+@import 'resources/css/filament/admin/theme.css';
+
+
+
+/* Badges for property type/type used in TableColumns */
+.badge {
+	@apply inline-block px-2 py-0.5 text-xs rounded-full font-medium;
+}
+.badge-type {
+	@apply bg-blue-100 text-blue-700;
+}
+.badge-prop {
+	@apply bg-orange-100 text-orange-700;
 }

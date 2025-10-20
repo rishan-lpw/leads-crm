@@ -57,6 +57,12 @@ class LeadStatusManageCron extends Command
             ->whereHas('activities')
             ->update(['status' => 'follow_up']);
 
+        // any status->Reminder, If activity_follow_up.reminder_at is not null
+        Lead::whereHas('activities.followUp', function($query) {
+            $query->whereNotNull('reminder_at');
+        })
+        ->update(['status' => 'reminder']);
+
         /**
          * Rule 4: system -> to_be_expired
          * If note = NULL within 29 days

@@ -10,6 +10,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use App\Models\Cron;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
@@ -23,11 +24,14 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('assign:leads')->dailyAt('09:00');
-        // $schedule->command('update:lead-status')->dailyAt('10:00');
-        $schedule->command('cron:lead-status-manage')->dailyAt('08:00');
+        // $schedule->command('update:lead-status-every-minute')->everyMinute();
+        $schedule->command('cron:lead-status-manage')->everyMinute();
 
         // Auto-assign new leads to Account Managers every day at midnight
-        $schedule->command('cron:assign-new-leads')->dailyAt('00:00');
-    }
+        $schedule->command('cron:assign-new-leads')->everyMinute();
 
+        $schedule->call(function () {
+            Log::info('✅ Test cron executed at ' . now());
+        })->everyMinute();
+    }
 }

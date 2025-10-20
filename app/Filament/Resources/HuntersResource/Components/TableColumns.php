@@ -140,8 +140,8 @@ class TableColumns
                     $type = ucfirst($record->type);
                     $propertyType = ucfirst($record->propty_type);
 
-                    $typeBadge = "<span class='px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 font-medium'>$type</span>";
-                    $propertyTypeBadge = "<span class='px-2 py-0.5 text-xs rounded-full bg-orange-100 text-orange-700 font-medium'>$propertyType</span>";
+                    $typeBadge = "<span class='badge badge-type'>{$type}</span>";
+                    $propertyTypeBadge = "<span class='badge badge-prop'>{$propertyType}</span>";
 
                     return "$typeBadge - $propertyTypeBadge";
                 })
