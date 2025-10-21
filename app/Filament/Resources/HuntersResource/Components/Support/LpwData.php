@@ -239,11 +239,11 @@ class LpwData
 	public static function getCallScriptForRecord($record): array
 	{
 		static $cache = [];
-		// $userId = $record->cust_id ?? $record->customer_id ?? null;
-		// if (!$userId) {
-		// 	return [];
-		// }
-		$userId = 4;
+		$userId = $record->cust_id ?? $record->customer_id ?? null;
+		if (!$userId) {
+			return [];
+		}
+		// $userId = 4;
 		if (array_key_exists($userId, $cache)) {
 			return $cache[$userId];
 		}
@@ -251,6 +251,7 @@ class LpwData
 			$service = app(LpwApiService::class);
 			Cache::forget("lpw_call_script_{$userId}");
 			$raw = $service->getCallScript($userId, 10);
+			// dd($raw);
 			Log::info('getCallScriptForRecord: Raw API response', [
 				'user_id' => $userId,
 				'is_array' => is_array($raw),
@@ -283,9 +284,32 @@ class LpwData
 					];
 				}
 			}
+
+			// Filter to only include requested headings
+			$allowedOrder = [
+				'pending payment',
+				'rejection options',
+				'common text',
+				'bundle package',
+			];
+			$allowedSet = array_flip($allowedOrder);
+			$formatted = array_values(array_filter($formatted, function ($item) use ($allowedSet) {
+				$cat = strtolower(trim((string) ($item['category'] ?? '')));
+				return array_key_exists($cat, $allowedSet);
+			}));
+
+			// Sort by the specified heading order
+			usort($formatted, function ($a, $b) use ($allowedSet) {
+				$ca = strtolower(trim((string) ($a['category'] ?? '')));
+				$cb = strtolower(trim((string) ($b['category'] ?? '')));
+				$ia = $allowedSet[$ca] ?? PHP_INT_MAX;
+				$ib = $allowedSet[$cb] ?? PHP_INT_MAX;
+				return $ia <=> $ib;
+			});
 			Log::info('getCallScriptForRecord: Formatted data', [
 				'user_id' => $userId,
 				'formatted_count' => count($formatted),
+				'categories' => collect($formatted)->pluck('category')->unique()->values()->all(),
 			]);
 			return $cache[$userId] = $formatted;
 		} catch (\Throwable $e) {

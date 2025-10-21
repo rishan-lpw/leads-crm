@@ -126,25 +126,7 @@
         scroll-behavior: smooth;
     }
 
-    /* Alias common unprefixed Tailwind utilities to Filament's prefixed utilities */
-    .text-xs { @apply fi-text-xs; }
-    .text-sm { @apply fi-text-sm; }
-    .text-gray-400 { @apply fi-text-gray-400; }
-    .text-gray-500 { @apply fi-text-gray-500; }
-
-    .inline-flex { @apply fi-inline-flex; }
-    .items-center { @apply fi-items-center; }
-    .justify-center { @apply fi-justify-center; }
-    .w-6 { @apply fi-w-6; }
-    .h-6 { @apply fi-h-6; }
-    .rounded-full { @apply fi-rounded-full; }
-    .bg-gray-100 { @apply fi-bg-gray-100; }
-    .shadow-sm { @apply fi-shadow-sm; }
-
-    .flex { @apply fi-flex; }
-    .flex-wrap { @apply fi-flex-wrap; }
-    .gap-1 { @apply fi-gap-1; }
-    .mt-1 { @apply fi-mt-1; }
+    /* Removed invalid aliases to non-existent `fi-` utilities */
 
 @layer components {
 	.badge { @apply inline-block px-2 py-0.5 text-xs rounded-full font-medium; }

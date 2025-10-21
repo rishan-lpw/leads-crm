@@ -68,6 +68,7 @@ class UserResource extends Resource
                 
                 Select::make('user_value_id')
                     ->required()
+                    ->multiple()
                     ->options(UserValue::query()->pluck('category', 'id')->toArray())
                     ->label('User Value'),
                 Select::make('user_level_id')
@@ -83,6 +84,8 @@ class UserResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name'),
+                // username column
+                TextColumn::make('username'),
                 TextColumn::make('email'),
                 // User value category
                 TextColumn::make('userValue.category')->label('User Value'),

@@ -14,6 +14,10 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Http\Middleware\EnsureEmailIsVerified;
 use App\Filament\Resources\CustomerResource;
+use App\Filament\Resources\HuntersResource;
+use App\Filament\Resources\HuntersResource\Widgets\FunnelChart;
+use App\Filament\Resources\HuntersResource\Widgets\ActivitiesByTypeChart;
+use App\Filament\Resources\HuntersResource\Widgets\ActivitiesOverTimeChart;
 use App\Filament\Resources\UserResource;
 use Filament\Pages;
 use Filament\Panel;
@@ -63,10 +67,14 @@ class AdminPanelProvider extends PanelProvider
                 CustomerActivityChart::class,
                 CustomerGrowthChart::class,
                 LatestActivities::class,
+                FunnelChart::class,
+                ActivitiesOverTimeChart::class,
+                ActivitiesByTypeChart::class,
             ])
             ->resources([
                 UserResource::class,
                 CustomerResource::class,
+                HuntersResource::class,
             ])
             ->middleware([
                 EncryptCookies::class,

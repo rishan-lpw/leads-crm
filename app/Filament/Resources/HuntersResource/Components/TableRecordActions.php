@@ -43,10 +43,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
-use App\Filament\Resources\HuntersResource\Widgets\ActivityTimelineChart;
-use App\Filament\Resources\HuntersResource\Widgets\ActivityTypeChart;
-use App\Filament\Resources\HuntersResource\Widgets\ActivityScoreChart;
-use App\Filament\Resources\HuntersResource\Widgets\MonthlyActivityChart;
+// Removed old chart widget imports
 use Livewire\Component as LivewireComponent;
 use App\Filament\Resources\HuntersResource\Components\Sections\ContactDetailsSections;
 use App\Filament\Resources\HuntersResource\Components\Sections\OldActivitiesSection;
@@ -54,6 +51,8 @@ use App\Filament\Resources\HuntersResource\Components\Sections\CallLogSection;
 use App\Filament\Resources\HuntersResource\Components\Sections\CallScriptSection;
 use App\Filament\Resources\HuntersResource\Components\Tabs\ActivityTabs;
 use App\Filament\Resources\HuntersResource\Components\Actions\RecordActions;
+use App\Filament\Resources\HuntersResource\Components\Support\LpwData;
+use App\Filament\Resources\HuntersResource\Widgets\FunnelChart;
 
 class TableRecordActions
 {
@@ -61,166 +60,166 @@ class TableRecordActions
      * Fetch and normalize LPW user details for a given lead record.
      * Normalized keys: email, mobile, address, membership_exp_date, payment_exp_date, membership_status, firstname, last_activity
      */
-    private static function getLpwUserDetailsForRecord($record): array
-    {
-        static $cache = [];
+    // private static function getLpwUserDetailsForRecord($record): array
+    // {
+    //     static $cache = [];
         
-        $userId = $record->cust_id ?? null;
-        if (! $userId) {
-            return [];
-        }
+    //     $userId = $record->cust_id ?? null;
+    //     if (! $userId) {
+    //         return [];
+    //     }
 
-        if (array_key_exists($userId, $cache)) {
-            return $cache[$userId];
-        }
+    //     if (array_key_exists($userId, $cache)) {
+    //         return $cache[$userId];
+    //     }
 
-        try {
-            $service = app(LpwApiService::class);
-            $raw = $service->getUserDetails($userId, 10, 2);
+    //     try {
+    //         $service = app(LpwApiService::class);
+    //         $raw = $service->getUserDetails($userId, 10, 2);
             
-            // Extract data from nested results structure
-            $data = [];
-            if (isset($raw['results'][0]) && is_array($raw['results'][0])) {
-                $data = $raw['results'][0];
-            } elseif (is_array($raw) && array_is_list($raw)) {
-                $data = $raw[0] ?? [];
-            } else {
-                $data = $raw;
-            }
+    //         // Extract data from nested results structure
+    //         $data = [];
+    //         if (isset($raw['results'][0]) && is_array($raw['results'][0])) {
+    //             $data = $raw['results'][0];
+    //         } elseif (is_array($raw) && array_is_list($raw)) {
+    //             $data = $raw[0] ?? [];
+    //         } else {
+    //             $data = $raw;
+    //         }
 
-            $normalize = function ($keys, $default = null) use ($data) {
-                foreach ((array) $keys as $key) {
-                    $value = data_get($data, $key);
-                    if (! is_null($value) && $value !== '') {
-                        return $value;
-                    }
-                }
-                return $default;
-            };
+    //         $normalize = function ($keys, $default = null) use ($data) {
+    //             foreach ((array) $keys as $key) {
+    //                 $value = data_get($data, $key);
+    //                 if (! is_null($value) && $value !== '') {
+    //                     return $value;
+    //                 }
+    //             }
+    //             return $default;
+    //         };
 
-            $normalized = [
-                'email' => $normalize(['Uemail', 'email', 'mail', 'user_email']),
-                'mobile' => $normalize(['mobile_no', 'mobile_nos', 'mobile', 'tel', 'telephone', 'phone', 'contact_number']),
-                'address' => $normalize(['company_address', 'address', 'address1', 'addr']),
-                'membership_exp_date' => $normalize(['expiry', 'membership_exp_date', 'membership_expiry', 'membership_exp']),
-                'payment_exp_date' => $normalize(['payment_exp_date', 'expiry', 'payment_expiry', 'payment_exp']),
-                'membership_status' => $normalize(['membership_status', 'status']),
-                'firstname' => $normalize(['firstname', 'first_name', 'name']),
-                'last_activity' => $normalize(['latest_action', 'last_activity', 'last_activity_at', 'latest_activity']),
-                'id' => $normalize(['UID', 'uid', 'id', 'user_id']),
-                'reg_date' => $normalize(['reg_date', 'registered_at', 'registration_date', 'member_since']),
-                'source' => $normalize(['source', 'source_type']),
-                'category' => $normalize(['category', 'type']),
-                'customer_remarks' => $normalize(['customer_remarks', 'remarks']),
-                'payment' => $normalize(['payment']),
-                'latest_action' => $normalize(['latest_action']),
-                'latest_comment' => $normalize(['latest_comment']),
-                'payment_status' => $normalize(['status', 'payment_status']),
-                'latest_commented_at' => $normalize(['latest_commented_at', 'last_commented_at']),
-                'company_name' => $normalize(['company_name', 'company']),
-            ];
+    //         $normalized = [
+    //             'email' => $normalize(['Uemail', 'email', 'mail', 'user_email']),
+    //             'mobile' => $normalize(['mobile_no', 'mobile_nos', 'mobile', 'tel', 'telephone', 'phone', 'contact_number']),
+    //             'address' => $normalize(['company_address', 'address', 'address1', 'addr']),
+    //             'membership_exp_date' => $normalize(['expiry', 'membership_exp_date', 'membership_expiry', 'membership_exp']),
+    //             'payment_exp_date' => $normalize(['payment_exp_date', 'expiry', 'payment_expiry', 'payment_exp']),
+    //             'membership_status' => $normalize(['membership_status', 'status']),
+    //             'firstname' => $normalize(['firstname', 'first_name', 'name']),
+    //             'last_activity' => $normalize(['latest_action', 'last_activity', 'last_activity_at', 'latest_activity']),
+    //             'id' => $normalize(['UID', 'uid', 'id', 'user_id']),
+    //             'reg_date' => $normalize(['reg_date', 'registered_at', 'registration_date', 'member_since']),
+    //             'source' => $normalize(['source', 'source_type']),
+    //             'category' => $normalize(['category', 'type']),
+    //             'customer_remarks' => $normalize(['customer_remarks', 'remarks']),
+    //             'payment' => $normalize(['payment']),
+    //             'latest_action' => $normalize(['latest_action']),
+    //             'latest_comment' => $normalize(['latest_comment']),
+    //             'payment_status' => $normalize(['status', 'payment_status']),
+    //             'latest_commented_at' => $normalize(['latest_commented_at', 'last_commented_at']),
+    //             'company_name' => $normalize(['company_name', 'company']),
+    //         ];
 
-            return $cache[$userId] = array_filter($normalized, fn($v) => !is_null($v) && $v !== '');
-        } catch (\Throwable $e) {
-            return $cache[$userId] = [];
-        }
-    }
+    //         return $cache[$userId] = array_filter($normalized, fn($v) => !is_null($v) && $v !== '');
+    //     } catch (\Throwable $e) {
+    //         return $cache[$userId] = [];
+    //     }
+    // }
 
     /**
      * Fetch call logs for a given lead record from LPW API.
      */
-    private static function getCallLogsForRecord($record): array
-    {
-        static $cache = [];
+    // private static function getCallLogsForRecord($record): array
+    // {
+    //     static $cache = [];
         
-        $userId = $record->cust_id ?? null;
-        if (!$userId) {
-            return [];
-        }
+    //     $userId = $record->cust_id ?? null;
+    //     if (!$userId) {
+    //         return [];
+    //     }
 
-        if (array_key_exists($userId, $cache)) {
-            return $cache[$userId];
-        }
+    //     if (array_key_exists($userId, $cache)) {
+    //         return $cache[$userId];
+    //     }
 
-        try {
-            $service = app(LpwApiService::class);
-            // Cache for 5 minutes to reduce API calls
-            $cacheKey = "call_logs_{$userId}";
-            $cached = cache()->get($cacheKey);
+    //     try {
+    //         $service = app(LpwApiService::class);
+    //         // Cache for 5 minutes to reduce API calls
+    //         $cacheKey = "call_logs_{$userId}";
+    //         $cached = cache()->get($cacheKey);
             
-            if ($cached !== null) {
-                return $cache[$userId] = $cached;
-            }
+    //         if ($cached !== null) {
+    //             return $cache[$userId] = $cached;
+    //         }
             
-            $result = $service->getCallLogs($userId, 10, 5);
-            cache()->put($cacheKey, $result, 300); // 5 minutes cache
-            return $cache[$userId] = $result;
-        } catch (\Throwable $e) {
-            return $cache[$userId] = [];
-        }
-    }
+    //         $result = $service->getCallLogs($userId, 10, 5);
+    //         cache()->put($cacheKey, $result, 300); // 5 minutes cache
+    //         return $cache[$userId] = $result;
+    //     } catch (\Throwable $e) {
+    //         return $cache[$userId] = [];
+    //     }
+    // }
 
     /**
      * Fetch old activities for a given lead record from LPW API.
      */
-    private static function getOldActivitiesForRecord($record): array
-{
-    static $cache = [];
+//     private static function getOldActivitiesForRecord($record): array
+// {
+//     static $cache = [];
 
-    $userId = $record->cust_id ?? $record->customer_id ?? null;
+//     $userId = $record->cust_id ?? $record->customer_id ?? null;
 
-    if (!$userId) {
-        Log::warning('getOldActivitiesForRecord: No cust_id found', [
-            'record_id' => $record->id ?? 'unknown',
-        ]);
-        return [];
-    }
+//     if (!$userId) {
+//         Log::warning('getOldActivitiesForRecord: No cust_id found', [
+//             'record_id' => $record->id ?? 'unknown',
+//         ]);
+//         return [];
+//     }
 
-    if (array_key_exists($userId, $cache)) {
-        return $cache[$userId];
-    }
+//     if (array_key_exists($userId, $cache)) {
+//         return $cache[$userId];
+//     }
 
-    try {
-        // Check cache first
-        $cacheKey = "old_activities_{$userId}";
-        $cached = cache()->get($cacheKey);
+//     try {
+//         // Check cache first
+//         $cacheKey = "old_activities_{$userId}";
+//         $cached = cache()->get($cacheKey);
         
-        if ($cached !== null) {
-            return $cache[$userId] = $cached;
-        }
+//         if ($cached !== null) {
+//             return $cache[$userId] = $cached;
+//         }
 
-        $service = app(\App\Services\LpwApiService::class);
-        $response = $service->getOldActivities($userId, 10, 2);
+//         $service = app(\App\Services\LpwApiService::class);
+//         $response = $service->getOldActivities($userId, 10, 2);
 
-        // Normalize result
-        $activities = [];
-        if (is_array($response)) {
-            if (isset($response['data']) && is_array($response['data'])) {
-                $activities = $response['data'];
-            } elseif (array_is_list($response)) {
-                $activities = $response;
-            }
-        }
+//         // Normalize result
+//         $activities = [];
+//         if (is_array($response)) {
+//             if (isset($response['data']) && is_array($response['data'])) {
+//                 $activities = $response['data'];
+//             } elseif (array_is_list($response)) {
+//                 $activities = $response;
+//             }
+//         }
 
-        // Cache for 5 minutes to reduce API calls
-        cache()->put($cacheKey, $activities, 300);
+//         // Cache for 5 minutes to reduce API calls
+//         cache()->put($cacheKey, $activities, 300);
         
-        // Log useful debug info
-        Log::info('getOldActivitiesForRecord: normalized', [
-            'user_id' => $userId,
-            'count' => count($activities),
-        ]);
+//         // Log useful debug info
+//         Log::info('getOldActivitiesForRecord: normalized', [
+//             'user_id' => $userId,
+//             'count' => count($activities),
+//         ]);
 
-        // Cache and return a safe array
-        return $cache[$userId] = $activities;
-    } catch (\Throwable $e) {
-        Log::error('getOldActivitiesForRecord: Exception', [
-            'user_id' => $userId,
-            'message' => $e->getMessage(),
-        ]);
-        return $cache[$userId] = [];
-    }
-}
+//         // Cache and return a safe array
+//         return $cache[$userId] = $activities;
+//     } catch (\Throwable $e) {
+//         Log::error('getOldActivitiesForRecord: Exception', [
+//             'user_id' => $userId,
+//             'message' => $e->getMessage(),
+//         ]);
+//         return $cache[$userId] = [];
+//     }
+// }
 
 
     private static function oldActivitiesSection(): array
@@ -275,223 +274,6 @@ class TableRecordActions
         } catch (\Throwable $e) {
             return $cache[$userId] = [];
         }
-    }
-
-    /**
-     * Return the first ad (normalized) for the record's user, for display in Property Details tab.
-     */
-    private static function getFirstUserAdForRecord($record): array
-    {
-        $ads = self::getUserAdsForRecord($record);
-        if (empty($ads)) {
-            return [];
-        }
-
-        $ad = (array) ($ads[0] ?? []);
-
-        $normalize = function ($keys, $default = null) use ($ad) {
-            foreach ((array) $keys as $key) {
-                $value = data_get($ad, $key);
-                if (!is_null($value) && $value !== '') {
-                    return $value;
-                }
-            }
-            return $default;
-        };
-
-        // Map various potential keys from the LPW API to our UI fields
-        return [
-            'heading' => $normalize(['heading', 'adtitle', 'title']),
-            'type' => $normalize(['type', 'ad_type', 'listing_type']),
-            'propty_type' => $normalize(['propty_type', 'property_type', 'ptype']),
-            'service_type' => $normalize(['service_type', 'stype', 'service']),
-            'price' => $normalize(['price', 'amount', 'price_lkr']),
-            'price_type' => $normalize(['price_type', 'priceType']),
-            'desc' => $normalize(['desc', 'description', 'details', 'body']),
-            'street' => $normalize(['street', 'address1', 'address', 'location']),
-            'city' => $normalize(['city', 'town', 'district']),
-            'lat' => $normalize(['lat', 'latitude']),
-            'lng' => $normalize(['lng', 'longitude']),
-        ];
-    }
-
-    /**
-     * Return normalized list of ads for repeatable rendering.
-     */
-    private static function getNormalizedUserAdsForRecord($record): array
-    {
-        $ads = self::getUserAdsForRecord($record);
-        if (empty($ads) || !is_array($ads)) {
-            return [];
-        }
-
-        $normalizeOne = function ($ad) {
-            $ad = (array) $ad;
-            $normalize = function ($keys, $default = null) use ($ad) {
-                foreach ((array) $keys as $key) {
-                    $value = data_get($ad, $key);
-                    if (!is_null($value) && $value !== '') {
-                        return $value;
-                    }
-                }
-                return $default;
-            };
-
-            return [
-                'heading' => $normalize(['heading', 'adtitle', 'title']),
-                'type' => $normalize(['type', 'ad_type', 'listing_type']),
-                'propty_type' => $normalize(['propty_type', 'property_type', 'ptype']),
-                'service_type' => $normalize(['service_type', 'stype', 'service']),
-                'price' => $normalize(['price', 'amount', 'price_lkr']),
-                'price_type' => $normalize(['price_type', 'priceType']),
-                'desc' => $normalize(['desc', 'description', 'details', 'body']),
-                'street' => $normalize(['street', 'address1', 'address', 'location']),
-                'city' => $normalize(['city', 'town', 'district']),
-                'lat' => $normalize(['lat', 'latitude']),
-                'lng' => $normalize(['lng', 'longitude']),
-            ];
-        };
-
-        return collect($ads)
-            ->map(fn($ad) => $normalizeOne($ad))
-            ->filter(function ($ad) {
-                return array_filter($ad, fn($v) => !is_null($v) && $v !== '');
-            })
-            ->values()
-            ->toArray();
-    }
-    
-    /**
-     * Fetch call scripts (transcripts) for a given lead record.
-     * Uses the same call logs API but extracts transcript data.
-     */
-    private static function getCallScriptForRecord($record): array
-    {
-        static $cache = [];
-        
-        // $userId = $record->cust_id ?? $record->customer_id ?? null;
-        // if (!$userId) {
-        //     return [];
-        // }
-        $userId = 4; // Hardcoded as requested
-        if (array_key_exists($userId, $cache)) {
-            return $cache[$userId];
-        }
-        
-        try {
-            $service = app(LpwApiService::class);
-            // dd($service);
-            // Force clear cache if empty result encountered previously
-            Cache::forget("lpw_call_script_{$userId}");
-            $raw = $service->getCallScript($userId, 10);
-            // dd($raw);
-            // Debug: Uncomment to check raw API response
-            // dd([
-            //     'userId' => $userId,
-            //     'raw' => $raw,
-            //     'is_array' => is_array($raw),
-            //     'count' => is_array($raw) ? count($raw) : 0,
-            //     'keys' => is_array($raw) ? array_keys($raw) : null,
-            // ]);
-            
-            Log::info('getCallScriptForRecord: Raw API response', [
-                'user_id' => $userId,
-                'is_array' => is_array($raw),
-                'count' => is_array($raw) ? count($raw) : 0,
-                'keys' => is_array($raw) ? array_keys($raw) : null,
-            ]);
-            
-            // Handle malformed or empty response
-            if (empty($raw) || !is_array($raw)) {
-                Log::warning('getCallScriptForRecord: Empty or invalid response', [
-                    'user_id' => $userId,
-                    'is_empty' => empty($raw),
-                    'is_array' => is_array($raw),
-                ]);
-                return $cache[$userId] = [];
-            }
-
-            // Flatten nested sections like "New leads/ hunters", "Pending Payment", etc.
-            $formatted = [];
-            
-            foreach ($raw as $category => $scripts) {
-                if (is_array($scripts)) {
-                    foreach ($scripts as $title => $content) {
-                        $formatted[] = [
-                            'category' => (string) $category,
-                            'title' => (string) $title,
-                            'content' => (string) $content,
-                        ];
-                    }
-                } else {
-                    // Sometimes the value itself can be text, not array
-                    $formatted[] = [
-                        'category' => (string) $category,
-                        'title' => (string) $category,
-                        'content' => (string) $scripts,
-                    ];
-                }
-            }
-            // dd($formatted);
-            Log::info('getCallScriptForRecord: Formatted data', [
-                'user_id' => $userId,
-                'formatted_count' => count($formatted),
-            ]);
-
-            return $cache[$userId] = $formatted;
-        } catch (\Throwable $e) {
-            Log::error('getCallScriptForRecord exception', [
-                'user_id' => $userId,
-                'message' => $e->getMessage(),
-            ]);
-            return $cache[$userId] = [];
-        }
-    }
-
-    /**
-     * Build the reusable Call Script section schema.
-     */
-    private static function callScriptSection(): array
-    {
-        return [
-            RepeatableEntry::make('call_scripts')
-                ->label('')
-                ->contained(false)
-                ->lazy()
-                ->getStateUsing(function ($record) {
-                    $scripts = self::getCallScriptForRecord($record);
-                    return $scripts;
-                })
-                ->schema([
-                    Section::make()
-                        ->heading(fn($state) => ($state['category'] ?? 'Script') . ' • ' . ($state['title'] ?? ''))
-                        ->collapsible()
-                        ->schema([
-                            TextEntry::make('content')
-                                ->label('')
-                                ->columnSpanFull()
-                                ->formatStateUsing(function ($state, $record) {
-                                    $content = is_array($record) ? ($record['content'] ?? '') : ($state ?? '');
-                                    
-                                    if (empty($content)) {
-                                        return new HtmlString('<span class="text-gray-500 italic">No content available</span>');
-                                    }
-                                    
-                                    // Replace newlines with breaks and preserve whitespace
-                                    $formatted = nl2br(e($content));
-                                    
-                                    return new HtmlString("
-                                        <div class='bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap'>
-                                            {$formatted}
-                                        </div>
-                                    ");
-                                })
-                                ->html(),
-                        ])
-                        ->columnSpanFull(),
-                ])
-                ->columnSpanFull(),
-        ];
     }
 
     private static function contactDetailsSectionForOverview(): Section
@@ -738,7 +520,7 @@ class TableRecordActions
                                     ->label('')
                                     ->contained(false)
                                     ->lazy()
-                                    ->getStateUsing(fn($record) => self::getNormalizedUserAdsForRecord($record))
+                                    ->getStateUsing(fn($record) => LpwData::getNormalizedUserAdsForRecord($record))
                                     ->schema([
                                         Section::make(fn($item) => ($item['heading'] ?? 'Property') . (isset($item['city']) && $item['city'] ? " • {$item['city']}" : ''))
                                             // ->collapsible()
@@ -917,18 +699,13 @@ class TableRecordActions
                                             ->columnSpan(1),
                                     ]),
 
-                                    // Chart Widgets Section
                                     // Section::make('Charts & Analytics')
-                                    //     ->icon('heroicon-s-chart-bar')
-                                    //     ->description('Visual representation of activities and trends')
-                                    //     ->collapsible()
                                     //     ->schema([
                                     //         ComponentsGrid::make(2)->schema([
                                     //             ViewEntry::make('activity_timeline_chart')
-                                    //                 // ->view('filament.widgets.chart-widget-view')
+                                    //                 ->view('filament.widgets.chart-widget-view')
                                     //                 ->viewData(fn($record) => [
                                     //                     'widget' => ActivityTimelineChart::class,
-                                    //                     'record' => $record,
                                     //                 ])
                                     //                 ->columnSpan(1),
 
@@ -936,17 +713,15 @@ class TableRecordActions
                                     //                 ->view('filament.widgets.chart-widget-view')
                                     //                 ->viewData(fn($record) => [
                                     //                     'widget' => ActivityTypeChart::class,
-                                    //                     'record' => $record,
                                     //                 ])
                                     //                 ->columnSpan(1),
                                     //         ]),
 
                                     //         ComponentsGrid::make(2)->schema([
                                     //             ViewEntry::make('monthly_activity_chart')
-                                    //                 // ->view('filament.widgets.chart-widget-view')
+                                    //                 ->view('filament.widgets.chart-widget-view')
                                     //                 ->viewData(fn($record) => [
                                     //                     'widget' => MonthlyActivityChart::class,
-                                    //                     'record' => $record,
                                     //                 ])
                                     //                 ->columnSpan(1),
 
@@ -954,7 +729,6 @@ class TableRecordActions
                                     //                 ->view('filament.widgets.chart-widget-view')
                                     //                 ->viewData(fn($record) => [
                                     //                     'widget' => ActivityScoreChart::class,
-                                    //                     'record' => $record,
                                     //                 ])
                                     //                 ->columnSpan(1),
                                     //         ]),
@@ -1014,6 +788,8 @@ class TableRecordActions
                                         ])
                                         ->columnSpanFull(),
 
+                                    // Call the FunnelChart widget
+                                    
                                     // Activity Breakdown Section
                                     Section::make('Activity Breakdown')
                                         ->icon('heroicon-s-chart-pie')
@@ -1067,7 +843,10 @@ class TableRecordActions
                                                     ->icon('heroicon-o-arrow-path')
                                                     ->color('gray')
                                                     ->action(function ($record) {
-                                                        Cache::forget("lpw_call_script_4");
+                                                        $userId = $record->cust_id ?? $record->customer_id ?? null;
+                                                        if ($userId) {
+                                                            Cache::forget("lpw_call_script_{$userId}");
+                                                        }
                                                         Notification::make()->title('Call script refreshed')->success()->send();
                                                     }),
                                             ])

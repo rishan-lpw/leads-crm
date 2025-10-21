@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\HuntersResource\Widgets;
+namespace App\Filament\Widgets;
 
 use App\Models\Lead;
 use Filament\Widgets\ChartWidget;

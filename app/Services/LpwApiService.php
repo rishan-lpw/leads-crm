@@ -20,13 +20,13 @@ class LpwApiService
     {
         $this->baseUrl = env('LPW_API_BASE_URL', 'https://www.lankapropertyweb.com/api/v3');
         $this->apiToken = env('LPW_API_TOKEN', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiYXBpX2tleSJ9.l6YJhp_Jm2tryHhDdodj0E1kui6vfLordQUDXWF3y3U');
-        $this->callScriptBaseUrl = env('LPW_CALLSCRIPT_BASE_URL', 'https://dev2.srilankaproperty.lk/api/v3');
+        $this->callScriptBaseUrl = env('LPW_CALLSCRIPT_BASE_URL', 'https://www.lankapropertyweb.com/api/v3');
         $this->callScriptToken = env('LPW_CALLSCRIPT_TOKEN', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIxNTM2NzUifQ.qIjXBn2QhO00-SRd0gycGMFKXU8plWTvtjenSsdPnrE');
 
         // Guard against blank env values overriding defaults
         $this->baseUrl = trim((string) $this->baseUrl) !== '' ? $this->baseUrl : 'https://www.lankapropertyweb.com/api/v3';
         $this->apiToken = trim((string) $this->apiToken) !== '' ? $this->apiToken : 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiYXBpX2tleSJ9.l6YJhp_Jm2tryHhDdodj0E1kui6vfLordQUDXWF3y3U';
-        $this->callScriptBaseUrl = trim((string) $this->callScriptBaseUrl) !== '' ? $this->callScriptBaseUrl : 'https://dev2.srilankaproperty.lk/api/v3';
+        $this->callScriptBaseUrl = trim((string) $this->callScriptBaseUrl) !== '' ? $this->callScriptBaseUrl : 'https://www.lankapropertyweb.com/api/v3';
         $this->callScriptToken = trim((string) $this->callScriptToken) !== '' ? $this->callScriptToken : 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIxNTM2NzUifQ.qIjXBn2QhO00-SRd0gycGMFKXU8plWTvtjenSsdPnrE';
     }
     

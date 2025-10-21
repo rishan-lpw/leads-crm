@@ -1,3 +1,11 @@
+@php
+    $widgetClass = $widget ?? null;
+@endphp
+
+@if ($widgetClass)
+    @livewire($widgetClass)
+@endif
+
 <div>
     @php
         $widgetClass = $widget ?? null;
