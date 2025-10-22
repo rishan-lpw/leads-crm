@@ -896,9 +896,10 @@ class TableRecordActions
                                             ->headerActions([
                                                 self::getAddActivityAction(),
                                                 Action::make('refresh')
-                                                    ->label('Refresh')
+                                                    // ->label('Refresh')
                                                     ->icon('heroicon-o-arrow-path')
                                                     ->color('gray')
+                                                    ->schema(CallScriptSection::build())
                                                     ->action(function ($record) {
                                                         $userId = $record->cust_id ?? $record->customer_id ?? null;
                                                         if ($userId) {
@@ -907,7 +908,7 @@ class TableRecordActions
                                                         Notification::make()->title('Call script refreshed')->success()->send();
                                                     }),
                                             ])
-                                            ->schema(CallScriptSection::build()),
+                                            // ->schema(CallScriptSection::build()),
                                     ]),
                                 ]),
                             ]),

@@ -134,7 +134,7 @@ class TableColumns
                 ->sortable(),
 
             ColumnText::make('property_summary')
-                ->label('Property Details Summary')
+                ->label('Property Data Summary')
                 // Display data not exceeding 2 lines
                 ->getStateUsing(function ($record) {
                     $type = ucfirst($record->type);
@@ -185,8 +185,9 @@ class TableColumns
 
                     return $latest->comments ?? 'No Comment';
                 })
-                ->limit(25)
-                ->tooltip(fn($record) => $record->latest_comment)
+                ->limit(15)
+                // Add tooltip for the latest comment as $latest->comments
+                ->tooltip(fn($record) => $record->activities->sortByDesc('created_at')->first()->comments ?? 'No Comment')
                 ->toggleable()
                 ->action(TableRecordActions::getAddActivityAction())
                 ->sortable(),

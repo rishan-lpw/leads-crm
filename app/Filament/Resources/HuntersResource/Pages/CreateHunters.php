@@ -25,6 +25,11 @@ class CreateHunters extends CreateRecord
 {
     protected static string $resource = HuntersResource::class;
 
+    public function getTitle(): string
+    {
+        return 'Create Customer';
+    }
+
     public function form(Schema $schema): Schema
     {
         $nextCustomerId = (Customer::max('id') ?? 0) + 1;

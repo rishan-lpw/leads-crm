@@ -4,9 +4,9 @@ namespace App\Filament\Resources\HuntersResource\Components\Sections;
 
 use App\Filament\Resources\HuntersResource\Components\Support\LpwData;
 use Filament\Infolists\Components\RepeatableEntry;
-// use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
+use Filament\Infolists\Components\Grid;
 use Illuminate\Support\HtmlString;
 
 class CallScriptSection
