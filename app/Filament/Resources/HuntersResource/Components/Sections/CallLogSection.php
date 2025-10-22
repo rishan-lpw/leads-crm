@@ -16,6 +16,7 @@ class CallLogSection
 	{
 		return [
 			RepeatableEntry::make('call_logs')
+				->lazy()
 				->label('')
 				->contained(false)
 				->getStateUsing(function ($record) {
@@ -26,7 +27,7 @@ class CallLogSection
 				->schema([
 					Section::make('')
 						->schema([
-							ComponentsGrid::make(5)->schema([
+							ComponentsGrid::make(5)->lazy()->schema([
 								TextEntry::make('am')->label('AM')->default(fn($log) => $log['am'] ?? 'Unknown'),
 								TextEntry::make('datetime')->label('Date & Time')->default(fn($log) => $log['datetime'] ?? 'N/A'),
 								TextEntry::make('talktime')->label('Duration')->default(fn($log) => ($log['talktime'] ?? '0') . ' sec'),
@@ -43,6 +44,7 @@ class CallLogSection
 							Section::make('More Details')
 								->collapsible()
 								->collapsed()
+								->lazy()
 								->schema([
 									ComponentsGrid::make(3)->schema([
 										TextEntry::make('summary_si')->label('Summary (සිංහල)')->default(fn($log) => substr($log['summary_si'] ?? 'N/A', 0, 50))->columnSpanFull(),

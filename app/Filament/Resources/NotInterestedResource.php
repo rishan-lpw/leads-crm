@@ -28,6 +28,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\NotInterestedResource\Components\TableColumns as NIColumns;
 
 class NotInterestedResource extends Resource
 {
@@ -56,125 +57,7 @@ class NotInterestedResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([
-                // Print customer name and user name as new columns
-                TextColumn::make('customer.firstname')
-                    ->label('Customer Name')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('user.name')
-                    ->label('User Name')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('heading')
-                    ->label('Property Heading')
-                    ->searchable()
-                    ->sortable()
-                    ->weight('bold')
-                    ->limit(50),
-
-                BadgeColumn::make('type')
-                    ->label('Listing Type')
-                    ->colors([
-                        'primary' => 'sell',
-                        'success' => 'rent',
-                        'warning' => 'lease',
-                    ])
-                    ->searchable()
-                    ->sortable(),
-
-                BadgeColumn::make('propty_type')
-                    ->label('Property Type')
-                    ->colors([
-                        'primary' => 'house',
-                        'success' => 'apartment',
-                        'warning' => 'land',
-                        'danger' => 'commercial',
-                        'info' => 'villa',
-                    ])
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('city')
-                    ->label('City')
-                    ->searchable()
-                    ->sortable()
-                    ->icon('heroicon-o-map-pin'),
-
-                TextColumn::make('price')
-                    ->label('Price')
-                    ->money('LKR')
-                    ->sortable()
-                    ->searchable(),
-
-                TextColumn::make('contact_name')
-                    ->label('Contact')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('contact_type')
-                    ->label('Contact Type')
-                    ->badge()
-                    ->colors([
-                        'primary' => 'owner',
-                        'success' => 'agent',
-                        'warning' => 'developer',
-                    ]),
-
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->badge()
-                    ->colors([
-                        'primary' => 'new',
-                        'secondary' => 'follow_up',
-                        'success' => 'system',
-                        'warning' => 'to_be_expired',
-                        'danger' => 'expired',
-                    ])
-                    ->sortable(),
-
-                TextColumn::make('source')
-                    ->label('Source')
-                    ->badge()
-                    ->colors([
-                        'primary' => 'pending_payments',
-                        'success' => 'ikman',
-                        'warning' => 'facebook',
-                        'secondary' => 'other',
-                    ])
-                    ->sortable(),
-
-                // Tables\Columns\IconColumn::make('pic')
-                //     ->label('Has Pictures')
-                //     ->boolean()
-                //     ->trueIcon('heroicon-o-camera')
-                //     ->falseIcon('heroicon-o-x-mark'),
-
-                IconColumn::make('is_active')
-                    ->label('Active')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
-
-                // Tables\Columns\IconColumn::make('is_trending')
-                //     ->label('Trending')
-                //     ->boolean()
-                //     ->trueIcon('heroicon-o-fire')
-                //     ->falseIcon('heroicon-o-minus')
-                //     ->trueColor('warning'),
-
-                TextColumn::make('created_at')
-                    ->label('Created')
-                    ->dateTime('M d, Y')
-                    ->sortable(),
-
-                TextColumn::make('updated_at')
-                    ->label('Updated')
-                    ->dateTime('M d, Y')
-                    ->sortable(),
-            ])
+            ->columns(NIColumns::get())
             ->filters([
                 // Tables\Filters\TrashedFilter::make(),
                 SelectFilter::make('source')

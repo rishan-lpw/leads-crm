@@ -31,8 +31,15 @@ class User extends Authenticatable
         'email',
         'password',
         'department_id',
-        'user_level_id'
+        'user_level_id',
+        'user_value_id',
+		'user_value',
     ];
+
+	protected $casts = [
+		// 'user_value_id' => 'array',
+		'user_value' => 'array',
+	];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -81,10 +88,10 @@ class User extends Authenticatable
         return $this->user_level_id >= $level;
     }
 
-    // user_value_id
-    public function userValue()
+    // One user can have multiple user values.
+    public function userValues()
     {
-        return $this->belongsTo(UserValue::class, 'user_value_id');
+        return $this->hasMany(UserValue::class, 'user_value_id');
     }
 
     public function activities()

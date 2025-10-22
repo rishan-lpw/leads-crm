@@ -22,24 +22,18 @@ class CallScriptSection
 					return LpwData::getCallScriptForRecord($record);
 				})
 				->schema([
-					Section::make()
-						->heading(fn($state) => ($state['category'] ?? 'Script') . ' • ' . ($state['title'] ?? ''))
-						->collapsible()
-						->schema([
-							TextEntry::make('content')
-								->label('')
-								->columnSpanFull()
-								->formatStateUsing(function ($state, $record) {
-									$content = is_array($record) ? ($record['content'] ?? '') : ($state ?? '');
-									if (empty($content)) {
-										return new HtmlString('<span class="text-gray-500 italic">No content available</span>');
-									}
-									$formatted = nl2br(e($content));
-									return new HtmlString("<div class='bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap'>{$formatted}</div>");
-								})
-								->html(),
-						])
-						->columnSpanFull(),
+					TextEntry::make('content')
+						->label('')
+						->columnSpanFull()
+						->formatStateUsing(function ($state, $record) {
+							$content = is_array($record) ? ($record['content'] ?? '') : ($state ?? '');
+							if (empty($content)) {
+								return new HtmlString('<span class="text-gray-500 italic">No content available</span>');
+							}
+							$formatted = nl2br(e($content));
+							return new HtmlString("<div class='bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap'>{$formatted}</div>");
+						})
+						->html(),
 				])
 				->columnSpanFull(),
 		];

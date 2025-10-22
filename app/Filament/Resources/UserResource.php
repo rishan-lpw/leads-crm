@@ -66,11 +66,20 @@ class UserResource extends Resource
                 // User Type should be the type_name option from user_type table.
                 // score
                 
-                Select::make('user_value_id')
-                    ->required()
-                    ->multiple()
-                    ->options(UserValue::query()->pluck('category', 'id')->toArray())
-                    ->label('User Value'),
+                // Select::make('user_value_id')
+                //     ->required()
+                //     ->multiple()
+                //     ->options(UserValue::query()->pluck('category', 'id')->toArray())
+                //     ->label('User Value'),
+				// Free-form array of text values stored directly on user.user_value
+				Select::make('user_value')
+					->multiple()
+					->options([
+						'low' => 'low',
+						'medium' => 'medium',
+						'high' => 'high',
+					])
+					->label('Add User Value Category'),
                 Select::make('user_level_id')
                     ->required()
                     ->options(UserLevel::query()->pluck('title', 'id')->toArray())
@@ -88,7 +97,10 @@ class UserResource extends Resource
                 TextColumn::make('username'),
                 TextColumn::make('email'),
                 // User value category
-                TextColumn::make('userValue.category')->label('User Value'),
+				// TextColumn::make('userValues.category')->label('User Value'),
+				TextColumn::make('user_value')
+					->label('User Value Category')
+					->formatStateUsing(fn($state) => is_array($state) ? implode(', ', $state) : ($state ?? '')),
                 // Department name from departments table
                 TextColumn::make('department.name')->label('Department'),
                 // level name from user_levels table

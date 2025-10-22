@@ -5,6 +5,7 @@ namespace App\Filament\Resources\HuntersResource\Components\Tabs;
 use App\Models\PaymentStatus;
 use App\Models\Funnel;
 use App\Models\User;
+use Filament\Infolists\Components\RepeatableEntry;
 // use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -17,6 +18,7 @@ class ActivityTabs
 	{
 		return [
 			Section::make('Activity List')
+				->lazy()
 				->collapsible()
 				->heading(function ($record) {
 					$activityType = ucfirst($record->activity_type ?? 'Activity');
@@ -54,12 +56,13 @@ class ActivityTabs
 		return Tab::make($label)
 			->icon($icon)
 			->schema([
-				\Filament\Infolists\Components\RepeatableEntry::make('activities')
+                RepeatableEntry::make('activities')
+					->lazy()
 					->label($label)
 					->getStateUsing(function ($record) use ($queryModifier) {
 						$query = $record->activities()->with('user', 'paymentStatus');
 						$queryModifier($query);
-						return $query->latest()->limit(5)->get();
+						return $query->latest()->limit(4)->get();
 					})
 					->schema(self::getActivityListSchema()),
 			]);

@@ -12,8 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('user', function (Blueprint $table) {
-            // Add user_value_id column
-            $table->unsignedBigInteger('user_value_id')->nullable()->after('user_level_id');
+            // Enable to add multiple user values to the user_value_id column.
+            $table->json('user_value_id')->nullable()->after('user_level_id');
+            $table->foreign('user_value_id')->references('id')->on('user_value');
         });
     }
 

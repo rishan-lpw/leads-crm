@@ -322,6 +322,31 @@ class TableRecordActions
             });
     }
 
+	private static function getShowMoreActivitiesAction(): Action
+	{
+		return Action::make('show_more_activities')
+			->label('Show more')
+			->icon('heroicon-o-ellipsis-horizontal')
+			->color('gray')
+			// ->lazy()
+			->modalWidth('4xl')
+			->modalHeading('All Activities')
+			->modalSubmitAction(false)
+			->modalCancelActionLabel('Close')
+			->action(function ($record, $action) {
+				$activities = $record->activities()
+					->with('user', 'paymentStatus')
+					->latest()
+					->skip(4)
+					->take(50)
+					->get();
+
+				$action->modalContent(view('filament.activities.more', [
+					'activities' => $activities,
+				]));
+			});
+	}
+
     public static function getAddActivityAction(): Action
     {
         return Action::make('add_activity')
@@ -359,40 +384,41 @@ class TableRecordActions
                             'reminder' => 'Reminder',
                         ]),
 
-                    Select::make('funnel_id')
-                        ->label('Funnel (category - stage)')
-                        ->options(function (callable $get) {
-                            $paymentStatusId = (int) $get('payment_status_id');
+                    // Select::make('funnel_id')
+                    //     ->label('Funnel (category - stage)')
+                    //     ->options(function (callable $get) {
+                    //         $paymentStatusId = (int) $get('payment_status_id');
                     
-                            // Determine which funnel IDs to show
-                            if (in_array($paymentStatusId, [2, 3])) {
-                                $allowedIds = [1, 2, 3, 4, 5, 6, 7];
-                            } elseif (in_array($paymentStatusId, [1, 15, 14])) {
-                                $allowedIds = [8, 9, 10];
-                            } elseif (in_array($paymentStatusId, [4, 9, 10])) {
-                                $allowedIds = [11, 12];
-                            } else {
-                                $allowedIds = []; // empty means show all
-                            }
+                    //         // Determine which funnel IDs to show
+                    //         if (in_array($paymentStatusId, [2, 3])) {
+                    //             $allowedIds = [1, 2, 3, 4, 5, 6, 7];
+                    //         } elseif (in_array($paymentStatusId, [1, 15, 14])) {
+                    //             $allowedIds = [8, 9, 10];
+                    //         } elseif (in_array($paymentStatusId, [4, 9, 10])) {
+                    //             $allowedIds = [11, 12];
+                    //         } else {
+                    //             $allowedIds = []; // empty means show all
+                    //         }
                     
-                            $query = Funnel::query()
-                                ->orderBy('category')
-                                ->orderBy('stage');
+                    //         $query = Funnel::query()
+                    //             ->orderBy('category')
+                    //             ->orderBy('stage');
                     
-                            if (!empty($allowedIds)) {
-                                $query->whereIn('id', $allowedIds);
-                            }
+                    //         if (!empty($allowedIds)) {
+                    //             $query->whereIn('id', $allowedIds);
+                    //         }
                     
-                            return $query->get()
-                                ->mapWithKeys(fn ($funnel) => [
-                                    $funnel->id => ucfirst($funnel->category) . ' - Stage ' . $funnel->stage
-                                ])
-                                ->toArray();
-                        })
-                        ->searchable()
-                        ->required()
-                        ->reactive()
-                        ->hint('Filtered by payment status'),
+                    //         return $query->get()
+                    //             ->mapWithKeys(fn ($funnel) => [
+                    //                 $funnel->id => ucfirst($funnel->category) . ' - Stage ' . $funnel->stage
+                    //             ])
+                    //             ->toArray();
+                    //     })
+                    //     ->searchable()
+                    //     ->required()
+                    //     ->reactive()
+                    //     ->hint('Filtered by payment status'),
+
 
                     DateTimePicker::make('follow_up_date_time')
                         ->label('Follow Up Date & Time')
@@ -443,6 +469,7 @@ class TableRecordActions
         return [
             Section::make('Activity List')
                 ->collapsible()
+                ->lazy()
                 ->heading(function ($record) {
                     $activityType = ucfirst($record->activity_type ?? 'Activity');
                     return match ($record->activity_type) {
@@ -479,9 +506,11 @@ class TableRecordActions
     private static function createActivityTab(string $label, string $icon, callable $queryModifier): Tab
     {
         return Tab::make($label)
+            ->lazy()
             ->icon($icon)
             ->schema([
                 RepeatableEntry::make('activities')
+                    ->lazy()
                     ->label($label)
                     ->getStateUsing(function ($record) use ($queryModifier) {
                         $query = $record->activities()->with('user', 'paymentStatus');
@@ -496,6 +525,7 @@ class TableRecordActions
     {
         $viewAction = ViewAction::make()
             ->label('')
+            // ->lazy()
             ->icon('heroicon-o-eye')
             ->modalHeading(fn($record) => 'Property Details - ' . $record->heading)
             ->modalWidth('6xl')
@@ -504,8 +534,9 @@ class TableRecordActions
             ->schema([
                 Tabs::make('PropertyTabs')
                     ->persistTabInQueryString()
+                    ->lazy()
                     ->tabs([
-                    Tab::make('Overview')->icon('heroicon-o-information-circle')->schema([
+                    Tab::make('Overview')->icon('heroicon-o-information-circle')->lazy()->schema([
                         // Add a section to display contact details from the function self::contactDetailsSection()
                         self::contactDetailsSectionForOverview(),
                             // Section::make('Description')->schema([
@@ -515,6 +546,7 @@ class TableRecordActions
 
                         Tab::make('Property Details')->icon('heroicon-o-information-circle')->schema([
                             Section::make('Property Information')
+                            ->lazy()
                             ->schema([
                                 RepeatableEntry::make('user_ads')
                                     ->label('')
@@ -552,23 +584,24 @@ class TableRecordActions
                             ]),
                         ]),
 
-                        Tab::make('Activity')->icon('heroicon-o-clipboard-document-list')->schema([
-                Tabs::make('ActivitySubTabs')->tabs([
-                                Tab::make('Activity Log')->icon('heroicon-o-list-bullet')->schema([
-                                    ComponentsGrid::make(3)->schema([
-                                        self::contactDetailsSection(),
+                        Tab::make('Activity')->lazy()->icon('heroicon-o-clipboard-document-list')->schema([
+                            Tabs::make('ActivitySubTabs')->tabs([
+                                    Tab::make('Activity Log')->lazy()->icon('heroicon-o-list-bullet')->schema([
+                                        ComponentsGrid::make(3)->schema([
+                                            self::contactDetailsSection(),
 
-                                        Section::make('Activity History')->columnSpan(2)->schema([
-                                            Tabs::make('ActivityFilterTabs')
-                                                ->persistTabInQueryString('activity_filter')
-                                                ->tabs([
-                                                    ActivityTabs::createActivityTab('All', 'heroicon-o-queue-list', fn($query) => null),
-                                                    ActivityTabs::createActivityTab('My Activities', 'heroicon-o-user', fn($query) => $query->where('assigned_by', Auth::id())),
-                                                    ActivityTabs::createActivityTab('Call', 'heroicon-o-phone', fn($query) => $query->where('activity_type', 'call')),
-                                                ]),
-                                        ])->headerActions([
-                                            RecordActions::getAddActivityAction(),
-                                        ]),
+                                            Section::make('Activity History')->columnSpan(2)->schema([
+                                                Tabs::make('ActivityFilterTabs')
+                                                    ->persistTabInQueryString('activity_filter')
+                                                    ->tabs([
+                                                        ActivityTabs::createActivityTab('All', 'heroicon-o-queue-list', fn($query) => null)->lazy(),
+                                                        ActivityTabs::createActivityTab('My Activities', 'heroicon-o-user', fn($query) => $query->where('assigned_by', Auth::id()))->lazy(),
+                                                        ActivityTabs::createActivityTab('Call', 'heroicon-o-phone', fn($query) => $query->where('activity_type', 'call'))->lazy(),
+                                                    ]),
+                                            ])->headerActions([
+                                                RecordActions::getAddActivityAction(),
+                                                self::getShowMoreActivitiesAction(),
+                                            ]),
                                     ]),
                                 ]),
                                 
@@ -613,13 +646,14 @@ class TableRecordActions
                                 //     ]),
                                 // ]),
 
-                                Tab::make('Old Activities')->icon('heroicon-o-clock')->schema([
-                                    ComponentsGrid::make(3)->schema([
+                                Tab::make('Old Activities')->lazy()->icon('heroicon-o-clock')->schema([
+                                    ComponentsGrid::make(3)->lazy()->schema([
                                         self::contactDetailsSection(),
                                         
                                         Section::make('Old Activities')
                                             ->icon('heroicon-o-clock')
                                             ->columnSpan(2)
+                                            // ->lazy()
                                             ->description('Old activities of the customer.')
                                             ->schema(self::oldActivitiesSection()),
                                     ])
@@ -630,15 +664,16 @@ class TableRecordActions
                             ]),
                         ]),
 
-                        Tab::make('Calls')->icon('heroicon-o-phone')->schema([
+                        Tab::make('Calls')->icon('heroicon-o-phone')->lazy()->schema([
                             // Add 3 tabs for call logs, stats, and call scripts.
-                            Tabs::make('CallSubTabs')->tabs([
-                                Tab::make('Call Logs')->icon('heroicon-o-list-bullet')->schema([
-                                    ComponentsGrid::make(3)->schema([
+                            Tabs::make('CallSubTabs')->lazy()->tabs([
+                                Tab::make('Call Logs')->lazy()->icon('heroicon-o-list-bullet')->schema([
+                                    ComponentsGrid::make(3)->lazy()->schema([
                                         self::contactDetailsSection(),
                                         
                                         Section::make('Call Logs')
                                             ->icon('heroicon-s-phone-arrow-up-right')
+                                            ->lazy()
                                             ->columnSpan(2)
                                             ->description('Call logs Details')
                                             ->headerActions([
@@ -647,8 +682,8 @@ class TableRecordActions
                                             ->schema(self::callLogSection()),
                                     ]),
                                 ]),
-                                Tab::make('Stats')->icon('heroicon-s-chart-bar-square')->schema([
-                                    ComponentsGrid::make(3)->schema([
+                                Tab::make('Stats')->lazy()->icon('heroicon-s-chart-bar-square')->schema([
+                                    ComponentsGrid::make(3)->lazy()->schema([
                                         // Total Activities Stat
                                         Section::make()
                                             ->schema([
@@ -740,7 +775,7 @@ class TableRecordActions
                                         ->icon('heroicon-s-calendar-days')
                                         ->description('Activities distribution over time')
                                         ->collapsible()
-                                        
+                                        ->lazy()
                                         ->schema([
                                             ComponentsGrid::make(4)->schema([
                                                 TextEntry::make('today_activities')
@@ -788,14 +823,35 @@ class TableRecordActions
                                         ])
                                         ->columnSpanFull(),
 
-                                    // Call the FunnelChart widget
-                                    
+                                    // Funnel stage progress section
+                                    Section::make('Activity Progress')
+                                        ->columns(2)
+                                        ->icon('heroicon-s-chart-bar-square')
+                                        ->description('Funnel stage progress')
+                                        ->collapsible()
+                                        // ->collapsed()
+                                        ->schema([
+                                            // Add text entry for represent the completed stages and to do stages.
+                                            TextEntry::make('payment_status')
+                                                ->label('Payment Status')
+                                                ->badge()
+                                                ->color('info')
+                                                    ->getStateUsing(function ($record) {
+                                                        $latestActivity = $record->activities()
+                                                            ->with('paymentStatus')
+                                                            ->whereNotNull('payment_status_id')
+                                                            ->orderByDesc('created_at')
+                                                            ->first();
+
+                                                        return $latestActivity?->paymentStatus?->payment_status ?? 'N/A';
+                                                    }),
+                                        ]),
+
                                     // Activity Breakdown Section
                                     Section::make('Activity Breakdown')
                                         ->icon('heroicon-s-chart-pie')
                                         ->description('Activities by type')
                                         ->collapsible()
-                                        ->collapsed()
                                         ->schema([
                                             RepeatableEntry::make('activity_stats')
                                                 ->label('')
@@ -828,12 +884,13 @@ class TableRecordActions
                                         ])
                                         ->columnSpanFull(),
                                 ]),
-                                Tab::make('Call Script')->schema([
-                                    ComponentsGrid::make(3)->schema([
+                                Tab::make('Call Script')->lazy()->schema([
+                                    ComponentsGrid::make(3)->lazy()->schema([
                                         self::contactDetailsSection(),
                                         
                                         Section::make('Call Scripts')
                                             ->icon('heroicon-m-clipboard-document-list')
+                                            ->lazy()
                                             ->columnSpan(2)
                                             ->description('Call script for the customer.')
                                             ->headerActions([
@@ -856,7 +913,7 @@ class TableRecordActions
                             ]),
                         ]),
 
-                        Tab::make('Message')->icon('heroicon-s-chat-bubble-bottom-center-text')->schema([
+                        Tab::make('Message')->lazy()->icon('heroicon-s-chat-bubble-bottom-center-text')->schema([
                             // Section::make('Send Message')
                             //     ->columns(2)
                             //     ->schema([
@@ -890,7 +947,7 @@ class TableRecordActions
                         ]),
 
                         Tab::make('Media')->icon('heroicon-o-camera')->schema([
-                            Section::make('Media Information')->schema([
+                            Section::make('Media Information')->lazy()->schema([
                                 TextEntry::make('pic')->label('Has Pictures')->formatStateUsing(fn($state) => $state ? 'Yes' : 'No')->badge(),
                                 TextEntry::make('pic_count')->label('Number of Pictures'),
                                 TextEntry::make('youtube_link')->label('YouTube Link')->placeholder('No YouTube link')->formatStateUsing(fn($state) => $state ?: 'No YouTube link'),
@@ -899,19 +956,19 @@ class TableRecordActions
                             ])->columns(2),
                         ]),
 
-                        Tab::make('Payments')->icon('heroicon-s-credit-card')->schema([
+                        Tab::make('Payments')->lazy()->icon('heroicon-s-credit-card')->schema([
                             Section::make('Payments Information')->schema([
                                 // placeholder for charts
                             ]),
                         ])->columnSpanFull(),
 
-                        Tab::make('Billings')->icon('heroicon-s-banknotes')->schema([
+                        Tab::make('Billings')->lazy()->icon('heroicon-s-banknotes')->schema([
                             Section::make('Billings Information')->schema([
                                 // placeholder for charts
                             ]),
                         ])->columnSpanFull(),
 
-                        Tab::make('Add-ons')->icon('heroicon-s-plus-circle')->schema([
+                        Tab::make('Add-ons')->lazy()->icon('heroicon-s-plus-circle')->schema([
                             Section::make('Add-ons Information')->schema([
                                 // placeholder for charts
                             ]),
