@@ -16,7 +16,7 @@ class Lead extends Model
         'pic', 'pic_count', 'youtube_link', 'video_link', 'image_360',
         'contact_type', 'contact_name', 'email',
         'lat', 'lng',
-        'blocked', 'is_active', 'is_trending', 'is_pin', 'is_favorite', 'status', 'source', 'posted_date', 'weight'
+        'blocked', 'is_active', 'is_trending', 'is_pin', 'is_favorite', 'status', 'source', 'posted_date', 'weight', 'score'
     ];
 
     protected $casts = [
@@ -26,6 +26,7 @@ class Lead extends Model
         'is_pin' => 'integer',
         'is_favorite' => 'integer',
         'blocked' => 'integer',
+        'score' => 'float',
     ];
 
     // belongs to user

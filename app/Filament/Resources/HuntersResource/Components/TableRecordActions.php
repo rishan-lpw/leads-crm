@@ -531,6 +531,7 @@ class TableRecordActions
             ->modalWidth('6xl')
             ->visible(fn($record) => Gate::allows('view', $record))
             ->closeModalByClickingAway(false)
+            // ->closedByClickingAway(false)
             ->schema([
                 Tabs::make('PropertyTabs')
                     ->persistTabInQueryString()
@@ -600,7 +601,7 @@ class TableRecordActions
                                                     ]),
                                             ])->headerActions([
                                                 RecordActions::getAddActivityAction(),
-                                                self::getShowMoreActivitiesAction(),
+                                                // self::getShowMoreActivitiesAction(),
                                             ]),
                                     ]),
                                 ]),
@@ -888,13 +889,13 @@ class TableRecordActions
                                     ComponentsGrid::make(3)->lazy()->schema([
                                         self::contactDetailsSection(),
                                         
-                                        Section::make('Call Scripts')
+                                        Section::make('Call Transcript')
                                             ->icon('heroicon-m-clipboard-document-list')
                                             ->lazy()
                                             ->columnSpan(2)
                                             ->description('Call script for the customer.')
                                             ->headerActions([
-                                                self::getAddActivityAction(),
+                                                RecordActions::getAddActivityAction(),
                                                 Action::make('refresh')
                                                     // ->label('Refresh')
                                                     ->icon('heroicon-o-arrow-path')
@@ -908,7 +909,7 @@ class TableRecordActions
                                                         Notification::make()->title('Call script refreshed')->success()->send();
                                                     }),
                                             ])
-                                            // ->schema(CallScriptSection::build()),
+                                            ->schema(CallScriptSection::build()),
                                     ]),
                                 ]),
                             ]),
@@ -984,18 +985,7 @@ class TableRecordActions
             ->modalHeading('Call Script')
             ->modalButton('Close')
             ->modalSubmitAction(false)
-            ->action(function ($record, $livewire, $data, $action) {
-                $response = Http::get('https://your-api.com/call-script/' . $record->id);
-
-                if ($response->successful()) {
-                    $script = $response->json()['script'] ?? 'No script available.';
-                } else {
-                    $script = '⚠️ Failed to fetch call script.';
-                }
-
-                $action->modalHeading("Call Script for Lead #{$record->id}");
-                $action->modalContent(view('filament.call-script-modal', ['script' => $script]));
-            })
+            ->schema(CallScriptSection::build())
             ->modalWidth('4xl');
 
         $editAction = EditAction::make()

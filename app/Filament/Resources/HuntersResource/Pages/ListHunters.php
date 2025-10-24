@@ -88,6 +88,7 @@ class ListHunters extends ListRecords
 
             'all' => Tab::make('All')
                 ->lazy()
+                ->default(true)
                 ->badge($countFor('all'))
                 ->icon('heroicon-o-list-bullet')
                 ->badgeColor('primary'),

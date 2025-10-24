@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Lead;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Filament\Notifications\Notification;
 
 class TableHeaderActions
@@ -20,18 +21,43 @@ class TableHeaderActions
             ->color('primary')
             ->action(function () {
                 $apiService = new LpwApiService();
-                $apiResponse = $apiService->getPendingPayments();
-                $results = $apiResponse['results'] ?? [];
+                
+                // Sync from multiple API endpoints
+                $allResults = [];
+                
+                // Sync pending payments
+                $pendingPayments = $apiService->getPendingPayments();
+                if (isset($pendingPayments['results'])) {
+                    $allResults = array_merge($allResults, $pendingPayments['results']);
+                }
+                
+                // Sync other data sources if available
+                try {
+                    // Add other API endpoints here as they become available
+                    // $otherData = $apiService->getAllLeads();
+                    // if (isset($otherData['results'])) {
+                    //     $allResults = array_merge($allResults, $otherData['results']);
+                    // }
+                } catch (Exception $e) {
+                    // Continue with pending payments only if other endpoints fail
+                }
+                
+                $results = $allResults;
 
                 $created = 0;
                 $updated = 0;
                 $customerCreated = 0;
                 $customerUpdated = 0;
+                $skipped = 0;
+                $errors = 0;
 
                 foreach ($results as $item) {
                     if (!isset($item['ad']['ad_id'])) {
+                        $skipped++;
                         continue;
                     }
+                    
+                    try {
 
                     $ad = $item['ad'];
                     $user = $item['user'] ?? null;
@@ -127,6 +153,7 @@ class TableHeaderActions
                         'blocked'        => ($ad['blocked'] ?? 'N') === 'Y' ? 1 : 0,
                         'is_active'      => is_numeric($ad['is_active']) ? (int)$ad['is_active'] : 0,
                         'source'         => $ad['source'] ?? 'API',
+                        'score'          => isset($ad['score']) ? (float) $ad['score'] : null,
                         'house_post_url' => $ad['house_post_url'] ?? null,
                         'api_sync_date'  => now(),
                         'last_update_date' => now(),
@@ -134,17 +161,49 @@ class TableHeaderActions
                     ];
 
                     if ($existingLead) {
-                        $existingLead->update($payload);
-                        $updated++;
+                        // Check if there are any changes before updating
+                        $hasChanges = false;
+                        foreach ($payload as $key => $value) {
+                            if ($existingLead->$key !== $value) {
+                                $hasChanges = true;
+                                break;
+                            }
+                        }
+                        
+                        if ($hasChanges) {
+                            $existingLead->update($payload);
+                            $updated++;
+                            
+                            // Log score updates for debugging
+                            if (isset($payload['score']) && $payload['score'] !== null) {
+                                Log::info('Score updated for lead', [
+                                    'ad_id' => $ad['ad_id'],
+                                    'old_score' => $existingLead->getOriginal('score'),
+                                    'new_score' => $payload['score'],
+                                    'score_type' => gettype($payload['score'])
+                                ]);
+                            }
+                        } else {
+                            $skipped++;
+                        }
                     } else {
                         Lead::create($payload);
                         $created++;
+                    }
+                    
+                    } catch (Exception $e) {
+                        $errors++;
+                        // Log the error for debugging
+                        Log::error('API Sync Error for ad_id: ' . ($ad['ad_id'] ?? 'unknown'), [
+                            'error' => $e->getMessage(),
+                            'data' => $item
+                        ]);
                     }
                 }
 
                 Notification::make()
                     ->title('API Sync Completed')
-                    ->body("Leads: Created {$created}, Updated {$updated}\nCustomers: Created {$customerCreated}, Updated {$customerUpdated}")
+                    ->body("Leads: Created {$created}, Updated {$updated}, Skipped {$skipped}\nCustomers: Created {$customerCreated}, Updated {$customerUpdated}\nErrors: {$errors}")
                     ->success()
                     ->send();
             });

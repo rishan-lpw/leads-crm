@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\HuntersResource\Components;
 
+use App\Filament\Resources\HuntersResource\Components\Actions\RecordActions;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
@@ -55,7 +56,7 @@ class TableColumns
 
             ColumnText::make('customer.firstname')
                 ->label('Customer')
-                // ->limit(14)
+                ->limit(24)
                 ->formatStateUsing(function ($state, $record) {
                     // Add 📌 emoji before the name if is_pin == 1
                     return $record->is_pin ? "📌 {$state}" : $state;
@@ -80,6 +81,7 @@ class TableColumns
                 ->badge()
                 // limit to 10 characters
                 ->limit(10)
+                ->action(RecordActions::getAddActivityAction())
                 ->getStateUsing(function ($record) {
                     $activities = $record->activities ?? collect();
                     $latest = $activities->sortByDesc('created_at')->first();
@@ -140,10 +142,20 @@ class TableColumns
                     $type = ucfirst($record->type);
                     $propertyType = ucfirst($record->propty_type);
 
+                    // Add ⬆️ for high weight equal to 'high' and ⬇️ for low weight equal to 'low'.
+                    $weight = $record->weight;
+                    if ($weight == 'high') {
+                        $type = "⬆️ $type";
+                    } elseif ($weight == 'low') {
+                        $type = "⬇️ $type";
+                    }elseif ($weight == 'medium') {
+                        $type = "↔️ $type";
+                    }
+
                     $typeBadge = "<span class='badge badge-type'>{$type}</span>";
                     $propertyTypeBadge = "<span class='badge badge-prop'>{$propertyType}</span>";
 
-                    return "$typeBadge - $propertyTypeBadge";
+                    return "$typeBadge - $propertyTypeBadge ";
                 })
                 ->html()
                 // Add badge for property type and type. Only apply for the fields type and propty_type.
@@ -166,6 +178,7 @@ class TableColumns
                     } else {
                         $priceFormatted = number_format($record->price);
                     }
+                    
                     $price = $priceFormatted;
                     $city = ucfirst($record->city);
                     return "$price | $city";
@@ -189,7 +202,7 @@ class TableColumns
                 // Add tooltip for the latest comment as $latest->comments
                 ->tooltip(fn($record) => $record->activities->sortByDesc('created_at')->first()->comments ?? 'No Comment')
                 ->toggleable()
-                ->action(TableRecordActions::getAddActivityAction())
+                ->action(RecordActions::getAddActivityAction())
                 ->sortable(),
 
             ColumnText::make('progress_icons')
@@ -354,6 +367,15 @@ class TableColumns
                 ])
                 ->toggleable()
                 ->sortable(),
+
+            // Add column to display the score
+            ColumnText::make('score')
+                ->label('Score')
+                ->getStateUsing(function ($record) {
+                    return $record->score;
+                })
+                ->sortable()
+                ->toggleable(),
 
             ColumnText::make('street')
                 ->label('Street')

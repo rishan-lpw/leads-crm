@@ -52,23 +52,68 @@ class RecordActions
 					'follow_up' => 'Follow Up',
 					'reminder' => 'Reminder',
 				]),
-				Select::make('funnel_id')->label('Funnel (category - stage)')->options(function (callable $get) {
+				Select::make('funnel_id')->label('Funnel Category/Stage)')->options(function (callable $get, $record) {
 					$paymentStatusId = (int) $get('payment_status_id');
+					
+					// Get the maximum stage completed for each category for this lead
+					$maxStagesCompleted = [];
+					if ($record) {
+						$activities = $record->activities()
+							->whereNotNull('funnel_id')
+							->with('funnel')
+							->get();
+						
+						foreach ($activities as $activity) {
+							if ($activity->funnel) {
+								$category = $activity->funnel->category;
+								$stage = $activity->funnel->stage;
+								
+								if (!isset($maxStagesCompleted[$category]) || $stage > $maxStagesCompleted[$category]) {
+									$maxStagesCompleted[$category] = $stage;
+								}
+							}
+						}
+					}
+					
+					// Define the funnel categories and their total stages
+					$funnelCategories = [
+						'contacted' => 7,
+						'rna' => 3,
+						'not_interested' => 2,
+					];
+					
+					// Get available funnel options based on payment status and completed stages
+					$availableFunnels = [];
+					
+					// Get all funnels for the current payment status
+					$paymentStatusFunnels = [];
 					if (in_array($paymentStatusId, [2, 3])) {
-						$allowedIds = [1, 2, 3, 4, 5, 6, 7];
+						$paymentStatusFunnels = ['contacted'];
 					} elseif (in_array($paymentStatusId, [1, 15, 14])) {
-						$allowedIds = [8, 9, 10];
+						$paymentStatusFunnels = ['rna'];
 					} elseif (in_array($paymentStatusId, [4, 9, 10])) {
-						$allowedIds = [11, 12];
-					} else {
-						$allowedIds = [];
+						$paymentStatusFunnels = ['not_interested'];
 					}
-					$query = Funnel::query()->orderBy('category')->orderBy('stage');
-					if (!empty($allowedIds)) {
-						$query->whereIn('id', $allowedIds);
+					
+					// For each category, show only the next stages to be completed
+					foreach ($paymentStatusFunnels as $category) {
+						$maxCompleted = $maxStagesCompleted[$category] ?? 0;
+						$totalStages = $funnelCategories[$category] ?? 0;
+						
+						// Show stages from (maxCompleted + 1) to totalStages
+						for ($stage = $maxCompleted + 1; $stage <= $totalStages; $stage++) {
+							$funnel = Funnel::where('category', $category)
+								->where('stage', $stage)
+								->first();
+							
+							if ($funnel) {
+								$availableFunnels[$funnel->id] = ucfirst($category) . ' - Stage ' . $stage;
+							}
+						}
 					}
-					return $query->get()->mapWithKeys(fn ($funnel) => [ $funnel->id => ucfirst($funnel->category) . ' - Stage ' . $funnel->stage ])->toArray();
-				})->searchable()->required()->reactive()->hint('Filtered by payment status'),
+					
+					return $availableFunnels;
+				})->searchable()->required()->reactive()->hint('Next stages to be completed.'),
 				DateTimePicker::make('follow_up_date_time')->label('Follow Up Date & Time')->visible(fn ($get) => $get('follow_up_type') === 'follow_up')->required(fn ($get) => $get('follow_up_type') === 'follow_up')->reactive(),
 				DatePicker::make('reminder_date')->label('Reminder Date')->visible(fn ($get) => $get('follow_up_type') === 'reminder')->required(fn ($get) => $get('follow_up_type') === 'reminder')->reactive(),
 				Textarea::make('comments')->label('Comments')->rows(4),

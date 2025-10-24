@@ -54,7 +54,8 @@ class CallLogSection
 										TextEntry::make('language')->label('Language')->default(fn($log) => $log['language'] ?? 'Unknown'),
 										TextEntry::make('status')->label('Status')->badge()->color('primary')->default(fn($log) => $log['status'] ?? 'Unknown'),
 									]),
-									TextEntry::make('recording_url')->label('Recording URL')->default(fn($log) => $log['recording_url'] ?? 'N/A'),
+									// Recording URL should be a clickable link to open in a new tab.
+									TextEntry::make('recording_url')->openUrlInNewTab(true)->label('Recording URL')->default(fn($log) => $log['recording_url'] ?? 'N/A')->formatStateUsing(function ($state) { return new HtmlString("<a href='{$state}' target='_blank'>{$state}</a>"); }),
 									TextEntry::make('transcript')->label('Transcript')->default(fn($log) => $log['transcript'] ?? 'No transcript available')->formatStateUsing(function ($state) { return new HtmlString($state); })->columnSpanFull(),
 								])
 								->columnSpanFull(),
