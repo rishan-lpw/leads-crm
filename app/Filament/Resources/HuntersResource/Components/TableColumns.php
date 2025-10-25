@@ -211,30 +211,42 @@ class TableColumns
                 ->getStateUsing(function ($record) {
                     // Use preloaded activities collection to avoid N+1 queries.
                     $activities = $record->activities ?? collect();
-                    // sort desc and take latest 3 then show oldest->newest (reverse)
-                    $latest = $activities->sortByDesc('created_at')->take(3)->values()->reverse();
+                    // sort desc and take latest 4 then show oldest->newest (reverse)
+                    $latest = $activities->sortByDesc('created_at')->take(4)->values()->reverse();
 
                     if ($latest->isEmpty()) {
-                        return '🔘';
+                        return '<i class="bi bi-circle text-gray-400" title="No activities"></i>';
                     }
 
-                    $lastActivityDate = $latest->last()->created_at->diffForHumans();
-
-                    $map = [
-                        'red'    => '🔴',
-                        'orange' => '🟡',
-                        // 'yellow' => '🟡',
-                        'green'  => '🟢',
-                        'black'  => '⚫',
+                    $colorMap = [
+                        'red'    => '#dc2626', // red-600
+                        'orange' => '#eab308', // orange-600
+                        'green'  => '#16a34a', // green-600
+                        'black'  => '#374151', // gray-700
+                        'blue'   => '#2563eb', // blue-600
+                        'yellow' => '#eab308', // yellow-500
                     ];
 
                     $result = [];
                     foreach ($latest as $activity) {
                         $color = strtolower(trim((string) ($activity->paymentStatus?->color ?? '')));
-                        $result[] = $map[$color] ?? '🔘';
+                        $paymentStatus = $activity->paymentStatus?->payment_status ?? 'Unknown';
+                        $hexColor = $colorMap[$color] ?? '#6b7280'; // default gray-500
+                        
+                        $result[] = sprintf(
+                            '<i class="bi bi-circle-fill" style="color: %s;" title="%s"></i>',
+                            $hexColor,
+                            htmlspecialchars($paymentStatus)
+                        );
                     }
 
-                    return "<span class='text-xs text-gray-500'>$lastActivityDate</span><br>" . implode('', $result);
+                    return '<span class="flex gap-1">' . implode(' ', $result) . '</span>';
+                })
+                // Add last activity date as the description
+                ->description(function ($record) {
+                    $activities = $record->activities ?? collect();
+                    $latest = $activities->sortByDesc('created_at')->first();
+                    return $latest?->created_at->format('M d Y');
                 })
                 ->toggleable()
                 ->sortable(),
@@ -327,7 +339,7 @@ class TableColumns
                         $lines[] = sprintf(
                             '<div class="leading-tight text-sm flex items-center space-x-1" title="%s">%s</div>',
                             $label,
-                            implode('', $iconsHtml)
+                            implode(' ', $iconsHtml)
                         );
                     }
 
@@ -346,7 +358,7 @@ class TableColumns
                             $lines[] = sprintf(
                                 '<div class="leading-tight text-sm flex items-center space-x-1" title="%s">%s</div>',
                                 $label,
-                                implode('', $iconsHtml)
+                                implode(' ', $iconsHtml)
                             );
                         }
                     }
@@ -355,23 +367,36 @@ class TableColumns
                 })
                 ->sortable(),
 
-            BadgeColumn::make('weight')
-                ->label('Weight')
-                ->getStateUsing(function ($record) {
-                    return $record->weight;
-                })
-                ->colors([
-                    'primary' => fn($state) => $state >= 700,
-                    'warning' => fn($state) => $state >= 300 && $state < 700,
-                    'secondary' => fn($state) => $state < 300,
-                ])
-                ->toggleable()
-                ->sortable(),
+            // BadgeColumn::make('weight')
+            //     ->label('Weight')
+            //     ->getStateUsing(function ($record) {
+            //         return $record->weight;
+            //     })
+            //     ->colors([
+            //         'primary' => fn($state) => $state >= 700,
+            //         'warning' => fn($state) => $state >= 300 && $state < 700,
+            //         'secondary' => fn($state) => $state < 300,
+            //     ])
+            //     ->toggleable()
+            //     ->sortable(),
 
             // Add column to display the score
             ColumnText::make('score')
                 ->label('Score')
+                // Display score category based on the score value.
+                // Add the badge color based on the score category.
+                ->badge()
+                ->color('warning')
                 ->getStateUsing(function ($record) {
+                    if ($record->score < 1.0) {
+                        return 'Low';
+                    } elseif ($record->score >= 1.0 && $record->score < 7.0) {
+                        return 'Medium';
+                    } elseif ($record->score >= 7.0) {
+                        return 'High';
+                    }
+                })
+                ->description(function ($record) {
                     return $record->score;
                 })
                 ->sortable()

@@ -70,13 +70,18 @@ class TableFilters
                 })
                 ->label('Price Range'),
 
-            SelectFilter::make('weight')
-                ->label('Weight')
-                ->options([
-                    'low' => 'Low',
-                    'medium' => 'Medium',
-                    'high' => 'High',
-                ]),
+            // Add filter for score range
+            Filter::make('score_range')
+                ->schema([
+                    TextInput::make('score_min')->label('Min Score')->numeric(),
+                    TextInput::make('score_max')->label('Max Score')->numeric(),
+                ])
+                ->query(function (Builder $query, array $data) {
+                    return $query
+                        ->when($data['score_min'], fn(Builder $query, $value) => $query->where('score', '>=', $value))
+                        ->when($data['score_max'], fn(Builder $query, $value) => $query->where('score', '<=', $value));
+                })
+                ->label('Score Range'),
         ];
     }
 }
