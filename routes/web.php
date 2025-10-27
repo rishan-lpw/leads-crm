@@ -40,16 +40,35 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 
 // Admin-scoped routes
 Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
-    // Call Script page under /admin (fetches data via LpwApiService)
-    Route::get('/call-script', function (\Illuminate\Http\Request $request, \App\Services\LpwApiService $service) {
+    // Helper closure for call script routes
+    $callScriptHandler = function (\Illuminate\Http\Request $request, \App\Services\LpwApiService $service, $activeTab = 'sinhala') {
         $uid = $request->query('uid');
         $script = $uid ? $service->getCallScript($uid) : [];
 
         return view('livewire.pages.call-script', [
             'uid' => $uid,
             'script' => $script,
+            'activeTab' => $activeTab,
         ]);
+    };
+    
+    // Call Script main route (defaults to Sinhala tab)
+    Route::get('/call-script', function (\Illuminate\Http\Request $request, \App\Services\LpwApiService $service) use ($callScriptHandler) {
+        return $callScriptHandler($request, $service, 'sinhala');
     })->name('call.script');
+    
+    // Call Script nested tab routes
+    Route::get('/call-script/sinhala', function (\Illuminate\Http\Request $request, \App\Services\LpwApiService $service) use ($callScriptHandler) {
+        return $callScriptHandler($request, $service, 'sinhala');
+    })->name('call.script.sinhala');
+    
+    Route::get('/call-script/stats', function (\Illuminate\Http\Request $request, \App\Services\LpwApiService $service) use ($callScriptHandler) {
+        return $callScriptHandler($request, $service, 'stats');
+    })->name('call.script.stats');
+    
+    Route::get('/call-script/bundle-package', function (\Illuminate\Http\Request $request, \App\Services\LpwApiService $service) use ($callScriptHandler) {
+        return $callScriptHandler($request, $service, 'bundle-package');
+    })->name('call.script.bundle-package');
 });
 
 require __DIR__.'/auth.php';

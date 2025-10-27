@@ -8,11 +8,11 @@
                 <div class="panel-heading">
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <h2 class="panel-title" id="scriptModalLabel" style="font-weight: bold; margin: 0;">
+                            <h2 class="panel-title" id="scriptModalLabel" style="font-weight: bold; font-size: 24px; color: #fff310; margin: 0;">
                                 Sales Call Transcript
                             </h2>
                         </div>
-                        <button type="button" class="btn btn-success call-btn" data-phone="[Customer Phone Number]">
+                        <button type="button" class="btn btn-success call-btn" data-phone="[Customer Phone Number]" style="background-color: #10b981; border-color: #10b981; color: white; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                             <i class="fa fa-phone"></i> Call Customer
                         </button>
                     </div>
@@ -20,41 +20,50 @@
 
                 <div class="panel-body">
 
-                    <ul class="flex border-b border-gray-200" id="tabs">
-                        <li class="mr-1 @if(true) -mb-px @endif"> {{-- Simulate 'active' logic --}}
-                            <a class="inline-block py-2 px-4 text-sm font-medium border-l border-t border-r rounded-t @if(true) text-blue-600 bg-white border-blue-600 @else text-gray-500 hover:text-gray-600 hover:bg-gray-50 @endif" 
-                               href="#srl">
+                    <ul class="nav nav-tabs" id="tabs" style="border-bottom: 2px solid #e5e7eb; margin-bottom: 0; display: flex; list-style: none; padding-left: 0;">
+                        <li class="{{ ($activeTab ?? 'sinhala') === 'sinhala' ? 'active' : '' }}" style="margin-right: 4px;">
+                            <a href="{{ route('call.script.sinhala', ['uid' => $uid]) }}" 
+                               style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; 
+                                      color: {{ ($activeTab ?? 'sinhala') === 'sinhala' ? '#2563eb' : '#6b7280' }}; 
+                                      background-color: {{ ($activeTab ?? 'sinhala') === 'sinhala' ? 'white' : '#f9fafb' }}; 
+                                      border: 2px solid {{ ($activeTab ?? 'sinhala') === 'sinhala' ? '#2563eb' : 'transparent' }}; 
+                                      border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
                                 Sinhala
                             </a>
                         </li>
-                        <li class="mr-1">
-                            <a class="inline-block py-2 px-4 text-sm font-medium border-l border-t border-r rounded-t text-gray-500 hover:text-gray-600 hover:bg-gray-50" 
-                               href="#eng">
+                        <li style="margin-right: 4px;">
+                            <a href="#eng" style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; color: #6b7280; background-color: #f9fafb; border: 2px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
                                 English
                             </a>
                         </li>
-                        <li class="mr-1">
-                            <a class="inline-block py-2 px-4 text-sm font-medium border-l border-t border-r rounded-t text-gray-500 hover:text-gray-600 hover:bg-gray-50" 
-                               href="#tam">
+                        <li style="margin-right: 4px;">
+                            <a href="#tam" style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; color: #6b7280; background-color: #f9fafb; border: 2px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
                                 Tamil
                             </a>
                         </li>
-                        <li id="stats_li" class="mr-1">
-                            <a class="inline-block py-2 px-4 text-sm font-medium border-l border-t border-r rounded-t text-gray-500 hover:text-gray-600 hover:bg-gray-50" 
-                               href="#stat">
+                        <li id="bundle_packages_li" class="{{ ($activeTab ?? '') === 'bundle-package' ? 'active' : '' }}" style="margin-right: 4px;">
+                            <a href="{{ route('call.script.bundle-package', ['uid' => $uid]) }}" 
+                               style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; 
+                                      color: {{ ($activeTab ?? '') === 'bundle-package' ? '#2563eb' : '#6b7280' }}; 
+                                      background-color: {{ ($activeTab ?? '') === 'bundle-package' ? 'white' : '#f9fafb' }}; 
+                                      border: 2px solid {{ ($activeTab ?? '') === 'bundle-package' ? '#2563eb' : 'transparent' }}; 
+                                      border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
+                                Bundle Packages
+                            </a>
+                        </li>
+                        <li id="stats_li" class="{{ ($activeTab ?? '') === 'stats' ? 'active' : '' }}" style="margin-right: 4px;">
+                            <a href="{{ route('call.script.stats', ['uid' => $uid]) }}" 
+                               style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; 
+                                      color: {{ ($activeTab ?? '') === 'stats' ? '#2563eb' : '#6b7280' }}; 
+                                      background-color: {{ ($activeTab ?? '') === 'stats' ? 'white' : '#f9fafb' }}; 
+                                      border: 2px solid {{ ($activeTab ?? '') === 'stats' ? '#2563eb' : 'transparent' }}; 
+                                      border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
                                 Stats
                             </a>
                         </li>
-                        <li id="call_histry_li" class="mr-1">
-                            <a class="inline-block py-2 px-4 text-sm font-medium border-l border-t border-r rounded-t text-gray-500 hover:text-gray-600 hover:bg-gray-50" 
-                               href="#calllog">
+                        <li id="call_histry_li" style="margin-right: 4px;">
+                            <a href="#calllog" style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; color: #6b7280; background-color: #f9fafb; border: 2px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
                                 Call History
-                            </a>
-                        </li>
-                        <li id="bundle_packages_li" class="mr-1">
-                            <a class="inline-block py-2 px-4 text-sm font-medium border-l border-t border-r rounded-t text-gray-500 hover:text-gray-600 hover:bg-gray-50" 
-                               href="#bundle">
-                                Bundle Packages
                             </a>
                         </li>
                     </ul>
@@ -67,49 +76,12 @@
                     </div>
                     
                     <div class="tab-content" style="padding-top: 15px;">
-                        <div class="tab-pane fade active in" id="srl">
+                        <div class="tab-pane fade {{ ($activeTab ?? 'sinhala') === 'sinhala' ? 'active in' : '' }}" id="srl">
                             <div class="row">
                                 <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                                     <div id="sheet-data-container" 
                                         style="max-width: 850px; margin: 20px auto 0; font-family: sans-serif; display: list-item;">
-
-                                        <h4 style="margin-bottom: 5px; font-weight: bold;">Opening Greeting</h4>
-                                        <hr style="margin-top: 5px; margin-bottom: 10px; border: 0; height: 1px; background-color: #eee;">
-                                        
-                                        <div class="message-card">
-                                            <div class="message-speaker" style="color: #6f42c1;">
-                                                Good
-                                            </div>
-                                            <div class="message-content">
-                                                <p>
-                                                    <span class="braced-text">Morning</span>.
-                                                </p>
-                                                <p>
-                                                    මම Manoj කතාකරන්නේ. මේ වෙලාවේ කතා කරන්න පුලුවන්ද?
-                                                </p>
-                                                <p>
-                                                    1. Sir/ Miss ගෙ Ad එකක් දාලා තිබ්බ <span class="bracketed-text">Miriswatta Land</span> එකක් <span class="braced-text">විකුනන්න</span>. ඒක සම්බන්දයෙන් කතා කරන්නෙ.
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <h4 style="margin-bottom: 5px;">Rejection Options</h4>
-                                        <hr style="margin-top: 5px; margin-bottom: 10px; border: 0; height: 1px; background-color: #eee;">
-                                        
-                                        <div class="rejection-accordion" style="margin-top: 12px; border-radius: 8px; overflow: hidden; background: #fff5f5;">
-                                            <div class="rejection-header">
-                                                Need More time/ Will try on next week
-                                                <span>▼</span>
-                                            </div>
-                                            <div class="rejection-details"></div>
-                                            
-                                            <div class="rejection-header">
-                                                I have to ask someone else
-                                                <span>▼</span>
-                                            </div>
-                                            <div class="rejection-details"></div>
-                                        </div>
-
+                                        <!-- Content dynamically loaded by JavaScript -->
                                     </div>
                                 </div>
                             </div>
@@ -117,16 +89,19 @@
                         
                         <div class="tab-pane fade" id="eng"></div>
                         <div class="tab-pane fade" id="tam"></div>
-                        <div class="tab-pane fade" id="stat"></div>
+                        <div class="tab-pane fade {{ ($activeTab ?? '') === 'bundle-package' ? 'active in' : '' }}" id="bundles">
+                            <div style="max-width: 850px; margin: 20px auto; font-family: sans-serif; display: list-item;">
+                                <div id="bundle-packages-container"></div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade {{ ($activeTab ?? '') === 'stats' ? 'active in' : '' }}" id="stat">
+                            <div style="max-width: 850px; margin: 20px auto; font-family: sans-serif; display: list-item;">
+                                <div id="stats-container"></div>
+                            </div>
+                        </div>
                         <div class="tab-pane fade" id="calllog">
                              <div style="max-width: 850px; margin: 20px auto; font-family: sans-serif; display: list-item;">
                                  <ul class="timeline" id="call-log-data-container"></ul>
-                             </div>
-                        </div>
-                        
-                        <div class="tab-pane fade" id="bundle">
-                             <div style="max-width: 850px; margin: 20px auto; font-family: sans-serif; display: list-item;">
-                                 <div id="bundle-packages-container"></div>
                              </div>
                         </div>
 
@@ -142,6 +117,7 @@
 </div>
 
 <script id="call-script-data" type="application/json">@json($script ?? [])</script>
+<script id="active-tab-data" type="application/json">"{{ $activeTab ?? 'sinhala' }}"</script>
 <link rel="stylesheet" href="{{ asset('css/filament/filament/app.css') }}">
 <script src="{{ asset('js/filament/schemas/components/callScript.js') }}"></script>
 @endsection

@@ -54,32 +54,60 @@
     }
 
     function setupTabs() {
+        // Setup tabs for English, Tamil, and Call History (hash-based tabs)
         var tabs = document.querySelectorAll('#tabs a[href^="#"]');
         var panes = document.querySelectorAll('.tab-pane');
         if (!tabs.length || !panes.length) return;
 
         function activate(hash) {
             tabs.forEach(function (a) {
+                var href = a.getAttribute('href');
+                if (!href.startsWith('#')) return; // Skip route-based tabs
+                
                 var li = a.parentElement;
-                if (li && li.tagName === 'LI') li.classList.toggle('active', a.getAttribute('href') === hash);
+                var isActive = href === hash;
+                
+                if (li && li.tagName === 'LI') {
+                    if (isActive) {
+                        li.classList.add('active');
+                    } else {
+                        li.classList.remove('active');
+                    }
+                }
+                
+                // Update inline styles for active/inactive state (hash-based tabs only)
+                if (isActive) {
+                    a.style.color = '#2563eb';
+                    a.style.backgroundColor = 'white';
+                    a.style.border = '2px solid #2563eb';
+                    a.style.borderBottom = 'none';
+                } else {
+                    a.style.color = '#6b7280';
+                    a.style.backgroundColor = '#f9fafb';
+                    a.style.border = '2px solid transparent';
+                    a.style.borderBottom = 'none';
+                }
             });
+            
             panes.forEach(function (pane) {
                 var shouldShow = '#' + pane.id === hash;
-                pane.classList.toggle('active', shouldShow);
-                pane.classList.toggle('in', shouldShow);
+                if (shouldShow) {
+                    pane.classList.add('active', 'in');
+                } else {
+                    pane.classList.remove('active', 'in');
+                }
             });
         }
 
         tabs.forEach(function (a) {
-            a.addEventListener('click', function (e) {
-                e.preventDefault();
-                activate(a.getAttribute('href'));
-            });
+            var href = a.getAttribute('href');
+            if (href && href.startsWith('#')) {
+                a.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    activate(href);
+                });
+            }
         });
-
-        // Initialize to first active
-        var current = Array.prototype.find.call(tabs, function (a) { return a.parentElement.classList.contains('active'); });
-        activate(current ? current.getAttribute('href') : tabs[0].getAttribute('href'));
     }
 
     function showLoading(show) {
@@ -190,12 +218,14 @@
                     packageCard.className = 'message-card';
                     packageCard.style.marginBottom = '20px';
                     packageCard.style.borderLeft = '4px solid #3b82f6';
+                    packageCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
                     
                     // Package name header
                     var packageHeader = document.createElement('div');
                     packageHeader.className = 'message-speaker';
                     packageHeader.style.color = '#1e40af';
                     packageHeader.style.fontSize = '20px';
+                    packageHeader.style.marginBottom = '10px';
                     packageHeader.textContent = packageKey;
                     packageCard.appendChild(packageHeader);
                     
@@ -216,10 +246,51 @@
         }
     }
 
-    function renderScript(script) {
-        var container = document.getElementById('sheet-data-container');
+    function renderStats(statsSection, commonTextReplacements) {
+        var container = document.getElementById('stats-container');
         if (!container) return;
 
+        try {
+            var frag = document.createDocumentFragment();
+
+            if (statsSection && typeof statsSection === 'object') {
+                Object.keys(statsSection).forEach(function(statKey) {
+                    var statContent = statsSection[statKey];
+                    
+                    // Create stat card
+                    var statCard = document.createElement('div');
+                    statCard.className = 'message-card';
+                    statCard.style.marginBottom = '20px';
+                    statCard.style.borderLeft = '4px solid #10b981';
+                    statCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    
+                    // Stat name header
+                    var statHeader = document.createElement('div');
+                    statHeader.className = 'message-speaker';
+                    statHeader.style.color = '#059669';
+                    statHeader.style.fontSize = '20px';
+                    statHeader.style.marginBottom = '10px';
+                    statHeader.textContent = statKey;
+                    statCard.appendChild(statHeader);
+                    
+                    // Stat content
+                    var contentDiv = document.createElement('div');
+                    contentDiv.className = 'message-content';
+                    contentDiv.innerHTML = formatText(statContent, commonTextReplacements);
+                    statCard.appendChild(contentDiv);
+                    
+                    frag.appendChild(statCard);
+                });
+            }
+
+            container.innerHTML = '';
+            container.appendChild(frag);
+        } catch (e) {
+            console.error('Error rendering stats', e);
+        }
+    }
+
+    function renderScript(script, activeTab) {
         if (!script || (Array.isArray(script) && script.length === 0) || (typeof script === 'object' && Object.keys(script).length === 0)) {
             console.log('No script data available');
             return;
@@ -229,18 +300,35 @@
             // Extract Common Text section for replacements
             var commonTextReplacements = script['Common Text'] || {};
             console.log('Common Text replacements available:', Object.keys(commonTextReplacements));
+            console.log('Active tab:', activeTab);
             
-            // Render Bundle Packages in separate tab
-            if (script['Bundle package']) {
-                renderBundlePackages(script['Bundle package'], commonTextReplacements);
+            // Render content based on active tab
+            if (activeTab === 'bundle-package') {
+                // Only render Bundle Packages
+                if (script['Bundle package']) {
+                    renderBundlePackages(script['Bundle package'], commonTextReplacements);
+                }
+                return; // Exit early
             }
+            
+            if (activeTab === 'stats') {
+                // Only render Stats
+                if (script['Stats']) {
+                    renderStats(script['Stats'], commonTextReplacements);
+                }
+                return; // Exit early
+            }
+            
+            // Default: render Sinhala tab content
+            var container = document.getElementById('sheet-data-container');
+            if (!container) return;
             
             var frag = document.createDocumentFragment();
 
-            // Main sections
+            // Main sections (Sinhala tab only)
             Object.keys(script).forEach(function (sectionKey) {
-                // Skip Common Text and Bundle package sections
-                if (sectionKey === 'Common Text' || sectionKey === 'Bundle package') {
+                // Skip Common Text, Bundle package, and Stats sections (they have their own tabs)
+                if (sectionKey === 'Common Text' || sectionKey === 'Bundle package' || sectionKey === 'Stats') {
                     return;
                 }
                 
@@ -299,9 +387,13 @@
             var scriptTag = document.getElementById('call-script-data');
             var serverData = scriptTag ? JSON.parse(scriptTag.textContent || '{}') : {};
             
-            console.log('Script data loaded:', Object.keys(serverData));
+            var activeTabTag = document.getElementById('active-tab-data');
+            var activeTab = activeTabTag ? JSON.parse(activeTabTag.textContent || '"sinhala"') : 'sinhala';
             
-            renderScript(serverData);
+            console.log('Script data loaded:', Object.keys(serverData));
+            console.log('Active tab from server:', activeTab);
+            
+            renderScript(serverData, activeTab);
             showLoading(false);
         } catch (e) {
             console.error('Failed to load script data', e);

@@ -899,12 +899,9 @@ class TableRecordActions
                                                     ->label('Refresh')
                                                     ->icon('heroicon-o-arrow-path')
                                                     ->color('gray')
-                                                    ->url(fn ($record) => (\Illuminate\Support\Facades\Route::has('call.script')
-                                                        ? route('call.script', [
-                                                            'uid' => ($record->cust_id ?? $record->customer_id ?? ''),
-                                                        ])
-                                                        : url('/call-script') . '?uid=' . ($record->cust_id ?? $record->customer_id ?? '')
-                                                    ))
+                                                    ->url(fn ($record) => route('call.script.sinhala', [
+                                                        'uid' => ($record->cust_id ?? $record->customer_id ?? ''),
+                                                    ]))
                                                     ->openUrlInNewTab(),
                                             ])
                                             ->schema([
