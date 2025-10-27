@@ -53,6 +53,7 @@ use App\Filament\Resources\HuntersResource\Components\Tabs\ActivityTabs;
 use App\Filament\Resources\HuntersResource\Components\Actions\RecordActions;
 use App\Filament\Resources\HuntersResource\Components\Support\LpwData;
 use App\Filament\Resources\HuntersResource\Widgets\FunnelChart;
+use Filament\Schemas\Components\Wizard;
 
 class TableRecordActions
 {
@@ -888,28 +889,29 @@ class TableRecordActions
                                 Tab::make('Call Script')->lazy()->schema([
                                     ComponentsGrid::make(3)->lazy()->schema([
                                         self::contactDetailsSection(),
-                                        
                                         Section::make('Call Transcript')
                                             ->icon('heroicon-m-clipboard-document-list')
                                             ->lazy()
                                             ->columnSpan(2)
                                             ->description('Call script for the customer.')
                                             ->headerActions([
-                                                RecordActions::getAddActivityAction(),
                                                 Action::make('refresh')
-                                                    // ->label('Refresh')
+                                                    ->label('Refresh')
                                                     ->icon('heroicon-o-arrow-path')
                                                     ->color('gray')
-                                                    ->schema(CallScriptSection::build())
-                                                    ->action(function ($record) {
-                                                        $userId = $record->cust_id ?? $record->customer_id ?? null;
-                                                        if ($userId) {
-                                                            Cache::forget("lpw_call_script_{$userId}");
-                                                        }
-                                                        Notification::make()->title('Call script refreshed')->success()->send();
-                                                    }),
+                                                    ->url(fn ($record) => (\Illuminate\Support\Facades\Route::has('call.script')
+                                                        ? route('call.script', [
+                                                            'uid' => ($record->cust_id ?? $record->customer_id ?? ''),
+                                                        ])
+                                                        : url('/call-script') . '?uid=' . ($record->cust_id ?? $record->customer_id ?? '')
+                                                    ))
+                                                    ->openUrlInNewTab(),
                                             ])
-                                            ->schema(CallScriptSection::build()),
+                                            ->schema([
+                                                TextEntry::make('call_script_help')
+                                                    ->label('')
+                                                    ->state('Use the Refresh button to open the Call Script page.'),
+                                            ]),
                                     ]),
                                 ]),
                             ]),
