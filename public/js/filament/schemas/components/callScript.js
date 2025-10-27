@@ -88,9 +88,21 @@
         modal.classList.toggle('hidden', !show);
     }
 
-    function formatText(text) {
+    function formatText(text, commonTextReplacements) {
         if (!text) return '';
-        return text
+        
+        // Replace @placeholders with common text values
+        var processedText = text;
+        if (commonTextReplacements) {
+            Object.keys(commonTextReplacements).forEach(function(key) {
+                var placeholder = '@' + key;
+                var replacement = commonTextReplacements[key] || '';
+                // Replace all occurrences of the placeholder
+                processedText = processedText.split(placeholder).join(replacement);
+            });
+        }
+        
+        return processedText
             .replace(/\n/g, '<br>')
             .replace(/\[([^\]]+)\]/g, '<span class="bracketed-text">$1</span>')
             .replace(/\{([^}]+)\}/g, '<span class="braced-text">$1</span>');
@@ -114,7 +126,7 @@
         return hr;
     }
 
-    function createMessageCard(content, speaker) {
+    function createMessageCard(content, speaker, commonTextReplacements) {
         var card = document.createElement('div');
         card.className = 'message-card';
 
@@ -128,13 +140,13 @@
 
         var contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-        contentDiv.innerHTML = formatText(content);
+        contentDiv.innerHTML = formatText(content, commonTextReplacements);
         card.appendChild(contentDiv);
 
         return card;
     }
 
-    function createAccordionSection(items) {
+    function createAccordionSection(items, commonTextReplacements) {
         var accordion = document.createElement('div');
         accordion.className = 'rejection-accordion';
         accordion.style.marginTop = '12px';
@@ -152,7 +164,7 @@
             
             var content = document.createElement('div');
             content.style.padding = '15px';
-            content.innerHTML = formatText(items[key]);
+            content.innerHTML = formatText(items[key], commonTextReplacements);
             details.appendChild(content);
 
             accordion.appendChild(header);
@@ -160,6 +172,48 @@
         });
 
         return accordion;
+    }
+
+    function renderBundlePackages(bundleSection, commonTextReplacements) {
+        var container = document.getElementById('bundle-packages-container');
+        if (!container) return;
+
+        try {
+            var frag = document.createDocumentFragment();
+
+            if (bundleSection && typeof bundleSection === 'object') {
+                Object.keys(bundleSection).forEach(function(packageKey) {
+                    var packageContent = bundleSection[packageKey];
+                    
+                    // Create package card
+                    var packageCard = document.createElement('div');
+                    packageCard.className = 'message-card';
+                    packageCard.style.marginBottom = '20px';
+                    packageCard.style.borderLeft = '4px solid #3b82f6';
+                    
+                    // Package name header
+                    var packageHeader = document.createElement('div');
+                    packageHeader.className = 'message-speaker';
+                    packageHeader.style.color = '#1e40af';
+                    packageHeader.style.fontSize = '20px';
+                    packageHeader.textContent = packageKey;
+                    packageCard.appendChild(packageHeader);
+                    
+                    // Package content
+                    var contentDiv = document.createElement('div');
+                    contentDiv.className = 'message-content';
+                    contentDiv.innerHTML = formatText(packageContent, commonTextReplacements);
+                    packageCard.appendChild(contentDiv);
+                    
+                    frag.appendChild(packageCard);
+                });
+            }
+
+            container.innerHTML = '';
+            container.appendChild(frag);
+        } catch (e) {
+            console.error('Error rendering bundle packages', e);
+        }
     }
 
     function renderScript(script) {
@@ -172,10 +226,24 @@
         }
 
         try {
+            // Extract Common Text section for replacements
+            var commonTextReplacements = script['Common Text'] || {};
+            console.log('Common Text replacements available:', Object.keys(commonTextReplacements));
+            
+            // Render Bundle Packages in separate tab
+            if (script['Bundle package']) {
+                renderBundlePackages(script['Bundle package'], commonTextReplacements);
+            }
+            
             var frag = document.createDocumentFragment();
 
             // Main sections
             Object.keys(script).forEach(function (sectionKey) {
+                // Skip Common Text and Bundle package sections
+                if (sectionKey === 'Common Text' || sectionKey === 'Bundle package') {
+                    return;
+                }
+                
                 var section = script[sectionKey];
                 
                 // Skip if empty
@@ -190,7 +258,7 @@
                 // Handle different section types
                 if (sectionKey === 'Rejection Options') {
                     // Render as accordion
-                    frag.appendChild(createAccordionSection(section));
+                    frag.appendChild(createAccordionSection(section, commonTextReplacements));
                 } else if (typeof section === 'object') {
                     // Regular sections with subsections
                     Object.keys(section).forEach(function(subKey) {
@@ -209,11 +277,11 @@
                         
                         // Render content
                         if (typeof subContent === 'string') {
-                            frag.appendChild(createMessageCard(subContent));
+                            frag.appendChild(createMessageCard(subContent, null, commonTextReplacements));
                         }
                     });
                 } else if (typeof section === 'string') {
-                    frag.appendChild(createMessageCard(section));
+                    frag.appendChild(createMessageCard(section, null, commonTextReplacements));
                 }
             });
 

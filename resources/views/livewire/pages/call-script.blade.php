@@ -20,21 +20,42 @@
 
                 <div class="panel-body">
 
-                    <ul class="nav nav-tabs" id="tabs">
-                        <li class="active">
-                            <a href="#srl">Sinhala</a>
+                    <ul class="flex border-b border-gray-200" id="tabs">
+                        <li class="mr-1 @if(true) -mb-px @endif"> {{-- Simulate 'active' logic --}}
+                            <a class="inline-block py-2 px-4 text-sm font-medium border-l border-t border-r rounded-t @if(true) text-blue-600 bg-white border-blue-600 @else text-gray-500 hover:text-gray-600 hover:bg-gray-50 @endif" 
+                               href="#srl">
+                                Sinhala
+                            </a>
                         </li>
-                        <li>
-                            <a href="#eng">English</a>
+                        <li class="mr-1">
+                            <a class="inline-block py-2 px-4 text-sm font-medium border-l border-t border-r rounded-t text-gray-500 hover:text-gray-600 hover:bg-gray-50" 
+                               href="#eng">
+                                English
+                            </a>
                         </li>
-                        <li>
-                            <a href="#tam">Tamil</a>
+                        <li class="mr-1">
+                            <a class="inline-block py-2 px-4 text-sm font-medium border-l border-t border-r rounded-t text-gray-500 hover:text-gray-600 hover:bg-gray-50" 
+                               href="#tam">
+                                Tamil
+                            </a>
                         </li>
-                        <li id="stats_li">
-                            <a href="#stat">Stats</a>
+                        <li id="stats_li" class="mr-1">
+                            <a class="inline-block py-2 px-4 text-sm font-medium border-l border-t border-r rounded-t text-gray-500 hover:text-gray-600 hover:bg-gray-50" 
+                               href="#stat">
+                                Stats
+                            </a>
                         </li>
-                        <li id="call_histry_li">
-                            <a href="#calllog">Call History</a>
+                        <li id="call_histry_li" class="mr-1">
+                            <a class="inline-block py-2 px-4 text-sm font-medium border-l border-t border-r rounded-t text-gray-500 hover:text-gray-600 hover:bg-gray-50" 
+                               href="#calllog">
+                                Call History
+                            </a>
+                        </li>
+                        <li id="bundle_packages_li" class="mr-1">
+                            <a class="inline-block py-2 px-4 text-sm font-medium border-l border-t border-r rounded-t text-gray-500 hover:text-gray-600 hover:bg-gray-50" 
+                               href="#bundle">
+                                Bundle Packages
+                            </a>
                         </li>
                     </ul>
 
@@ -52,7 +73,7 @@
                                     <div id="sheet-data-container" 
                                         style="max-width: 850px; margin: 20px auto 0; font-family: sans-serif; display: list-item;">
 
-                                        <h4 style="margin-bottom: 5px;">Opening Greeting</h4>
+                                        <h4 style="margin-bottom: 5px; font-weight: bold;">Opening Greeting</h4>
                                         <hr style="margin-top: 5px; margin-bottom: 10px; border: 0; height: 1px; background-color: #eee;">
                                         
                                         <div class="message-card">
@@ -100,6 +121,12 @@
                         <div class="tab-pane fade" id="calllog">
                              <div style="max-width: 850px; margin: 20px auto; font-family: sans-serif; display: list-item;">
                                  <ul class="timeline" id="call-log-data-container"></ul>
+                             </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="bundle">
+                             <div style="max-width: 850px; margin: 20px auto; font-family: sans-serif; display: list-item;">
+                                 <div id="bundle-packages-container"></div>
                              </div>
                         </div>
 
