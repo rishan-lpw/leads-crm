@@ -327,8 +327,8 @@
 
             // Main sections (Sinhala tab only)
             Object.keys(script).forEach(function (sectionKey) {
-                // Skip Common Text, Bundle package, and Stats sections (they have their own tabs)
-                if (sectionKey === 'Common Text' || sectionKey === 'Bundle package' || sectionKey === 'Stats') {
+                // Skip Common Text, Bundle package, Stats, and standalone Rejection Options sections
+                if (sectionKey === 'Common Text' || sectionKey === 'Bundle package' || sectionKey === 'Stats' || sectionKey === 'Rejection Options') {
                     return;
                 }
                 
@@ -344,13 +344,30 @@
                 frag.appendChild(createHr());
 
                 // Handle different section types
-                if (sectionKey === 'Rejection Options') {
-                    // Render as accordion
-                    frag.appendChild(createAccordionSection(section, commonTextReplacements));
-                } else if (typeof section === 'object') {
+                if (typeof section === 'object') {
                     // Regular sections with subsections
                     Object.keys(section).forEach(function(subKey) {
                         var subContent = section[subKey];
+                        
+                        // Special handling for Rejection Options link
+                        if (subKey === 'Rejection Options' && (subContent === '🔗' || subContent.includes('🔗'))) {
+                            // Create subsection header
+                            var rejectionHeader = document.createElement('h4');
+                            rejectionHeader.textContent = 'Rejection Options';
+                            rejectionHeader.style.marginTop = '20px';
+                            rejectionHeader.style.marginBottom = '5px';
+                            rejectionHeader.style.fontWeight = 'bold';
+                            frag.appendChild(rejectionHeader);
+                            
+                            var rejectionHr = createHr();
+                            frag.appendChild(rejectionHr);
+                            
+                            // Render the full rejection options accordion from top-level section
+                            if (script['Rejection Options']) {
+                                frag.appendChild(createAccordionSection(script['Rejection Options'], commonTextReplacements));
+                            }
+                            return;
+                        }
                         
                         // Create subsection if needed
                         if (Object.keys(section).length > 1 && subKey !== sectionKey) {

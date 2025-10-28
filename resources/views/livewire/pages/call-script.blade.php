@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid" style="margin-top: 20px;">
+<div class="container-fluid" style="margin-top: 20px; margin-left: 200px; margin-right: 200px;">
     <div class="row">
         <div class="col-lg-10 col-lg-offset-1">
             <div class="panel panel-default">
@@ -80,7 +80,7 @@
                             <div class="row">
                                 <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                                     <div id="sheet-data-container" 
-                                        style="max-width: 850px; margin: 20px auto 0; font-family: sans-serif; display: list-item;">
+                                        style="max-width: 1000px; margin: 20px auto 0; font-family: sans-serif; display: list-item;">
                                         <!-- Content dynamically loaded by JavaScript -->
                                     </div>
                                 </div>
@@ -90,17 +90,17 @@
                         <div class="tab-pane fade" id="eng"></div>
                         <div class="tab-pane fade" id="tam"></div>
                         <div class="tab-pane fade {{ ($activeTab ?? '') === 'bundle-package' ? 'active in' : '' }}" id="bundles">
-                            <div style="max-width: 850px; margin: 20px auto; font-family: sans-serif; display: list-item;">
+                            <div style="max-width: 1000px; margin: 20px auto; font-family: sans-serif; display: list-item;">
                                 <div id="bundle-packages-container"></div>
                             </div>
                         </div>
                         <div class="tab-pane fade {{ ($activeTab ?? '') === 'stats' ? 'active in' : '' }}" id="stat">
-                            <div style="max-width: 850px; margin: 20px auto; font-family: sans-serif; display: list-item;">
+                            <div style="max-width: 1000px; margin: 20px auto; font-family: sans-serif; display: list-item;">
                                 <div id="stats-container"></div>
                             </div>
                         </div>
                         <div class="tab-pane fade" id="calllog">
-                             <div style="max-width: 850px; margin: 20px auto; font-family: sans-serif; display: list-item;">
+                             <div style="max-width: 1000px; margin: 20px auto; font-family: sans-serif; display: list-item;">
                                  <ul class="timeline" id="call-log-data-container"></ul>
                              </div>
                         </div>

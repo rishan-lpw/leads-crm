@@ -14,7 +14,7 @@ class TableFilters
     {
         return [
             SelectFilter::make('user_id')
-                ->label('User')
+                ->label('AM Name')
                 ->relationship('user', 'name')
                 ->searchable(),
 
@@ -70,6 +70,7 @@ class TableFilters
                 })
                 ->label('Price Range'),
 
+           
             // Add filter for score range
             Filter::make('score_range')
                 ->schema([
