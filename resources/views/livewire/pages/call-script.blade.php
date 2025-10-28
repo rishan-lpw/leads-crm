@@ -8,7 +8,7 @@
                 <div class="panel-heading">
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <h2 class="panel-title" id="scriptModalLabel" style="font-weight: bold; font-size: 24px; color: #fff310; margin: 0;">
+                            <h2 class="panel-title" id="scriptModalLabel" style="font-weight: bold; font-size: 32px; color: #ffffff; margin: 0;">
                                 Sales Call Transcript
                             </h2>
                         </div>
@@ -20,7 +20,7 @@
 
                 <div class="panel-body">
 
-                    <ul class="nav nav-tabs" id="tabs" style="border-bottom: 2px solid #e5e7eb; margin-bottom: 0; display: flex; list-style: none; padding-left: 0;">
+                    <ul class="nav nav-tabs" id="tabs" style="border-bottom: 2px solid #e5e7eb; margin-top: 20px; margin-bottom: 0; display: flex; list-style: none; padding-left: 0;">
                         <li class="{{ ($activeTab ?? 'sinhala') === 'sinhala' ? 'active' : '' }}" style="margin-right: 4px;">
                             <a href="{{ route('call.script.sinhala', ['uid' => $uid]) }}" 
                                style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; 

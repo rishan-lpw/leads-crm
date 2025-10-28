@@ -116,11 +116,165 @@
         modal.classList.toggle('hidden', !show);
     }
 
+    function evaluateCondition(condition, values) {
+        var originalCondition = condition;
+        condition = condition.toLowerCase().trim();
+        
+        var result = false;
+        
+        // Check for Total_Leads > threshold
+        if (condition.includes('total_leads') && condition.includes('>')) {
+            var match = condition.match(/>\s*(\d+)/);
+            var threshold = match ? parseInt(match[1]) : 0;
+            result = values.totalLeads > threshold;
+            console.log('Evaluating Total_Leads:', values.totalLeads, '>', threshold, '=', result);
+            return result;
+        }
+        
+        // Check for Total_Views > threshold
+        if (condition.includes('total_views') && condition.includes('>')) {
+            var match = condition.match(/>\s*(\d+)/);
+            var threshold = match ? parseInt(match[1]) : 0;
+            result = values.totalViews > threshold;
+            console.log('Evaluating Total_Views:', values.totalViews, '>', threshold, '=', result);
+            return result;
+        }
+        
+        // Check for "price less than avg" or "price < 50M"
+        if (condition.includes('price') && (condition.includes('less') || condition.includes('<'))) {
+            if (condition.includes('50m') || condition.includes('50 m')) {
+                result = values.price < 50000000;
+                console.log('Evaluating price < 50M:', values.price, '<', 50000000, '=', result);
+                return result;
+            }
+            if (condition.includes('150k/month') || condition.includes('150k')) {
+                result = values.pricePerMonth < 150000;
+                console.log('Evaluating price < 150K:', values.pricePerMonth, '<', 150000, '=', result);
+                return result;
+            }
+            if (condition.includes('avg')) {
+                result = values.price < values.avgPrice;
+                console.log('Evaluating price < avg:', values.price, '<', values.avgPrice, '=', result);
+                return result;
+            }
+        }
+        
+        // Check for "price > 50M" or high price
+        if (condition.includes('price') && condition.includes('>')) {
+            if (condition.includes('50m') || condition.includes('50 m')) {
+                result = values.price > 50000000;
+                console.log('Evaluating price > 50M:', values.price, '>', 50000000, '=', result);
+                return result;
+            }
+            if (condition.includes('150k/month') || condition.includes('150k')) {
+                result = values.pricePerMonth > 150000;
+                console.log('Evaluating price > 150K:', values.pricePerMonth, '>', 150000, '=', result);
+                return result;
+            }
+        }
+        
+        // Check for "NOT Rentals"
+        if (condition.includes('not') && condition.includes('rental')) {
+            result = !values.isRental;
+            console.log('Evaluating NOT Rentals:', !values.isRental, '=', result);
+            return result;
+        }
+        
+        // Check for "Rentals"
+        if (condition.includes('rental')) {
+            result = values.isRental;
+            console.log('Evaluating Rentals:', values.isRental, '=', result);
+            return result;
+        }
+        
+        // Default: don't show if condition not recognized
+        console.warn('Unrecognized condition:', originalCondition);
+        return false;
+    }
+
+    function processConditionalContent(text) {
+        if (!text) return '';
+        
+        // Hardcoded values for conditional evaluation
+        // Update these values based on the specific property/lead
+        var conditions = {
+            isRental: false,           // Set to true if property is for rent
+            price: 35000000,           // Property price in LKR (35M for land example)
+            pricePerMonth: 120000,     // Monthly rent in LKR
+            totalLeads: 25,            // Total leads count (>20 will show lead text)
+            totalViews: 150,           // Total views count (>100 will show views text)
+            belowMarket: true,         // Is price below market value
+            avgPrice: 40000000         // Average price for comparison
+        };
+        
+        var result = text;
+        var processedMatches = [];
+        
+        // Pattern 1: $ If condition $ "quoted content"
+        var quotedPattern = /\$\s*If\s+([^\$]+?)\$\s*"([^"]+)"/gi;
+        var match;
+        while ((match = quotedPattern.exec(text)) !== null) {
+            var condition = match[1];
+            var content = match[2];
+            var shouldShow = evaluateCondition(condition, conditions);
+            var replacement = shouldShow ? content : '';
+            
+            // Store match info to replace later
+            processedMatches.push({
+                original: match[0],
+                replacement: replacement,
+                index: match.index
+            });
+        }
+        
+        // Pattern 2: $ If condition $ unquoted content (until end of line or paragraph)
+        var unquotedPattern = /\$\s*If\s+([^\$]+?)\$\s*([^\n]+?)(?=\n\n|\n\$|$)/gi;
+        quotedPattern.lastIndex = 0; // Reset
+        while ((match = unquotedPattern.exec(text)) !== null) {
+            // Skip if this position was already processed by quoted pattern
+            var alreadyProcessed = processedMatches.some(function(pm) {
+                return match.index >= pm.index && match.index < (pm.index + pm.original.length);
+            });
+            
+            if (!alreadyProcessed && !match[0].includes('"')) {
+                var condition = match[1];
+                var content = match[2];
+                var shouldShow = evaluateCondition(condition, conditions);
+                var replacement = shouldShow ? content.trim() : '';
+                
+                processedMatches.push({
+                    original: match[0],
+                    replacement: replacement,
+                    index: match.index
+                });
+            }
+        }
+        
+        // Sort matches by index in reverse order (to maintain correct positions when replacing)
+        processedMatches.sort(function(a, b) { return b.index - a.index; });
+        
+        // Apply all replacements
+        processedMatches.forEach(function(pm) {
+            result = result.substring(0, pm.index) + pm.replacement + result.substring(pm.index + pm.original.length);
+        });
+        
+        console.log('Conditional processing:', {
+            conditions: conditions,
+            matchesFound: processedMatches.length,
+            originalLength: text.length,
+            resultLength: result.length
+        });
+        
+        return result;
+    }
+
     function formatText(text, commonTextReplacements) {
         if (!text) return '';
         
+        // First process conditional content ($ wrapped conditions)
+        var processedText = processConditionalContent(text);
+        
         // Replace @placeholders with common text values
-        var processedText = text;
         if (commonTextReplacements) {
             Object.keys(commonTextReplacements).forEach(function(key) {
                 var placeholder = '@' + key;
@@ -139,7 +293,9 @@
     function createSectionHeader(title) {
         var h4 = document.createElement('h4');
         h4.textContent = title;
+        h4.style.color = '#fff202';
         h4.style.marginBottom = '5px';
+        h4.style.fontWeight = '800';
         h4.style.marginTop = '20px';
         return h4;
     }
@@ -356,7 +512,8 @@
                             rejectionHeader.textContent = 'Rejection Options';
                             rejectionHeader.style.marginTop = '20px';
                             rejectionHeader.style.marginBottom = '5px';
-                            rejectionHeader.style.fontWeight = 'bold';
+                            rejectionHeader.style.color = '#00ff9d';
+                            rejectionHeader.style.fontWeight = '800';
                             frag.appendChild(rejectionHeader);
                             
                             var rejectionHr = createHr();
@@ -376,7 +533,7 @@
                             subHeader.style.marginTop = '15px';
                             subHeader.style.marginBottom = '8px';
                             subHeader.style.fontWeight = '600';
-                            subHeader.style.color = '#374151';
+                            subHeader.style.color = '#00ff9d';
                             frag.appendChild(subHeader);
                         }
                         

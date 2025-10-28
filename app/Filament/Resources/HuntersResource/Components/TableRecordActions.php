@@ -309,10 +309,10 @@ class TableRecordActions
                             })
                             ->searchable()
                             ->required(),
-                        Textarea::make('message')
-                            ->label('Message')
-                            ->rows(4)
-                            ->required(),
+                        // Textarea::make('message')
+                        //     ->label('Message')
+                        //     ->rows(4)
+                        //     ->required(),
                     // ]),
             ])
             ->action(function (array $data, $record) {
@@ -886,7 +886,7 @@ class TableRecordActions
                                         ])
                                         ->columnSpanFull(),
                                 ]),
-                                Tab::make('Call Script')->lazy()->schema([
+                                Tab::make('Call Script')->icon('heroicon-m-clipboard-document-list')->lazy()->schema([
                                     ComponentsGrid::make(3)->lazy()->schema([
                                         self::contactDetailsSection(),
                                         Section::make('Call Transcript')
@@ -896,8 +896,8 @@ class TableRecordActions
                                             ->description('Call script for the customer.')
                                             ->headerActions([
                                                 Action::make('refresh')
-                                                    ->label('Refresh')
-                                                    ->icon('heroicon-o-arrow-path')
+                                                    ->label('Call Script')
+                                                    ->icon('heroicon-c-phone')
                                                     ->color('gray')
                                                     ->url(fn ($record) => route('call.script.sinhala', [
                                                         'uid' => ($record->cust_id ?? $record->customer_id ?? ''),
@@ -905,9 +905,9 @@ class TableRecordActions
                                                     ->openUrlInNewTab(),
                                             ])
                                             ->schema([
-                                                TextEntry::make('call_script_help')
-                                                    ->label('')
-                                                    ->state('Use the Refresh button to open the Call Script page.'),
+                                                // TextEntry::make('call_script_help')
+                                                //     ->label('')
+                                                //     ->state('Use the Refresh button to open the Call Script page.'),
                                             ]),
                                     ]),
                                 ]),
