@@ -7,7 +7,17 @@ use Filament\Widgets\ChartWidget;
 
 class ActivitiesOverTimeChart extends ChartWidget
 {
-    protected ?string $heading = 'Activities Over Time (30d)';
+    public ?int $leadId = null;
+    
+    public function mount(?int $leadId = null): void
+    {
+        $this->leadId = $leadId;
+    }
+    
+    public function getHeading(): string
+    {
+        return 'Activities Over Time (30d)' . ($this->leadId ? " - Lead #{$this->leadId}" : '');
+    }
 
     protected function getType(): string
     {
@@ -16,10 +26,19 @@ class ActivitiesOverTimeChart extends ChartWidget
 
     protected function getData(): array
     {
-        $rows = Activity::query()
-            ->selectRaw('DATE(date_time) as d, COUNT(*) as c')
-            ->where('date_time', '>=', now()->subDays(30))
-            ->groupBy('d')
+        $query = Activity::query()
+            ->selectRaw('DATE(COALESCE(date_time, created_at)) as d, COUNT(*) as c')
+            ->where(function($q) {
+                $q->where('date_time', '>=', now()->subDays(30))
+                  ->orWhere('created_at', '>=', now()->subDays(30));
+            });
+        
+        // Filter by lead if leadId is provided
+        if ($this->leadId) {
+            $query->where('lead_id', $this->leadId);
+        }
+        
+        $rows = $query->groupBy('d')
             ->orderBy('d')
             ->pluck('c', 'd');
 

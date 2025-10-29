@@ -575,8 +575,45 @@
         }
     }
 
+    function setupCallButton() {
+        var callButtons = document.querySelectorAll('.call-btn');
+        if (!callButtons.length) return;
+        
+        callButtons.forEach(function(callButton) {
+            callButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                var phoneNumber = callButton.getAttribute('data-phone');
+                
+                if (!phoneNumber || phoneNumber.trim() === '' || phoneNumber === '[Customer Phone Number]') {
+                    alert('No phone number available for this customer.');
+                    return;
+                }
+                
+                // Clean the phone number (remove spaces, dashes, parentheses, brackets)
+                var cleanPhone = phoneNumber.replace(/[\s\-\(\)\[\]]/g, '');
+                
+                // Add + prefix if not present (for international format)
+                if (!cleanPhone.startsWith('+')) {
+                    cleanPhone = '+' + cleanPhone;
+                }
+                
+                console.log('Initiating call to:', cleanPhone);
+                
+                // Create tel: URI to trigger Windows default app chooser
+                var telUri = 'tel:' + cleanPhone;
+                
+                // Open tel: URI in a new window to ensure it triggers the app chooser
+                window.open(telUri, '_self');
+            });
+        });
+        
+        console.log('Call button(s) initialized:', callButtons.length);
+    }
+
     function init() {
         setupTabs();
+        setupCallButton();
         var uid = getQueryParam('uid');
         var mobile = getQueryParam('mobile');
         var city = getQueryParam('city');

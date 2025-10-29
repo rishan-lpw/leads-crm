@@ -7,7 +7,17 @@ use Filament\Widgets\ChartWidget;
 
 class ActivitiesByTypeChart extends ChartWidget
 {
-    protected ?string $heading = 'Activities by Type (30d)';
+    public ?int $leadId = null;
+    
+    public function mount(?int $leadId = null): void
+    {
+        $this->leadId = $leadId;
+    }
+    
+    public function getHeading(): string
+    {
+        return 'Activities by Type (30d)' . ($this->leadId ? " - Lead #{$this->leadId}" : '');
+    }
 
     protected function getType(): string
     {
@@ -16,10 +26,19 @@ class ActivitiesByTypeChart extends ChartWidget
 
     protected function getData(): array
     {
-        $rows = Activity::query()
+        $query = Activity::query()
             ->selectRaw('COALESCE(activity_type, "other") as type, COUNT(*) as count')
-            ->where('date_time', '>=', now()->subDays(30))
-            ->groupBy('type')
+            ->where(function($q) {
+                $q->where('date_time', '>=', now()->subDays(30))
+                  ->orWhere('created_at', '>=', now()->subDays(30));
+            });
+        
+        // Filter by lead if leadId is provided
+        if ($this->leadId) {
+            $query->where('lead_id', $this->leadId);
+        }
+        
+        $rows = $query->groupBy('type')
             ->pluck('count', 'type');
 
         if ($rows->isEmpty()) {

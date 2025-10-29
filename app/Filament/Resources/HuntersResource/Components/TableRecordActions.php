@@ -53,6 +53,9 @@ use App\Filament\Resources\HuntersResource\Components\Tabs\ActivityTabs;
 use App\Filament\Resources\HuntersResource\Components\Actions\RecordActions;
 use App\Filament\Resources\HuntersResource\Components\Support\LpwData;
 use App\Filament\Resources\HuntersResource\Widgets\FunnelChart;
+use App\Filament\Resources\HuntersResource\Widgets\ActivitiesByTypeChart;
+use App\Filament\Resources\HuntersResource\Widgets\ActivitiesOverTimeChart;
+use App\Models\Customer;
 use Filament\Schemas\Components\Wizard;
 
 class TableRecordActions
@@ -302,13 +305,26 @@ class TableRecordActions
                 // Section::make('Send Message')
                     // ->columns()
                     // ->schema([
-                        Select::make('message_template')
-                            ->label('Message Template')
+                    Radio::make('message_template')
+                        ->label('Message Template')
+                        ->options([
+                            'annex|en' => 'Annex',
+                            'final_annex|si_LK' => 'Final Annex',
+                            'login_details|en' => 'Login Details',
+                            'market_outlook|en_GB' => 'Market Outlook',
+                            'market_report|en_US' => 'Market Report',
+                            'mor23_is_live|en_US' => 'Mor23 Is Live',
+                            'mor23_out_now|en_US' => 'Mor23 Out Now',
+                        ])
+                        ->required(),
+                        // Select the mobile number from the customer table column 'mobile'.
+                        Select::make('mobile')
+                            ->label('Mobile Number')
                             ->options(function () {
-                                return []; // replace with actual options
+                                return Customer::all()->pluck('mobile', 'id')->toArray();
                             })
-                            ->searchable()
                             ->required(),
+                        
                         // Textarea::make('message')
                         //     ->label('Message')
                         //     ->rows(4)
@@ -736,41 +752,35 @@ class TableRecordActions
                                             ->columnSpan(1),
                                     ]),
 
-                                    // Section::make('Charts & Analytics')
-                                    //     ->schema([
-                                    //         ComponentsGrid::make(2)->schema([
-                                    //             ViewEntry::make('activity_timeline_chart')
-                                    //                 ->view('filament.widgets.chart-widget-view')
-                                    //                 ->viewData(fn($record) => [
-                                    //                     'widget' => ActivityTimelineChart::class,
-                                    //                 ])
-                                    //                 ->columnSpan(1),
-
-                                    //             ViewEntry::make('activity_type_chart')
-                                    //                 ->view('filament.widgets.chart-widget-view')
-                                    //                 ->viewData(fn($record) => [
-                                    //                     'widget' => ActivityTypeChart::class,
-                                    //                 ])
-                                    //                 ->columnSpan(1),
-                                    //         ]),
-
-                                    //         ComponentsGrid::make(2)->schema([
-                                    //             ViewEntry::make('monthly_activity_chart')
-                                    //                 ->view('filament.widgets.chart-widget-view')
-                                    //                 ->viewData(fn($record) => [
-                                    //                     'widget' => MonthlyActivityChart::class,
-                                    //                 ])
-                                    //                 ->columnSpan(1),
-
-                                    //             ViewEntry::make('activity_score_chart')
-                                    //                 ->view('filament.widgets.chart-widget-view')
-                                    //                 ->viewData(fn($record) => [
-                                    //                     'widget' => ActivityScoreChart::class,
-                                    //                 ])
-                                    //                 ->columnSpan(1),
-                                    //         ]),
-                                    //     ])
-                                    //     ->columnSpanFull(),
+                                    Section::make('Charts & Analytics')
+                                        ->schema([
+                                            ComponentsGrid::make(2)->schema([
+                                                ViewEntry::make('activities_by_type_chart')
+                                                    ->label('')
+                                                    ->view('filament.widgets.inline')
+                                                    ->viewData(fn($record) => [
+                                                        'widgetClass' => ActivitiesByTypeChart::class,
+                                                        'leadId' => $record?->id,
+                                                    ]),
+                                                ViewEntry::make('activities_over_time_chart')
+                                                    ->label('')
+                                                    ->view('filament.widgets.inline')
+                                                    ->viewData(fn($record) => [
+                                                        'widgetClass' => ActivitiesOverTimeChart::class,
+                                                        'leadId' => $record?->id,
+                                                    ]),
+                                            ]),
+                                            ComponentsGrid::make(1)->schema([
+                                                ViewEntry::make('funnel_chart')
+                                                    ->label('')
+                                                    ->view('filament.widgets.inline')
+                                                    ->viewData(fn($record) => [
+                                                        'widgetClass' => FunnelChart::class,
+                                                        'leadId' => $record?->id,
+                                                    ]),
+                                            ]),
+                                        ])
+                                        ->columnSpanFull(),
 
                                     // Activity Summary by Date Range
                                     Section::make('Activity Summary')
@@ -895,12 +905,13 @@ class TableRecordActions
                                             ->columnSpan(2)
                                             ->description('Call script for the customer.')
                                             ->headerActions([
-                                                Action::make('refresh')
+                                                Action::make('call_script')
                                                     ->label('Call Script')
-                                                    ->icon('heroicon-c-phone')
+                                                    ->icon('heroicon-o-phone')
                                                     ->color('gray')
                                                     ->url(fn ($record) => route('call.script.sinhala', [
                                                         'uid' => ($record->cust_id ?? $record->customer_id ?? ''),
+                                                        'mobile' => ($record->mobile ?? $record->mobile_no ?? ''),
                                                     ]))
                                                     ->openUrlInNewTab(),
                                             ])

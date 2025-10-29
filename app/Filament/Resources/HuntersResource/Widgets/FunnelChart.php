@@ -9,7 +9,17 @@ use Illuminate\Support\Facades\DB;
 
 class FunnelChart extends ChartWidget
 {
-    protected ?string $heading = 'Funnel Progress';
+    public ?int $leadId = null;
+    
+    public function mount(?int $leadId = null): void
+    {
+        $this->leadId = $leadId;
+    }
+    
+    public function getHeading(): string
+    {
+        return 'Funnel Progress' . ($this->leadId ? " - Lead #{$this->leadId}" : '');
+    }
 
     protected function getType(): string
     {
@@ -18,11 +28,20 @@ class FunnelChart extends ChartWidget
 
     protected function getData(): array
     {
-        $rows = Activity::query()
+        $query = Activity::query()
             ->select('funnel_id', DB::raw('COUNT(*) as count'))
             ->whereNotNull('funnel_id')
-            ->where('date_time', '>=', now()->subDays(90))
-            ->groupBy('funnel_id')
+            ->where(function($q) {
+                $q->where('date_time', '>=', now()->subDays(90))
+                  ->orWhere('created_at', '>=', now()->subDays(90));
+            });
+        
+        // Filter by lead if leadId is provided
+        if ($this->leadId) {
+            $query->where('lead_id', $this->leadId);
+        }
+        
+        $rows = $query->groupBy('funnel_id')
             ->pluck('count', 'funnel_id');
 
         if ($rows->isEmpty()) {

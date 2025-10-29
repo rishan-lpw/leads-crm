@@ -17,6 +17,8 @@ class TableHeaderActions
     {
         $sync = Action::make('sync_api_data')
             ->label('Sync API Data')
+            // Only visible for the user with the id 5.
+            // ->visible(fn() => auth()->user()->id === 5)
             ->icon('heroicon-o-arrow-path')
             ->color('primary')
             ->action(function () {
