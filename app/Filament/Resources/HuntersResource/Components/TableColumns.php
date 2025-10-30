@@ -143,14 +143,14 @@ class TableColumns
                     $propertyType = ucfirst($record->propty_type);
 
                     // Add ⬆️ for high weight equal to 'high' and ⬇️ for low weight equal to 'low'.
-                    $weight = $record->weight;
-                    if ($weight == 'high') {
-                        $type = "⬆️ $type";
-                    } elseif ($weight == 'low') {
-                        $type = "⬇️ $type";
-                    }elseif ($weight == 'medium') {
-                        $type = "↔️ $type";
-                    }
+                    // $weight = $record->weight;
+                    // if ($weight == 'high') {
+                    //     $type = "⬆️ $type";
+                    // } elseif ($weight == 'low') {
+                    //     $type = "⬇️ $type";
+                    // } elseif ($weight == 'medium') {
+                    //     $type = "↔️ $type";
+                    // }
 
                     $typeBadge = "<span class='badge badge-type'>{$type}</span>";
                     $propertyTypeBadge = "<span class='badge badge-prop'>{$propertyType}</span>";
@@ -169,6 +169,7 @@ class TableColumns
                     $priceInMillions = $record->price / 1_000_000;
                     $priceInBillions = $record->price / 1_000_000_000;
                     $priceInThousands = $record->price / 1_000;
+                    
                     if ($priceInBillions >= 1) {
                         $priceFormatted = number_format($priceInBillions) . ' B';
                     } elseif ($priceInMillions >= 1) {
@@ -178,12 +179,21 @@ class TableColumns
                     } else {
                         $priceFormatted = number_format($record->price);
                     }
+
+                    // Add ⬆️ for high weight equal to 'high' and ⬇️ for low weight equal to 'low'.
+                    $weight = $record->weight;
+                    if ($weight == 'high') {
+                        $priceFormatted = "⬆️ " . $priceFormatted;
+                    } elseif ($weight == 'low') {
+                        $priceFormatted = "⬇️ " . $priceFormatted;
+                    }elseif ($weight == 'medium') {
+                        $priceFormatted = "↔️ " . $priceFormatted;
+                    }
                     
-                    $price = $priceFormatted;
                     $city = ucfirst($record->city);
-                    return "$price | $city";
+                    return "$priceFormatted | $city";
                 })
-                ->searchable(['type', 'propty_type', 'city', 'price'])
+                ->searchable(['type', 'propty_type', 'city', 'price', 'weight'])
                 ->sortable()
                 ->wrap(),
 

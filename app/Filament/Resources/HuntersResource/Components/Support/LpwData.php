@@ -226,75 +226,17 @@ class LpwData
 		}
 
 		$items = [];
-		$labelsSeen = [];
 		
-		$addItem = function (string $label, $value) use (&$items, &$labelsSeen) {
-			$label = trim($label);
-			if ($label === '' || array_key_exists($label, $labelsSeen)) {
-				return;
-			}
-			$labelsSeen[$label] = true;
-			$items[] = [
-				'label' => $label,
-				'value' => is_scalar($value) || $value === null ? (string) ($value ?? 'N/A') : json_encode($value),
-			];
-		};
-		
-		$mapping = [
-			'total_ads' => ['totalAds', 'total_ads'],
-			'active_ads' => ['activeAds', 'active_ads'],
-			'expired_ads' => ['expiredAds', 'expired_ads'],
-			'boosted_ads' => ['boostedAds', 'boosted_ads'],
-			'total_views' => ['totalViews', 'views_total', 'views'],
-			'today_views' => ['todayViews', 'views_today'],
-			'week_views' => ['weekViews', 'views_week'],
-			'month_views' => ['monthViews', 'views_month'],
-			'total_messages' => ['totalMessages', 'messages_total', 'messages'],
-		];
-
-		foreach ($mapping as $label => $candidates) {
-			$value = null;
-			foreach ($candidates as $key) {
-				if (array_key_exists($key, $raw)) {
-					$value = $raw[$key];
-					break;
-				}
-			}
-			if (! is_null($value)) {
-				$addItem(ucwords(str_replace('_', ' ', $label)), $value);
-			}
-		}
-
-		// Add top-level scalar fields (status, membership_type, etc)
-		foreach ($raw as $k => $v) {
-			if (is_scalar($v) || $v === null) {
-				$addItem(ucwords(str_replace('_', ' ', (string) $k)), $v);
-			}
-		}
-
-		// Flatten packages array
-		if (isset($raw['packages']) && is_array($raw['packages'])) {
-			foreach ($raw['packages'] as $idx => $package) {
-				if (is_array($package)) {
-					$packageNum = $idx + 1;
-					foreach ($package as $pk => $pv) {
-						if (is_scalar($pv) || $pv === null) {
-							$addItem("Package #{$packageNum} - " . ucwords(str_replace('_', ' ', (string) $pk)), $pv);
-						}
-					}
-				}
-			}
-		}
-
-		// Flatten avg_stats array if present
-		if (isset($raw['avg_stats']) && is_array($raw['avg_stats']) && !empty($raw['avg_stats'])) {
-			foreach ($raw['avg_stats'] as $idx => $stat) {
-				if (is_array($stat)) {
-					$statNum = $idx + 1;
-					foreach ($stat as $sk => $sv) {
-						if (is_scalar($sv) || $sv === null) {
-							$addItem("Avg Stat #{$statNum} - " . ucwords(str_replace('_', ' ', (string) $sk)), $sv);
-						}
+		// Only display package fields directly without prefix
+		if (isset($raw['packages']) && is_array($raw['packages']) && !empty($raw['packages'])) {
+			$package = $raw['packages'][0]; // Get first package
+			if (is_array($package)) {
+				foreach ($package as $pk => $pv) {
+					if (is_scalar($pv) || $pv === null) {
+						$items[] = [
+							'label' => (string) $pk,
+							'value' => is_null($pv) ? 'null' : (string) $pv,
+						];
 					}
 				}
 			}

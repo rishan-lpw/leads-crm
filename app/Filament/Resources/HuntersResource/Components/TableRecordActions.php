@@ -918,86 +918,30 @@ class TableRecordActions
                                             ->columnSpan(1),
                                     ]),
 
-                                    Section::make('API Status')
+                                    Section::make('API Stats')
                                         ->schema([
-                                            RepeatableEntry::make('api_status')
-                                                ->label('')
-                                                ->contained(false)
-                                                ->getStateUsing(fn($record) => LpwData::getUserStatsForAdsNormalized($record))
-                                                ->schema([
-                                                    ComponentsGrid::make(2)->schema([
-                                                        // Display all the return data of getUserStatsForAdsNormalized() function.
-                                                        TextEntry::make('total_ads')
-                                                            ->label('Total Ads')
-                                                            ->badge()
-                                                            ->color('info')
-                                                            ->getStateUsing(function ($record) {
-                                                                return $record->total_ads;
-                                                            }),
-                                                        TextEntry::make('active_ads')
-                                                            ->label('Active Ads')
-                                                            ->badge()
-                                                            ->color('info')
-                                                            ->getStateUsing(function ($record) {
-                                                                return $record->active_ads;
-                                                            }),
-                                                        TextEntry::make('expired_ads')
-                                                            ->label('Expired Ads')
-                                                            ->badge()
-                                                            ->color('info')
-                                                            ->getStateUsing(function ($record) {
-                                                                return $record->expired_ads;
-                                                            }),
-                                                        TextEntry::make('boosted_ads')
-                                                            ->label('Boosted Ads')
-                                                            ->badge()
-                                                            ->color('info')
-                                                            ->getStateUsing(function ($record) {
-                                                                return $record->boosted_ads;
-                                                            }),
-                                                        TextEntry::make('total_views')
-                                                            ->label('Total Views')
-                                                            ->badge()
-                                                            ->color('info')
-                                                            ->getStateUsing(function ($record) {
-                                                                return $record->total_views;
-                                                            }),
-                                                        TextEntry::make('today_views')
-                                                            ->label('Today Views')
-                                                            ->badge()
-                                                            ->color('info')
-                                                            ->getStateUsing(function ($record) {
-                                                                return $record->today_views;
-                                                            }),
-                                                        TextEntry::make('week_views')
-                                                            ->label('Week Views')
-                                                            ->badge()
-                                                            ->color('info')
-                                                            ->getStateUsing(function ($record) {
-                                                                return $record->week_views;
-                                                            }),
-                                                        TextEntry::make('month_views')
-                                                            ->label('Month Views')
-                                                            ->badge()
-                                                            ->color('info')
-                                                            ->getStateUsing(function ($record) {
-                                                                return $record->month_views;
-                                                            }),
-                                                        TextEntry::make('total_messages')
-                                                            ->label('Total Messages')
-                                                            ->badge()
-                                                            ->color('info')
-                                                            ->getStateUsing(function ($record) {
-                                                                return $record->total_messages;
-                                                            }),
-                                                    ]),
-                                                ]),
+                                            // RepeatableEntry::make('api_status')
+                                            //     ->label('')
+                                            //     ->contained(false)
+                                            //     ->getStateUsing(fn($record) => LpwData::getUserStatsForAdsNormalized($record))
+                                            //     ->schema([
+                                            //         ComponentsGrid::make(2)->schema([
+                                            //             TextEntry::make('label')
+                                            //                 ->label('Metric')
+                                            //                 ->badge()
+                                            //                 ->color('primary'),
+                                            //             TextEntry::make('value')
+                                            //                 ->label('Value')
+                                            //                 ->badge()
+                                            //                 ->color('success'),
+                                            //         ]),
+                                            //     ]),
                                         ])
                                         ->columnSpanFull(),
 
                                     Section::make('Charts & Analytics')
                                         ->schema([
-                                            ComponentsGrid::make(2)->schema([
+                                            ComponentsGrid::make(3)->schema([
                                                 ViewEntry::make('activities_by_type_chart')
                                                     ->label('')
                                                     ->view('filament.widgets.inline')
@@ -1005,20 +949,22 @@ class TableRecordActions
                                                         'widgetClass' => ActivitiesByTypeChart::class,
                                                         'leadId' => $record?->id,
                                                     ]),
+                                                ViewEntry::make('funnel_chart')
+                                                    ->label('')
+                                                    ->view('filament.widgets.inline')
+                                                    ->columnSpan(2)
+                                                    ->viewData(fn($record) => [
+                                                        'widgetClass' => FunnelChart::class,
+                                                        'leadId' => $record?->id,
+                                                    ]),
+                                                    
+                                            ]),
+                                            ComponentsGrid::make(1)->schema([
                                                 ViewEntry::make('activities_over_time_chart')
                                                     ->label('')
                                                     ->view('filament.widgets.inline')
                                                     ->viewData(fn($record) => [
                                                         'widgetClass' => ActivitiesOverTimeChart::class,
-                                                        'leadId' => $record?->id,
-                                                    ]),
-                                            ]),
-                                            ComponentsGrid::make(1)->schema([
-                                                ViewEntry::make('funnel_chart')
-                                                    ->label('')
-                                                    ->view('filament.widgets.inline')
-                                                    ->viewData(fn($record) => [
-                                                        'widgetClass' => FunnelChart::class,
                                                         'leadId' => $record?->id,
                                                     ]),
                                             ]),
