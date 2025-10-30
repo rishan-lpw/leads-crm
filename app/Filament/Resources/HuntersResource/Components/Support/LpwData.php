@@ -5,6 +5,7 @@ namespace App\Filament\Resources\HuntersResource\Components\Support;
 use App\Services\LpwApiService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class LpwData
 {
@@ -163,6 +164,143 @@ class LpwData
 		} catch (\Throwable $e) {
 			return $cache[$userId] = [];
 		}
+	}
+
+	public static function getUserStatsForAdsForRecord($record): array
+	{
+		$userId = $record->cust_id ?? $record->customer_id ?? null;
+		if (! $userId) {
+			return [];
+		}
+
+		$cacheKey = "lpw_user_stats_{$userId}";
+		if (Cache::has($cacheKey)) {
+			return Cache::get($cacheKey);
+		}
+
+		try {
+			$endpoint = 'https://www.lankapropertyweb.com/api/v3/UserStatsForAds/userStatsForAds';
+			$token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiYXBpX2tleSJ9.l6YJhp_Jm2tryHhDdod j0E1kui6vfLordQUDXWF3y3U';
+
+			$response = Http::timeout(10)->get($endpoint, [
+				'token' => $token,
+				'lang' => 'EN',
+				'user_id' => (string) $userId,
+			]);
+
+			if (! $response->successful()) {
+				Log::warning('getUserStatsForAdsForRecord: API error', [
+					'user_id' => $userId,
+					'code' => $response->status(),
+				]);
+				return [];
+			}
+
+			$data = $response->json();
+			if (! is_array($data)) {
+				return [];
+			}
+
+			// Attempt to unwrap typical payload shapes
+			$payload = $data;
+			if (isset($data['data']) && is_array($data['data'])) {
+				$payload = $data['data'];
+			}
+
+			Cache::put($cacheKey, $payload, 600);
+			return $payload;
+		} catch (\Throwable $e) {
+			Log::error('getUserStatsForAdsForRecord exception', [
+				'user_id' => $userId,
+				'error' => $e->getMessage(),
+			]);
+			return [];
+		}
+	}
+
+	public static function getUserStatsForAdsNormalized($record): array
+	{
+		$raw = self::getUserStatsForAdsForRecord($record);
+		if (empty($raw)) {
+			return [];
+		}
+
+		$items = [];
+		$labelsSeen = [];
+		
+		$addItem = function (string $label, $value) use (&$items, &$labelsSeen) {
+			$label = trim($label);
+			if ($label === '' || array_key_exists($label, $labelsSeen)) {
+				return;
+			}
+			$labelsSeen[$label] = true;
+			$items[] = [
+				'label' => $label,
+				'value' => is_scalar($value) || $value === null ? (string) ($value ?? 'N/A') : json_encode($value),
+			];
+		};
+		
+		$mapping = [
+			'total_ads' => ['totalAds', 'total_ads'],
+			'active_ads' => ['activeAds', 'active_ads'],
+			'expired_ads' => ['expiredAds', 'expired_ads'],
+			'boosted_ads' => ['boostedAds', 'boosted_ads'],
+			'total_views' => ['totalViews', 'views_total', 'views'],
+			'today_views' => ['todayViews', 'views_today'],
+			'week_views' => ['weekViews', 'views_week'],
+			'month_views' => ['monthViews', 'views_month'],
+			'total_messages' => ['totalMessages', 'messages_total', 'messages'],
+		];
+
+		foreach ($mapping as $label => $candidates) {
+			$value = null;
+			foreach ($candidates as $key) {
+				if (array_key_exists($key, $raw)) {
+					$value = $raw[$key];
+					break;
+				}
+			}
+			if (! is_null($value)) {
+				$addItem(ucwords(str_replace('_', ' ', $label)), $value);
+			}
+		}
+
+		// Add top-level scalar fields (status, membership_type, etc)
+		foreach ($raw as $k => $v) {
+			if (is_scalar($v) || $v === null) {
+				$addItem(ucwords(str_replace('_', ' ', (string) $k)), $v);
+			}
+		}
+
+		// Flatten packages array
+		if (isset($raw['packages']) && is_array($raw['packages'])) {
+			foreach ($raw['packages'] as $idx => $package) {
+				if (is_array($package)) {
+					$packageNum = $idx + 1;
+					foreach ($package as $pk => $pv) {
+						if (is_scalar($pv) || $pv === null) {
+							$addItem("Package #{$packageNum} - " . ucwords(str_replace('_', ' ', (string) $pk)), $pv);
+						}
+					}
+				}
+			}
+		}
+
+		// Flatten avg_stats array if present
+		if (isset($raw['avg_stats']) && is_array($raw['avg_stats']) && !empty($raw['avg_stats'])) {
+			foreach ($raw['avg_stats'] as $idx => $stat) {
+				if (is_array($stat)) {
+					$statNum = $idx + 1;
+					foreach ($stat as $sk => $sv) {
+						if (is_scalar($sv) || $sv === null) {
+							$addItem("Avg Stat #{$statNum} - " . ucwords(str_replace('_', ' ', (string) $sk)), $sv);
+						}
+					}
+				}
+			}
+		}
+
+		return $items;
 	}
 
 	public static function getFirstUserAdForRecord($record): array

@@ -918,6 +918,83 @@ class TableRecordActions
                                             ->columnSpan(1),
                                     ]),
 
+                                    Section::make('API Status')
+                                        ->schema([
+                                            RepeatableEntry::make('api_status')
+                                                ->label('')
+                                                ->contained(false)
+                                                ->getStateUsing(fn($record) => LpwData::getUserStatsForAdsNormalized($record))
+                                                ->schema([
+                                                    ComponentsGrid::make(2)->schema([
+                                                        // Display all the return data of getUserStatsForAdsNormalized() function.
+                                                        TextEntry::make('total_ads')
+                                                            ->label('Total Ads')
+                                                            ->badge()
+                                                            ->color('info')
+                                                            ->getStateUsing(function ($record) {
+                                                                return $record->total_ads;
+                                                            }),
+                                                        TextEntry::make('active_ads')
+                                                            ->label('Active Ads')
+                                                            ->badge()
+                                                            ->color('info')
+                                                            ->getStateUsing(function ($record) {
+                                                                return $record->active_ads;
+                                                            }),
+                                                        TextEntry::make('expired_ads')
+                                                            ->label('Expired Ads')
+                                                            ->badge()
+                                                            ->color('info')
+                                                            ->getStateUsing(function ($record) {
+                                                                return $record->expired_ads;
+                                                            }),
+                                                        TextEntry::make('boosted_ads')
+                                                            ->label('Boosted Ads')
+                                                            ->badge()
+                                                            ->color('info')
+                                                            ->getStateUsing(function ($record) {
+                                                                return $record->boosted_ads;
+                                                            }),
+                                                        TextEntry::make('total_views')
+                                                            ->label('Total Views')
+                                                            ->badge()
+                                                            ->color('info')
+                                                            ->getStateUsing(function ($record) {
+                                                                return $record->total_views;
+                                                            }),
+                                                        TextEntry::make('today_views')
+                                                            ->label('Today Views')
+                                                            ->badge()
+                                                            ->color('info')
+                                                            ->getStateUsing(function ($record) {
+                                                                return $record->today_views;
+                                                            }),
+                                                        TextEntry::make('week_views')
+                                                            ->label('Week Views')
+                                                            ->badge()
+                                                            ->color('info')
+                                                            ->getStateUsing(function ($record) {
+                                                                return $record->week_views;
+                                                            }),
+                                                        TextEntry::make('month_views')
+                                                            ->label('Month Views')
+                                                            ->badge()
+                                                            ->color('info')
+                                                            ->getStateUsing(function ($record) {
+                                                                return $record->month_views;
+                                                            }),
+                                                        TextEntry::make('total_messages')
+                                                            ->label('Total Messages')
+                                                            ->badge()
+                                                            ->color('info')
+                                                            ->getStateUsing(function ($record) {
+                                                                return $record->total_messages;
+                                                            }),
+                                                    ]),
+                                                ]),
+                                        ])
+                                        ->columnSpanFull(),
+
                                     Section::make('Charts & Analytics')
                                         ->schema([
                                             ComponentsGrid::make(2)->schema([
@@ -1000,6 +1077,21 @@ class TableRecordActions
                                             ]),
                                         ])
                                         ->columnSpanFull(),
+
+                                    // Section to display API stats
+                                    // Display the below fields from the return data of getUserStatsForAdsNormalized() function.
+                                            // $mapping = [
+                                            //     'total_ads' => ['totalAds', 'total_ads'],
+                                            //     'active_ads' => ['activeAds', 'active_ads'],
+                                            //     'expired_ads' => ['expiredAds', 'expired_ads'],
+                                            //     'boosted_ads' => ['boostedAds', 'boosted_ads'],
+                                            //     'total_views' => ['totalViews', 'views_total', 'views'],
+                                            //     'today_views' => ['todayViews', 'views_today'],
+                                            //     'week_views' => ['weekViews', 'views_week'],
+                                            //     'month_views' => ['monthViews', 'views_month'],
+                                            //     'total_messages' => ['totalMessages', 'messages_total', 'messages'],
+                                            // ];
+                                    
 
                                     // Funnel stage progress section
                                     Section::make('Activity Progress')
@@ -1194,11 +1286,12 @@ class TableRecordActions
                 ->color('warning')
                 ->action(function ($record) {
                     $record->update([
+                        // If is_favourite is 1, then set it to 0, otherwise set it to 1.
                         'is_favourite' => $record->is_favourite == 1 ? 0 : 1,
                     ]);
                     
                     Notification::make()
-                        ->title($record->is_favourite == 1 ? 'Added to Favourites' : 'Removed from Favourites')
+                        ->title($record->is_favourite == 1 ? 'Removed from Favourites' : 'Added to Favourites')
                         ->body('The lead has been ' . ($record->is_favourite == 1 ? 'added to favourites' : 'removed from favourites') . '.')
                         ->success()
                         ->send();
