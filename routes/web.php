@@ -48,6 +48,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
         // API returns array where [0] = script content, [1] = property data
         $script = [];
         $propertyData = [];
+        $apiStats = [];
         
         \Illuminate\Support\Facades\Log::info('Call Script Handler - API Response', [
             'uid' => $uid,
@@ -71,10 +72,22 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
             \Illuminate\Support\Facades\Log::info('Call Script Handler - Using fallback (old format)');
         }
 
+        // Get API Stats if on ad-stats tab
+        if ($activeTab === 'ad-stats' && $uid) {
+            try {
+                $record = (object)['cust_id' => $uid, 'customer_id' => $uid];
+                $apiStats = \App\Filament\Resources\HuntersResource\Components\Support\LpwData::getUserStatsForAdsNormalized($record);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to load API stats', ['error' => $e->getMessage()]);
+                $apiStats = [];
+            }
+        }
+
         return view('livewire.pages.call-script', [
             'uid' => $uid,
             'script' => $script,
             'propertyData' => $propertyData,
+            'apiStats' => $apiStats,
             'activeTab' => $activeTab,
         ]);
     };
@@ -96,6 +109,10 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
     Route::get('/call-script/bundle-package', function (\Illuminate\Http\Request $request, \App\Services\LpwApiService $service) use ($callScriptHandler) {
         return $callScriptHandler($request, $service, 'bundle-package');
     })->name('call.script.bundle-package');
+    
+    Route::get('/call-script/ad-stats', function (\Illuminate\Http\Request $request, \App\Services\LpwApiService $service) use ($callScriptHandler) {
+        return $callScriptHandler($request, $service, 'ad-stats');
+    })->name('call.script.ad-stats');
 });
 
 require __DIR__.'/auth.php';
