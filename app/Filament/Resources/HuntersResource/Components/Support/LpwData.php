@@ -250,8 +250,18 @@ class LpwData
 		try {
 			$service = app(LpwApiService::class);
 			Cache::forget("lpw_call_script_{$userId}");
-			$raw = $service->getCallScript($userId, 10);
-			// dd($raw);
+			$apiResponse = $service->getCallScript($userId, 10);
+			
+			// API now returns [script, propertyData] - we only need the script part here
+			$raw = [];
+			if (is_array($apiResponse) && count($apiResponse) >= 2 && isset($apiResponse[0])) {
+				// New format: [0] = script content
+				$raw = $apiResponse[0];
+			} elseif (is_array($apiResponse)) {
+				// Fallback: treat as script only (old format)
+				$raw = $apiResponse;
+			}
+			
 			Log::info('getCallScriptForRecord: Raw API response', [
 				'user_id' => $userId,
 				'is_array' => is_array($raw),

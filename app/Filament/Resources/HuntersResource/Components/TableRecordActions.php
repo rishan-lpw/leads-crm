@@ -284,6 +284,16 @@ class TableRecordActions
     {
         return ContactDetailsSections::forOverview();
     }
+
+    // Select the mobile number from the customer table column 'mobile'.
+    // Take the mobile number as follows: 
+    // 1. If the mobile number is in format 771234567, then take the number 771234567.
+    // 2. If the mobile number is in format 771234567, then take the number 771234567.
+    // 3. If the mobile number is in format +94771234567, (neglect +94) then take the number 771234567.
+    // 4. Neglect the space characters in the mobile number.
+
+    // Create a function to get the mobile number from the user details API.
+                       
     
     /**
      * Build the reusable Contact Details section.
@@ -292,6 +302,86 @@ class TableRecordActions
     {
         return ContactDetailsSections::forSidePanel();
     }
+
+	/**
+	 * Normalize a raw phone string to a 9-digit Sri Lankan mobile without leading 0 or country code.
+	 * Rules:
+	 * - Remove spaces and non-digits, ignore leading +94 or 94, drop a single leading 0
+	 * - Result should be exactly 9 digits (e.g. 771234567). Otherwise return null.
+	 */
+	private static function normalizeMobile(?string $raw): ?string
+	{
+		if (empty($raw)) {
+			return null;
+		}
+
+		$digits = preg_replace('/[^0-9+]/', '', $raw) ?? '';
+		$digits = ltrim($digits, '+');
+
+		if (str_starts_with($digits, '94')) {
+			$digits = substr($digits, 2);
+		}
+
+		if (str_starts_with($digits, '0')) {
+			$digits = substr($digits, 1);
+		}
+
+		return (strlen($digits) === 9) ? $digits : null;
+	}
+
+	/**
+	 * Fetch the best-available mobile for the given record, preferring record fields,
+	 * then LPW user details API. Returns 9-digit string like 771234567 or null.
+	 */
+	private static function getNormalizedMobileForRecord($record): ?string
+	{
+		$possible = [
+			$record->mobile ?? null,
+			$record->mobile_no ?? null,
+			$record->phone ?? null,
+		];
+
+		foreach ($possible as $raw) {
+			$normalized = self::normalizeMobile($raw);
+			if ($normalized) {
+				return $normalized;
+			}
+		}
+
+		$userId = $record->cust_id ?? $record->customer_id ?? null;
+		if (! $userId) {
+			return null;
+		}
+
+		try {
+			$service = app(LpwApiService::class);
+			$raw = $service->getUserDetails((string) $userId, 10, 2);
+
+			$data = [];
+			if (isset($raw['results'][0]) && is_array($raw['results'][0])) {
+				$data = $raw['results'][0];
+			} elseif (is_array($raw) && array_is_list($raw)) {
+				$data = $raw[0] ?? [];
+			} elseif (is_array($raw)) {
+				$data = $raw;
+			}
+
+			$candidates = [
+				'mobile_no', 'mobile_nos', 'mobile', 'tel', 'telephone', 'phone', 'contact_number',
+			];
+			foreach ($candidates as $key) {
+				$value = data_get($data, $key);
+				$normalized = self::normalizeMobile(is_array($value) ? ($value[0] ?? null) : $value);
+				if ($normalized) {
+					return $normalized;
+				}
+			}
+		} catch (\Throwable $e) {
+			// ignore
+		}
+
+		return null;
+	}
 
     private static function sendMessageAction(): Action
     {
@@ -317,12 +407,45 @@ class TableRecordActions
                             'mor23_out_now|en_US' => 'Mor23 Out Now',
                         ])
                         ->required(),
-                        // Select the mobile number from the customer table column 'mobile'.
+                        
                         Select::make('mobile')
                             ->label('Mobile Number')
-                            ->options(function () {
-                                return Customer::all()->pluck('mobile', 'id')->toArray();
-                            })
+							->options(function ($get, $set, $state, $component) {
+								$record = $component->getRecord();
+								$mobileCandidates = [];
+
+								// From LPW API normalized details
+								$details = LpwData::getLpwUserDetailsForRecord($record);
+								if (!empty($details['mobile'])) {
+									$apiMob = $details['mobile'];
+									if (is_array($apiMob)) {
+										$mobileCandidates = array_merge($mobileCandidates, $apiMob);
+									} else {
+										$mobileCandidates[] = $apiMob;
+									}
+								}
+
+								// From current record columns
+								$recordMobiles = [
+									$record->mobile ?? null,
+									$record->mobile_no ?? null,
+									$record->phone ?? null,
+								];
+								$mobileCandidates = array_merge($mobileCandidates, array_filter($recordMobiles));
+
+								// Normalize, unique, and map to display (0XXXXXXXXX)
+								$normalized = [];
+								foreach ($mobileCandidates as $raw) {
+									$nine = self::normalizeMobile(is_array($raw) ? ($raw[0] ?? null) : $raw);
+									if ($nine) {
+										$normalized['0' . $nine] = '0' . $nine; // value => label
+									}
+								}
+
+								return $normalized;
+							})
+                            ->searchable()
+                            ->preload()
                             ->required(),
                         
                         // Textarea::make('message')
@@ -334,8 +457,51 @@ class TableRecordActions
             ->action(function (array $data, $record) {
                 // Handle sending message
                 $template = $data['message_template'] ?? null;
-                $message = $data['message'] ?? null;
-                // send logic here
+                $mobileNine = self::getNormalizedMobileForRecord($record);
+
+                if (! $template) {
+                    Notification::make()
+                        ->title('Template is required')
+                        ->danger()
+                        ->body('Please select a WhatsApp template to send.')
+                        ->send();
+                    return;
+                }
+
+                if (! $mobileNine) {
+                    Notification::make()
+                        ->title('No valid mobile found')
+                        ->danger()
+                        ->body('Could not detect a valid mobile number for WhatsApp.')
+                        ->send();
+                    return;
+                }
+
+                $phoneParam = '94' . $mobileNine;
+
+                $response = Http::withHeaders([
+                        'accept' => 'application/json',
+                        'X-API-KEY' => 'ipZTsQ6JNnWTbF7Y0PCxz3VjAeJosU5Wi3LsIP0NJmduItGjsP0TAdLbN7X9h9Dgoe2nVQEUaCqizOmlTKGNBJ9luScLMvbHwyjYzaTYmOK3ReWGkfFCJot6WweaV6jr',
+                        'Content-Type' => 'application/json',
+                    ])
+                    ->post('https://n8n.srilankaproperty.lk/webhook/whatsapp-send-template', [
+                        'phone_num' => $phoneParam,
+                        'template' => $template,
+                    ]);
+
+                if ($response->successful()) {
+                    Notification::make()
+                        ->title('WhatsApp message queued')
+                        ->success()
+                        ->body('Template sent to ' . $phoneParam)
+                        ->send();
+                } else {
+                    Notification::make()
+                        ->title('Failed to send WhatsApp')
+                        ->danger()
+                        ->body('Error: ' . ($response->json('message') ?? $response->body()))
+                        ->send();
+                }
             });
     }
 

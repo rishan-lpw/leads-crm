@@ -192,87 +192,87 @@
         return false;
     }
 
-    function processConditionalContent(text) {
+    function processConditionalContent(text, propertyData) {
         if (!text) return '';
+
+        // Extract key property info
+        var priceType = (propertyData.Price_Type || propertyData.price_type || '').toLowerCase();
+        var propType = (propertyData.Type || propertyData.offer_type || propertyData.Prop_Type || '').toLowerCase();
+        var price = parseFloat(propertyData.Price || propertyData.price) || 0;
+        var pricePercentageLower = parseFloat(propertyData.Price_Precentage_Lower) || 0;
         
-        // Hardcoded values for conditional evaluation
-        // Update these values based on the specific property/lead
-        var conditions = {
-            isRental: false,           // Set to true if property is for rent
-            price: 35000000,           // Property price in LKR (35M for land example)
-            pricePerMonth: 120000,     // Monthly rent in LKR
-            totalLeads: 25,            // Total leads count (>20 will show lead text)
-            totalViews: 150,           // Total views count (>100 will show views text)
-            belowMarket: true,         // Is price below market value
-            avgPrice: 40000000         // Average price for comparison
-        };
+        // Use merged data from both sources
+        var totalLeads = parseInt(propertyData.total_leads || propertyData.Total_Leads) || 0;
+        var totalViews = parseInt(propertyData.total_views || propertyData.Total_Views) || 0;
         
-        var result = text;
-        var processedMatches = [];
-        
-        // Pattern 1: $ If condition $ "quoted content"
-        var quotedPattern = /\$\s*If\s+([^\$]+?)\$\s*"([^"]+)"/gi;
-        var match;
-        while ((match = quotedPattern.exec(text)) !== null) {
-            var condition = match[1];
-            var content = match[2];
-            var shouldShow = evaluateCondition(condition, conditions);
-            var replacement = shouldShow ? content : '';
-            
-            // Store match info to replace later
-            processedMatches.push({
-                original: match[0],
-                replacement: replacement,
-                index: match.index
-            });
+        var isRental = propType.includes('rent') || priceType.includes('month');
+        var isBelowMarket = pricePercentageLower > 0;
+        var priceThreshold = priceType.includes('month') ? 150000 : 50000000;
+
+        // Early return if no $ If conditions exist
+        if (!/\$\s*If\s+/i.test(text)) {
+            return text;
         }
-        
-        // Pattern 2: $ If condition $ unquoted content (until end of line or paragraph)
-        var unquotedPattern = /\$\s*If\s+([^\$]+?)\$\s*([^\n]+?)(?=\n\n|\n\$|$)/gi;
-        quotedPattern.lastIndex = 0; // Reset
-        while ((match = unquotedPattern.exec(text)) !== null) {
-            // Skip if this position was already processed by quoted pattern
-            var alreadyProcessed = processedMatches.some(function(pm) {
-                return match.index >= pm.index && match.index < (pm.index + pm.original.length);
-            });
-            
-            if (!alreadyProcessed && !match[0].includes('"')) {
-                var condition = match[1];
-                var content = match[2];
-                var shouldShow = evaluateCondition(condition, conditions);
-                var replacement = shouldShow ? content.trim() : '';
-                
-                processedMatches.push({
-                    original: match[0],
-                    replacement: replacement,
-                    index: match.index
-                });
+
+        // Replace conditional blocks
+        var result = text.replace(/\$\s*If\s+([^$]+)\$(.*?)(?=\$\s*If\s+|$)/gis, function(match, condition, content) {
+            var cond = condition.trim().toLowerCase();
+
+            // Rentals / Not Rentals
+            if (cond.includes('not') && cond.includes('rental')) {
+                return !isRental ? content.trim() : '';
             }
-        }
-        
-        // Sort matches by index in reverse order (to maintain correct positions when replacing)
-        processedMatches.sort(function(a, b) { return b.index - a.index; });
-        
-        // Apply all replacements
-        processedMatches.forEach(function(pm) {
-            result = result.substring(0, pm.index) + pm.replacement + result.substring(pm.index + pm.original.length);
+            if (cond.includes('rental')) {
+                return isRental ? content.trim() : '';
+            }
+
+            // Price less than avg - check Price_Precentage_Lower
+            if (cond.includes('price less than avg') || cond.includes('if price < avg')) {
+                if (pricePercentageLower === 0) {
+                    return '';
+                }
+                return isBelowMarket ? content.trim() : '';
+            }
+
+            // Total Leads conditions
+            if (cond.includes('total_leads > 20') || cond.includes('total_leads>20')) {
+                return totalLeads > 20 ? content.trim() : '';
+            }
+
+            // Total Views conditions
+            if (cond.includes('total_views > 100') || cond.includes('total_views>100')) {
+                return totalViews > 100 ? content.trim() : '';
+            }
+
+            // Price > threshold (50M for sales, 150K for rentals)
+            if (cond.includes('price > 50m') || cond.includes('price > 150k') || 
+                cond.includes('price >') && (cond.includes('50m') || cond.includes('150k'))) {
+                return price >= priceThreshold ? content.trim() : '';
+            }
+
+            // Price < threshold (50M for sales, 150K for rentals)
+            if (cond.includes('price < 50m') || cond.includes('price < 150k') || 
+                cond.includes('price <') && (cond.includes('50m') || cond.includes('150k'))) {
+                return (price > 0 && price < priceThreshold) ? content.trim() : '';
+            }
+
+            // Additional generic checks (extendable)
+            if (cond.includes('true')) return content.trim();
+            if (cond.includes('false')) return '';
+
+            // Unknown condition → skip
+            console.warn('Unknown conditional statement:', condition);
+            return '';
         });
-        
-        console.log('Conditional processing:', {
-            conditions: conditions,
-            matchesFound: processedMatches.length,
-            originalLength: text.length,
-            resultLength: result.length
-        });
-        
-        return result;
+
+        return result.trim();
     }
 
-    function formatText(text, commonTextReplacements) {
+    function formatText(text, commonTextReplacements, propertyData) {
         if (!text) return '';
         
         // First process conditional content ($ wrapped conditions)
-        var processedText = processConditionalContent(text);
+        var processedText = processConditionalContent(text, propertyData || {});
         
         // Replace @placeholders with common text values
         if (commonTextReplacements) {
@@ -310,7 +310,7 @@
         return hr;
     }
 
-    function createMessageCard(content, speaker, commonTextReplacements) {
+    function createMessageCard(content, speaker, commonTextReplacements, propertyData) {
         var card = document.createElement('div');
         card.className = 'message-card';
 
@@ -324,13 +324,13 @@
 
         var contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-        contentDiv.innerHTML = formatText(content, commonTextReplacements);
+        contentDiv.innerHTML = formatText(content, commonTextReplacements, propertyData);
         card.appendChild(contentDiv);
 
         return card;
     }
 
-    function createAccordionSection(items, commonTextReplacements) {
+    function createAccordionSection(items, commonTextReplacements, propertyData) {
         var accordion = document.createElement('div');
         accordion.className = 'rejection-accordion';
         accordion.style.marginTop = '12px';
@@ -348,7 +348,7 @@
             
             var content = document.createElement('div');
             content.style.padding = '15px';
-            content.innerHTML = formatText(items[key], commonTextReplacements);
+            content.innerHTML = formatText(items[key], commonTextReplacements, propertyData);
             details.appendChild(content);
 
             accordion.appendChild(header);
@@ -358,7 +358,7 @@
         return accordion;
     }
 
-    function renderBundlePackages(bundleSection, commonTextReplacements) {
+    function renderBundlePackages(bundleSection, commonTextReplacements, propertyData) {
         var container = document.getElementById('bundle-packages-container');
         if (!container) return;
 
@@ -388,7 +388,7 @@
                     // Package content
                     var contentDiv = document.createElement('div');
                     contentDiv.className = 'message-content';
-                    contentDiv.innerHTML = formatText(packageContent, commonTextReplacements);
+                    contentDiv.innerHTML = formatText(packageContent, commonTextReplacements, propertyData);
                     packageCard.appendChild(contentDiv);
                     
                     frag.appendChild(packageCard);
@@ -402,7 +402,7 @@
         }
     }
 
-    function renderStats(statsSection, commonTextReplacements) {
+    function renderStats(statsSection, commonTextReplacements, propertyData) {
         var container = document.getElementById('stats-container');
         if (!container) return;
 
@@ -432,7 +432,7 @@
                     // Stat content
                     var contentDiv = document.createElement('div');
                     contentDiv.className = 'message-content';
-                    contentDiv.innerHTML = formatText(statContent, commonTextReplacements);
+                    contentDiv.innerHTML = formatText(statContent, commonTextReplacements, propertyData);
                     statCard.appendChild(contentDiv);
                     
                     frag.appendChild(statCard);
@@ -446,7 +446,7 @@
         }
     }
 
-    function renderScript(script, activeTab) {
+    function renderScript(script, activeTab, propertyData) {
         if (!script || (Array.isArray(script) && script.length === 0) || (typeof script === 'object' && Object.keys(script).length === 0)) {
             console.log('No script data available');
             return;
@@ -457,12 +457,13 @@
             var commonTextReplacements = script['Common Text'] || {};
             console.log('Common Text replacements available:', Object.keys(commonTextReplacements));
             console.log('Active tab:', activeTab);
+            console.log('Property data:', propertyData);
             
             // Render content based on active tab
             if (activeTab === 'bundle-package') {
                 // Only render Bundle Packages
                 if (script['Bundle package']) {
-                    renderBundlePackages(script['Bundle package'], commonTextReplacements);
+                    renderBundlePackages(script['Bundle package'], commonTextReplacements, propertyData);
                 }
                 return; // Exit early
             }
@@ -470,7 +471,7 @@
             if (activeTab === 'stats') {
                 // Only render Stats
                 if (script['Stats']) {
-                    renderStats(script['Stats'], commonTextReplacements);
+                    renderStats(script['Stats'], commonTextReplacements, propertyData);
                 }
                 return; // Exit early
             }
@@ -521,7 +522,7 @@
                             
                             // Render the full rejection options accordion from top-level section
                             if (script['Rejection Options']) {
-                                frag.appendChild(createAccordionSection(script['Rejection Options'], commonTextReplacements));
+                                frag.appendChild(createAccordionSection(script['Rejection Options'], commonTextReplacements, propertyData));
                             }
                             return;
                         }
@@ -539,11 +540,11 @@
                         
                         // Render content
                         if (typeof subContent === 'string') {
-                            frag.appendChild(createMessageCard(subContent, null, commonTextReplacements));
+                            frag.appendChild(createMessageCard(subContent, null, commonTextReplacements, propertyData));
                         }
                     });
                 } else if (typeof section === 'string') {
-                    frag.appendChild(createMessageCard(section, null, commonTextReplacements));
+                    frag.appendChild(createMessageCard(section, null, commonTextReplacements, propertyData));
                 }
             });
 
@@ -555,19 +556,150 @@
         }
     }
 
-    function fetchSheetData(uid, mobileNo, city, property, callingFrom) {
+    async function fetchPriceMeterData(uid) {
+        try {
+            var url = 'https://www.lankapropertyweb.com/su/LPW-Admin/public/get-price-meter/stats?uid=' + encodeURIComponent(uid);
+            var response = await fetch(url);
+            var result = await response.json();
+            
+            var advert = result.data;
+            
+            var payload = {
+                token: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiYXBpX2tleSJ9.l6YJhp_Jm2tryHhDdodjOE1kui6vfLordQUDXWF3y3U",
+                offer_type: advert.offer_type,
+                property_type: advert.property_type,
+                city: advert.city,
+                price: advert.price,
+                floor_area: advert.floor_area,
+                land_area: advert.land_area,
+                price_type: advert.price_type,
+                pagetype: 'market-insight',
+            };
+            
+            var queryString = new URLSearchParams(payload).toString();
+            var apiUrl = 'https://www.lankapropertyweb.com/api/v3/PriceValidateV2?' + queryString;
+            
+            try {
+                var res = await fetch(apiUrl);
+                var meterResponse = await res.json();
+                
+                return {
+                    percentage: meterResponse.message.percentage,
+                    status: meterResponse.message.status,
+                    message: meterResponse.message.message1,
+                    message2: meterResponse.message.message2,
+                    am: advert.am,
+                    username: advert.username,
+                    total_views: advert.stats.total_views,
+                    total_leads: advert.stats.total_leads,
+                    compaired_price: advert.compaarised_precentage,
+                    offer_type: advert.offer_type,
+                    last_yr_price: advert.last_year_price,
+                    this_yr_price: advert.this_year_price,
+                    price: advert.price,
+                    price_type: advert.price_type,
+                    price_land_pp: advert.price_land_pp,
+                    source_type: advert.source_type,
+                    property_type: advert.property_type,
+                    comm_type: advert.comm_type,
+                };
+            } catch (err) {
+                console.warn("Price Meter API call failed", err);
+                return {
+                    percentage: 0,
+                    status: '',
+                    message: '',
+                    message2: '',
+                    am: advert.am,
+                    username: advert.username,
+                    total_views: advert.stats.total_views,
+                    total_leads: advert.stats.total_leads,
+                    compaired_price: advert.compaarised_precentage,
+                    offer_type: advert.offer_type,
+                    last_yr_price: advert.last_year_price,
+                    this_yr_price: advert.this_year_price,
+                    price: advert.price,
+                    price_type: advert.price_type,
+                    price_land_pp: advert.price_land_pp,
+                    source_type: advert.source_type,
+                    property_type: advert.property_type,
+                    comm_type: advert.comm_type,
+                };
+            }
+        } catch (error) {
+            console.error("Price Meter fetch failed", error);
+            return null;
+        }
+    }
+    
+    function getTimeBasedGreeting() {
+        var now = new Date();
+        var hour = now.getHours();
+        
+        if (hour >= 5 && hour < 12) {
+            return "Morning";
+        } else if (hour >= 12 && hour < 17) {
+            return "Afternoon";
+        } else if (hour >= 17 && hour < 21) {
+            return "Evening";
+        } else {
+            return "Day";
+        }
+    }
+    
+    function formatPrice(price) {
+        if (price >= 1000000) {
+            var formatted = Math.round(price / 1000000 * 10) / 10;
+            formatted = Number.isInteger(formatted) ? parseInt(formatted) : formatted;
+            return formatted + 'M';
+        } else if (price >= 1000) {
+            var formatted = Math.round(price / 1000 * 10) / 10;
+            formatted = Number.isInteger(formatted) ? parseInt(formatted) : formatted;
+            return formatted + 'K';
+        } else {
+            return price.toLocaleString();
+        }
+    }
+
+    async function fetchSheetData(uid, mobileNo, city, property, callingFrom) {
         showLoading(true);
         try {
             var scriptTag = document.getElementById('call-script-data');
             var serverData = scriptTag ? JSON.parse(scriptTag.textContent || '{}') : {};
             
+            var propertyDataTag = document.getElementById('property-data');
+            var propertyData = propertyDataTag ? JSON.parse(propertyDataTag.textContent || '{}') : {};
+            
             var activeTabTag = document.getElementById('active-tab-data');
             var activeTab = activeTabTag ? JSON.parse(activeTabTag.textContent || '"sinhala"') : 'sinhala';
             
             console.log('Script data loaded:', Object.keys(serverData));
+            console.log('Property data loaded:', propertyData);
             console.log('Active tab from server:', activeTab);
             
-            renderScript(serverData, activeTab);
+            // Fetch additional price meter data if uid is available
+            if (uid) {
+                try {
+                    var priceMeterData = await fetchPriceMeterData(uid);
+                    if (priceMeterData) {
+                        // Merge price meter data with property data
+                        propertyData = Object.assign({}, propertyData, {
+                            total_views: priceMeterData.total_views || propertyData.Total_Views,
+                            total_leads: priceMeterData.total_leads || propertyData.Total_Leads,
+                            price_percentage: priceMeterData.percentage,
+                            price_status: priceMeterData.status,
+                            am_name: priceMeterData.am,
+                            username: priceMeterData.username,
+                            source_type: priceMeterData.source_type,
+                        });
+                        console.log('Merged property data with price meter:', propertyData);
+                    }
+                } catch (err) {
+                    console.warn('Could not fetch price meter data, continuing with basic data', err);
+                }
+            }
+            
+            renderScript(serverData, activeTab, propertyData);
             showLoading(false);
         } catch (e) {
             console.error('Failed to load script data', e);

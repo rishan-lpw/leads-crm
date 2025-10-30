@@ -12,7 +12,7 @@
                                 Sales Call Transcript
                             </h2>
                         </div>
-                        // Take the mobile number from the customer table column 'mobile'.
+                        {{-- Take the mobile number from the customer table column 'mobile'. --}}
                         <button type="button" class="btn btn-success call-btn" data-phone="{{ request()->query('mobile') ?? request()->query('phone') ?? '' }}" style="background-color: #10b981; border-color: #10b981; color: white; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                             <i class="fa fa-phone"></i> Call Customer
                         </button>
@@ -118,6 +118,7 @@
 </div>
 
 <script id="call-script-data" type="application/json">@json($script ?? [])</script>
+<script id="property-data" type="application/json">@json($propertyData ?? [])</script>
 <script id="active-tab-data" type="application/json">"{{ $activeTab ?? 'sinhala' }}"</script>
 <link rel="stylesheet" href="{{ asset('css/filament/filament/app.css') }}">
 <script src="{{ asset('js/filament/schemas/components/callScript.js') }}"></script>

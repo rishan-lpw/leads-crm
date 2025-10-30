@@ -22,7 +22,7 @@ class CallLogSection
 				->getStateUsing(function ($record) {
 					$logs = LpwData::getCallLogsForRecord($record);
 					if (empty($logs)) return [];
-					return collect($logs)->sortByDesc('datetime')->values()->toArray();
+					return collect($logs)->take(4)->sortByDesc('datetime')->values()->toArray();
 				})
 				->schema([
 					Section::make('')
