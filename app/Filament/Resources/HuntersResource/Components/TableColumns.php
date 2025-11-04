@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\HtmlString;
 use Filament\Tables\Columns\TextColumn as ColumnText;
 use Filament\Tables\Columns\IconColumn as ColumnIcon;
+use App\Filament\Resources\HuntersResource\Components\Support\LpwData;
 
 class TableColumns
 {
@@ -62,7 +63,7 @@ class TableColumns
                     return $record->is_pin ? "📌 {$state}" : $state;
                 })
                 ->tooltip(fn($record) => $record->customer->email)
-                ->description(fn($record) => Str::limit($record->customer->email ?? '', 16))
+                ->description(fn($record) => Str::limit($record->customer->email ?? '', 22))
                 ->searchable()
                 ->sortable(),
 
@@ -180,18 +181,19 @@ class TableColumns
                         $priceFormatted = number_format($record->price);
                     }
 
-                    // Add ⬆️ for high weight equal to 'high' and ⬇️ for low weight equal to 'low'.
+                    // Add Bootstrap Icons for weight indicators
                     $weight = $record->weight;
+                    $iconHtml = '';
                     if ($weight == 'high') {
-                        $priceFormatted = "⬆️ " . $priceFormatted;
+                        $iconHtml = '<i class="bi bi-arrow-up-circle-fill" style="color: #00bf00;"></i> ';
                     } elseif ($weight == 'low') {
-                        $priceFormatted = "⬇️ " . $priceFormatted;
-                    }elseif ($weight == 'medium') {
-                        $priceFormatted = "↔️ " . $priceFormatted;
+                        $iconHtml = '<i class="bi bi-arrow-down-circle-fill" style="color: #d80000;"></i> ';
+                    } elseif ($weight == 'medium') {
+                        $iconHtml = '<i class="bi bi-dash-circle-fill" style="color: #2b00ed;"></i> ';
                     }
                     
                     $city = ucfirst($record->city);
-                    return "$priceFormatted | $city";
+                    return new HtmlString($iconHtml . $priceFormatted . " | " . $city);
                 })
                 ->searchable(['type', 'propty_type', 'city', 'price', 'weight'])
                 ->sortable()
@@ -208,7 +210,36 @@ class TableColumns
 
                     return $latest->comments ?? 'No Comment';
                 })
-                ->limit(15)
+                ->description(function ($record) {
+                    try {
+                        // Get call logs from CallLog API
+                        $callLogs = LpwData::getCallLogsForRecord($record);
+                        
+                        if (empty($callLogs)) {
+                            return null;
+                        }
+                        
+                        // Get the latest call log entry
+                        $latestCallLog = collect($callLogs)->first();
+                        
+                        $parts = [];
+                        
+                        // Add qa_final_percentage if available
+                        if (isset($latestCallLog['qa_final_percentage']) && $latestCallLog['qa_final_percentage'] !== null && $latestCallLog['qa_final_percentage'] !== '') {
+                            $parts[] = 'Percentage: ' . $latestCallLog['qa_final_percentage'] . '%';
+                        }
+                        
+                        // Add qa_scorecard if available
+                        if (isset($latestCallLog['qa_scorecard']) && $latestCallLog['qa_scorecard'] !== null && $latestCallLog['qa_scorecard'] !== '') {
+                            $parts[] = 'Score: ' . $latestCallLog['qa_scorecard'];
+                        }
+                        
+                        return !empty($parts) ? implode(' | ', $parts) : null;
+                    } catch (\Throwable $e) {
+                        return null;
+                    }
+                })
+                ->limit(25)
                 // Add tooltip for the latest comment as $latest->comments
                 ->tooltip(fn($record) => $record->activities->sortByDesc('created_at')->first()->comments ?? 'No Comment')
                 ->toggleable()

@@ -209,60 +209,99 @@
         var isBelowMarket = pricePercentageLower > 0;
         var priceThreshold = priceType.includes('month') ? 150000 : 50000000;
 
-        // Early return if no $ If conditions exist
-        if (!/\$\s*If\s+/i.test(text)) {
+        // Early return if no $ conditions exist
+        if (!/\$[^$]+\$/.test(text)) {
             return text;
         }
 
-        // Replace conditional blocks
-        var result = text.replace(/\$\s*If\s+([^$]+)\$(.*?)(?=\$\s*If\s+|$)/gis, function(match, condition, content) {
+        // Helper function to evaluate a condition
+        function evaluateCondition(condition) {
             var cond = condition.trim().toLowerCase();
 
             // Rentals / Not Rentals
             if (cond.includes('not') && cond.includes('rental')) {
-                return !isRental ? content.trim() : '';
+                return !isRental;
             }
             if (cond.includes('rental')) {
-                return isRental ? content.trim() : '';
+                return isRental;
             }
 
             // Price less than avg - check Price_Precentage_Lower
-            if (cond.includes('price less than avg') || cond.includes('if price < avg')) {
-                if (pricePercentageLower === 0) {
-                    return '';
-                }
-                return isBelowMarket ? content.trim() : '';
+            if (cond.includes('price less than avg') || cond.includes('if price < avg') || cond.includes('price < avg')) {
+                return pricePercentageLower > 0 && isBelowMarket;
             }
 
             // Total Leads conditions
-            if (cond.includes('total_leads > 20') || cond.includes('total_leads>20')) {
-                return totalLeads > 20 ? content.trim() : '';
+            if (cond.includes('total_leads > 20') || cond.includes('total_leads>20') || cond.includes('total leads > 20')) {
+                return totalLeads > 20;
+            }
+            if (cond.includes('total_leads >= 20') || cond.includes('total_leads>=20')) {
+                return totalLeads >= 20;
+            }
+            if (cond.includes('total_leads < 20') || cond.includes('total_leads<20')) {
+                return totalLeads < 20;
             }
 
             // Total Views conditions
-            if (cond.includes('total_views > 100') || cond.includes('total_views>100')) {
-                return totalViews > 100 ? content.trim() : '';
+            if (cond.includes('total_views > 100') || cond.includes('total_views>100') || cond.includes('total views > 100')) {
+                return totalViews > 100;
+            }
+            if (cond.includes('total_views >= 100') || cond.includes('total_views>=100')) {
+                return totalViews >= 100;
+            }
+            if (cond.includes('total_views < 100') || cond.includes('total_views<100')) {
+                return totalViews < 100;
             }
 
             // Price > threshold (50M for sales, 150K for rentals)
             if (cond.includes('price > 50m') || cond.includes('price > 150k') || 
-                cond.includes('price >') && (cond.includes('50m') || cond.includes('150k'))) {
-                return price >= priceThreshold ? content.trim() : '';
+                (cond.includes('price >') && (cond.includes('50m') || cond.includes('150k')))) {
+                return price >= priceThreshold;
+            }
+
+            // Price >= threshold
+            if (cond.includes('price >= 50m') || cond.includes('price >= 150k')) {
+                return price >= priceThreshold;
             }
 
             // Price < threshold (50M for sales, 150K for rentals)
             if (cond.includes('price < 50m') || cond.includes('price < 150k') || 
-                cond.includes('price <') && (cond.includes('50m') || cond.includes('150k'))) {
-                return (price > 0 && price < priceThreshold) ? content.trim() : '';
+                (cond.includes('price <') && (cond.includes('50m') || cond.includes('150k')))) {
+                return price > 0 && price < priceThreshold;
             }
 
-            // Additional generic checks (extendable)
-            if (cond.includes('true')) return content.trim();
-            if (cond.includes('false')) return '';
+            // Price <= threshold
+            if (cond.includes('price <= 50m') || cond.includes('price <= 150k')) {
+                return price > 0 && price <= priceThreshold;
+            }
 
-            // Unknown condition → skip
+            // Additional generic checks
+            if (cond.includes('true')) return true;
+            if (cond.includes('false')) return false;
+
+            // Default: if condition doesn't match any pattern, return false
             console.warn('Unknown conditional statement:', condition);
-            return '';
+            return false;
+        }
+
+        // Replace conditional blocks - handles patterns like:
+        // $condition$content$
+        // $If condition$content$
+        // $if condition$content$
+        var result = text.replace(/\$([^$]+)\$([^$]*?)(?=\$[^$]+\$|$)/gis, function(match, condition, content) {
+            var cond = condition.trim();
+            
+            // Check if it's a conditional pattern (starts with "If", "if", or is a condition)
+            if (/^(If|if)\s+/i.test(cond)) {
+                // Extract the actual condition after "If" or "if"
+                var actualCondition = cond.replace(/^(If|if)\s+/i, '').trim();
+                var shouldInclude = evaluateCondition(actualCondition);
+                return shouldInclude ? content.trim() : '';
+            } else {
+                // Direct condition without "If" prefix
+                var shouldInclude = evaluateCondition(cond);
+                return shouldInclude ? content.trim() : '';
+            }
         });
 
         return result.trim();
@@ -271,18 +310,26 @@
     function formatText(text, commonTextReplacements, propertyData) {
         if (!text) return '';
         
-        // First process conditional content ($ wrapped conditions)
-        var processedText = processConditionalContent(text, propertyData || {});
-        
-        // Replace @placeholders with common text values
+        // First replace @placeholders with common text values (so they're available in conditions too)
+        var processedText = text;
         if (commonTextReplacements) {
-            Object.keys(commonTextReplacements).forEach(function(key) {
+            // Sort keys by length (longest first) to avoid partial replacements
+            var sortedKeys = Object.keys(commonTextReplacements).sort(function(a, b) {
+                return b.length - a.length;
+            });
+            
+            sortedKeys.forEach(function(key) {
                 var placeholder = '@' + key;
                 var replacement = commonTextReplacements[key] || '';
-                // Replace all occurrences of the placeholder
-                processedText = processedText.split(placeholder).join(replacement);
+                // Use regex to match @key followed by non-word characters or end of string
+                // This ensures we match the exact placeholder and not part of another word
+                var regex = new RegExp('@' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=\\s|\\W|$)', 'g');
+                processedText = processedText.replace(regex, replacement);
             });
         }
+        
+        // Then process conditional content ($ wrapped conditions)
+        processedText = processConditionalContent(processedText, propertyData || {});
         
         return processedText
             .replace(/\n/g, '<br>')

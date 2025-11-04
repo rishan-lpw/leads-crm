@@ -920,22 +920,20 @@ class TableRecordActions
 
                                     Section::make('API Stats')
                                         ->schema([
-                                            // RepeatableEntry::make('api_status')
-                                            //     ->label('')
-                                            //     ->contained(false)
-                                            //     ->getStateUsing(fn($record) => LpwData::getUserStatsForAdsNormalized($record))
-                                            //     ->schema([
-                                            //         ComponentsGrid::make(2)->schema([
-                                            //             TextEntry::make('label')
-                                            //                 ->label('Metric')
-                                            //                 ->badge()
-                                            //                 ->color('primary'),
-                                            //             TextEntry::make('value')
-                                            //                 ->label('Value')
-                                            //                 ->badge()
-                                            //                 ->color('success'),
-                                            //         ]),
-                                            //     ]),
+                                            RepeatableEntry::make('api_status')
+                                                ->label('')
+                                                ->contained(false)
+                                                ->getStateUsing(fn($record) => LpwData::getUserStatsForAdsNormalized($record))
+                                                ->schema([
+                                                    // TextEntry::make('label')
+                                                    //     ->label('')
+                                                    //     ->formatStateUsing(function ($state, $record) {
+                                                    //         $label = is_array($record) ? ($record['label'] ?? $state ?? '') : ($record?->label ?? $state ?? '');
+                                                    //         $value = is_array($record) ? ($record['value'] ?? '') : ($record?->value ?? '');
+                                                    //         return $label . ': ' . $value;
+                                                    //     })
+                                                    //     ->columnSpanFull(),
+                                                ]),
                                         ])
                                         ->columnSpanFull(),
 
@@ -1025,18 +1023,7 @@ class TableRecordActions
                                         ->columnSpanFull(),
 
                                     // Section to display API stats
-                                    // Display the below fields from the return data of getUserStatsForAdsNormalized() function.
-                                            // $mapping = [
-                                            //     'total_ads' => ['totalAds', 'total_ads'],
-                                            //     'active_ads' => ['activeAds', 'active_ads'],
-                                            //     'expired_ads' => ['expiredAds', 'expired_ads'],
-                                            //     'boosted_ads' => ['boostedAds', 'boosted_ads'],
-                                            //     'total_views' => ['totalViews', 'views_total', 'views'],
-                                            //     'today_views' => ['todayViews', 'views_today'],
-                                            //     'week_views' => ['weekViews', 'views_week'],
-                                            //     'month_views' => ['monthViews', 'views_month'],
-                                            //     'total_messages' => ['totalMessages', 'messages_total', 'messages'],
-                                            // ];
+                                    
                                     
 
                                     // Funnel stage progress section
@@ -1117,7 +1104,29 @@ class TableRecordActions
                                                         'uid' => ($record->cust_id ?? $record->customer_id ?? ''),
                                                         'mobile' => ($record->mobile ?? $record->mobile_no ?? ''),
                                                     ]))
-                                                    ->openUrlInNewTab(),
+                                                    ->extraAttributes(function ($record) {
+                                                        $url = route('call.script.sinhala', [
+                                                            'uid' => ($record->cust_id ?? $record->customer_id ?? ''),
+                                                            'mobile' => ($record->mobile ?? $record->mobile_no ?? ''),
+                                                        ]);
+                                                        return [
+                                                            'onclick' => new HtmlString("
+                                                                event.preventDefault();
+                                                                event.stopPropagation();
+                                                                var popup = window.open(
+                                                                    '{$url}',
+                                                                    'CallScript',
+                                                                    'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,directories=no,status=no'
+                                                                );
+                                                                if (popup) {
+                                                                    popup.focus();
+                                                                } else {
+                                                                    alert('Please allow popups for this site to view the call script.');
+                                                                }
+                                                                return false;
+                                                            "),
+                                                        ];
+                                                    }),
                                             ])
                                             ->schema([
                                                 // TextEntry::make('call_script_help')
@@ -1196,11 +1205,33 @@ class TableRecordActions
             ->label('')
             ->icon('heroicon-c-phone')
             ->visible(fn($record) => Gate::allows('view', $record))
-            ->modalHeading('Call Script')
-            ->modalButton('Close')
-            ->modalSubmitAction(false)
-            ->schema(CallScriptSection::build())
-            ->modalWidth('4xl');
+            ->url(fn ($record) => route('call.script.sinhala', [
+                'uid' => ($record->cust_id ?? $record->customer_id ?? ''),
+                'mobile' => ($record->mobile ?? $record->mobile_no ?? ''),
+            ]))
+            ->extraAttributes(function ($record) {
+                $url = route('call.script.sinhala', [
+                    'uid' => ($record->cust_id ?? $record->customer_id ?? ''),
+                    'mobile' => ($record->mobile ?? $record->mobile_no ?? ''),
+                ]);
+                return [
+                    'onclick' => new HtmlString("
+                        event.preventDefault();
+                        event.stopPropagation();
+                        var popup = window.open(
+                            '{$url}',
+                            'CallScript',
+                            'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,directories=no,status=no'
+                        );
+                        if (popup) {
+                            popup.focus();
+                        } else {
+                            alert('Please allow popups for this site to view the call script.');
+                        }
+                        return false;
+                    "),
+                ];
+            });
 
         $editAction = EditAction::make()
             ->label('')
