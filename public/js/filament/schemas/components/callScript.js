@@ -93,6 +93,10 @@
                 var shouldShow = '#' + pane.id === hash;
                 if (shouldShow) {
                     pane.classList.add('active', 'in');
+                    // Render call logs if call history tab is activated
+                    if (pane.id === 'calllog') {
+                        renderCallLogs();
+                    }
                 } else {
                     pane.classList.remove('active', 'in');
                 }
@@ -108,6 +112,11 @@
                 });
             }
         });
+
+        // Activate tab based on URL hash on page load
+        if (window.location.hash) {
+            activate(window.location.hash);
+        }
     }
 
     function showLoading(show) {
@@ -790,6 +799,288 @@
         console.log('Call button(s) initialized:', callButtons.length);
     }
 
+    function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        try {
+            var date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (e) {
+            return dateString;
+        }
+    }
+
+    function formatDuration(duration) {
+        if (!duration && duration !== 0) return 'N/A';
+        
+        // If already a formatted string, return as-is
+        if (typeof duration === 'string' && (duration.includes(':') || duration.includes('m') || duration.includes('s'))) {
+            return duration;
+        }
+        
+        // Assume it's seconds if it's a number
+        var seconds = parseInt(duration);
+        if (isNaN(seconds)) return duration;
+        
+        var mins = Math.floor(seconds / 60);
+        var secs = seconds % 60;
+        if (mins > 0) {
+            return mins + 'm ' + secs + 's';
+        }
+        return secs + 's';
+    }
+
+    function renderCallLogs() {
+        var container = document.getElementById('call-log-data-container');
+        if (!container) return;
+
+        var callLogsTag = document.getElementById('call-logs-data');
+        var callLogs = callLogsTag ? JSON.parse(callLogsTag.textContent || '[]') : [];
+
+        if (!Array.isArray(callLogs) || callLogs.length === 0) {
+            container.innerHTML = '<li style="padding: 40px; text-align: center; color: #6b7280; font-size: 14px;">No call logs available</li>';
+            return;
+        }
+
+        // Clear any previous tabs data
+        var sheetContainer = document.getElementById('sheet-data-container');
+        if (sheetContainer) sheetContainer.innerHTML = '';
+        var bundleContainer = document.getElementById('bundle-packages-container');
+        if (bundleContainer) bundleContainer.innerHTML = '';
+        var statsContainer = document.getElementById('stats-container');
+        if (statsContainer) statsContainer.innerHTML = '';
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        var html = '';
+        var totalLogs = callLogs.length;
+        callLogs.forEach(function(log, index) {
+            var dateTime = formatDate(log.date_time || log.date || log.created_at || log.call_date);
+            var duration = formatDuration(log.duration || log.call_duration);
+            var sentiment = log.sentiment || '';
+            var status = log.status || '';
+            var recordingUrl = log.recording_url || log.recording || '';
+            var qaScore = log.qa_scorecard || log.qa_score || '';
+            var qaPercentage = log.qa_final_percentage || log.qa_percentage || '';
+            var am = log.am || log.am_name || '';
+            
+            // Header fields
+            var summarySi = escapeHtml(log.summary_si || '');
+            var callSummaryCategory = escapeHtml(log.call_summary_category || '');
+            var callSummaryTag = escapeHtml(log.call_summary_tag || '');
+            
+            // Expandable fields
+            var transcript = log.transcript || '';
+            var summaryEn = log.summary_en || '';
+            var summaryTa = log.summary_ta || '';
+
+            // Sentiment color classes
+            var sentimentClass = '';
+            var sentimentBgColor = '';
+            var sentimentTextColor = '';
+            if (sentiment) {
+                var sentimentLower = sentiment.toLowerCase();
+                if (sentimentLower === 'positive') {
+                    sentimentBgColor = '#10b981';
+                    sentimentTextColor = '#ffffff';
+                } else if (sentimentLower === 'negative') {
+                    sentimentBgColor = '#ef4444';
+                    sentimentTextColor = '#ffffff';
+                } else if (sentimentLower === 'neutral') {
+                    sentimentBgColor = '#6b7280';
+                    sentimentTextColor = '#ffffff';
+                } else {
+                    sentimentBgColor = '#f59e0b';
+                    sentimentTextColor = '#ffffff';
+                }
+                sentimentClass = 'background: ' + sentimentBgColor + '; color: ' + sentimentTextColor + ';';
+            }
+
+            // Status color classes
+            var statusClass = '';
+            var statusBgColor = '';
+            var statusTextColor = '';
+            if (status) {
+                var statusLower = status.toLowerCase();
+                if (statusLower.includes('success') || statusLower.includes('completed') || statusLower.includes('done')) {
+                    statusBgColor = '#10b981';
+                    statusTextColor = '#ffffff';
+                } else if (statusLower.includes('failed') || statusLower.includes('error') || statusLower.includes('cancelled')) {
+                    statusBgColor = '#ef4444';
+                    statusTextColor = '#ffffff';
+                } else if (statusLower.includes('pending') || statusLower.includes('waiting')) {
+                    statusBgColor = '#f59e0b';
+                    statusTextColor = '#ffffff';
+                } else {
+                    statusBgColor = '#3b82f6';
+                    statusTextColor = '#ffffff';
+                }
+                statusClass = 'background: ' + statusBgColor + '; color: ' + statusTextColor + ';';
+            }
+
+            var logId = 'call-log-' + index;
+            var hasExpandableContent = transcript || summaryEn || summaryTa;
+            var isLastItem = index === totalLogs - 1;
+
+            html += '<li style="position: relative; padding-left: 180px; margin-bottom: 30px; list-style: none; overflow: visible;">';
+            
+            // Timeline date marker
+            html += '<div style="position: absolute; left: 0; top: 0; width: 160px; text-align: right; padding-right: 20px; padding-top: 5px; word-wrap: break-word; overflow-wrap: break-word;">';
+            html += '<div style="font-size: 12px; font-weight: 600; color: #2563eb; margin-bottom: 4px; line-height: 1.4;">' + escapeHtml(dateTime) + '</div>';
+            html += '<div style="position: absolute; right: 0; top: 20px; width: 16px; height: 16px; background: #2563eb; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #2563eb; z-index: 10; flex-shrink: 0;"></div>';
+            html += '</div>';
+            
+            // Vertical line (don't extend on last item)
+            if (!isLastItem) {
+                html += '<div style="position: absolute; left: 158px; top: 36px; bottom: -30px; width: 2px; background: #e5e7eb; z-index: 1;"></div>';
+            }
+            
+            // Call log card
+            html += '<div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: all 0.3s ease; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word;">';
+            
+            // Header section
+            html += '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">';
+            html += '<div style="flex: 1; min-width: 200px; max-width: 100%;">';
+            html += '<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap;">';
+            html += '<h4 style="font-size: 18px; font-weight: 700; color: #1f2937; margin: 0; line-height: 1.3; word-break: break-word;">Call #' + (index + 1) + '</h4>';
+            if (sentiment) {
+                html += '<span style="display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0; ' + sentimentClass + '">' + escapeHtml(sentiment) + '</span>';
+            }
+            if (status) {
+                html += '<span style="display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0; ' + statusClass + '">' + escapeHtml(status) + '</span>';
+            }
+            html += '</div>';
+            
+            // Duration and AM
+            html += '<div style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: #6b7280; margin-bottom: 8px; flex-wrap: wrap;">';
+            html += '<div style="display: flex; align-items: center; gap: 8px;">';
+            html += '<i class="fa fa-clock" style="font-size: 12px; color: #9ca3af; flex-shrink: 0;"></i> ';
+            html += '<span style="word-break: break-word;">' + escapeHtml(duration) + '</span>';
+            html += '</div>';
+            if (am) {
+                html += '<div style="display: flex; align-items: center; gap: 8px; padding-left: 12px; border-left: 1px solid #e5e7eb;">';
+                html += '<i class="fa fa-user" style="font-size: 12px; color: #9ca3af; flex-shrink: 0;"></i> ';
+                html += '<span style="word-break: break-word; font-weight: 500;">' + escapeHtml(am) + '</span>';
+                html += '</div>';
+            }
+            html += '</div>';
+            
+            // Header fields (summary_si, call_summary_category, call_summary_tag)
+            if (summarySi || callSummaryCategory || callSummaryTag) {
+                html += '<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">';
+                if (summarySi) {
+                    html += '<span style="display: inline-block; padding: 4px 10px; background: #f3f4f6; border-radius: 4px; font-size: 12px; color: #374151; font-weight: 500; word-break: break-word; max-width: 100%;">SI: ' + summarySi + '</span>';
+                }
+                if (callSummaryCategory) {
+                    html += '<span style="display: inline-block; padding: 4px 10px; background: #e0e7ff; border-radius: 4px; font-size: 12px; color: #1e40af; font-weight: 500; word-break: break-word; max-width: 100%;">Category: ' + callSummaryCategory + '</span>';
+                }
+                if (callSummaryTag) {
+                    html += '<span style="display: inline-block; padding: 4px 10px; background: #fef3c7; border-radius: 4px; font-size: 12px; color: #92400e; font-weight: 500; word-break: break-word; max-width: 100%;">Tag: ' + callSummaryTag + '</span>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+            html += '</div>';
+            
+            // QA Scores if available
+            if (qaScore || qaPercentage) {
+                html += '<div style="margin-bottom: 16px; padding: 10px; background: #f9fafb; border-radius: 6px; border-left: 3px solid #3b82f6; overflow: hidden;">';
+                html += '<div style="font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 4px; word-break: break-word;">QA Scores</div>';
+                var qaParts = [];
+                if (qaScore) qaParts.push('Score: ' + escapeHtml(String(qaScore)));
+                if (qaPercentage) qaParts.push(escapeHtml(String(qaPercentage)) + '%');
+                html += '<div style="font-size: 13px; color: #6b7280; font-weight: 500; word-break: break-word;">' + qaParts.join(' | ') + '</div>';
+                html += '</div>';
+            }
+            
+            // Recording if available
+            if (recordingUrl) {
+                html += '<div style="margin-bottom: 16px; padding: 12px; background: #f0f9ff; border-radius: 6px; border-left: 3px solid #0ea5e9; overflow: hidden;">';
+                html += '<div style="font-size: 12px; font-weight: 600; color: #0369a1; margin-bottom: 8px;">Recording</div>';
+                html += '<audio controls style="width: 100%; height: 36px; outline: none; max-width: 100%; box-sizing: border-box;">';
+                html += '<source src="' + escapeHtml(recordingUrl) + '" type="audio/mpeg">';
+                html += '<source src="' + escapeHtml(recordingUrl) + '" type="audio/wav">';
+                html += 'Your browser does not support the audio element.';
+                html += '</audio>';
+                html += '</div>';
+            }
+            
+            // Expandable section
+            if (hasExpandableContent) {
+                html += '<div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 16px;">';
+                html += '<button onclick="toggleCallLogDetails(\'' + logId + '\')" style="width: 100%; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; color: #374151; transition: all 0.2s; outline: none; box-sizing: border-box; text-align: center;" onmouseover="this.style.background=\'#f3f4f6\'; this.style.borderColor=\'#d1d5db\';" onmouseout="this.style.background=\'#f9fafb\'; this.style.borderColor=\'#e5e7eb\';" onmousedown="this.style.transform=\'scale(0.98)\';" onmouseup="this.style.transform=\'scale(1)\';" onmouseleave="this.style.transform=\'scale(1)\';">';
+                html += '<span id="' + logId + '-button-text">see remaining details()</span>';
+                html += '</button>';
+                
+                html += '<div id="' + logId + '-details" style="display: none; margin-top: 12px; padding: 16px; background: #fafafa; border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word;">';
+                
+                if (transcript) {
+                    html += '<div style="margin-bottom: 16px;">';
+                    html += '<div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">';
+                    html += '<i class="fa fa-file-text" style="color: #3b82f6; flex-shrink: 0;"></i> <span>Transcript</span>';
+                    html += '</div>';
+                    html += '<div style="font-size: 13px; color: #4b5563; line-height: 1.7; white-space: pre-wrap; background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; overflow-x: auto;">' + escapeHtml(transcript).replace(/\n/g, '<br>') + '</div>';
+                    html += '</div>';
+                }
+                
+                if (summaryEn) {
+                    html += '<div style="margin-bottom: 16px;">';
+                    html += '<div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">';
+                    html += '<i class="fa fa-language" style="color: #10b981; flex-shrink: 0;"></i> <span>Summary (English)</span>';
+                    html += '</div>';
+                    html += '<div style="font-size: 13px; color: #4b5563; line-height: 1.7; white-space: pre-wrap; background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; overflow-x: auto;">' + escapeHtml(summaryEn).replace(/\n/g, '<br>') + '</div>';
+                    html += '</div>';
+                }
+                
+                if (summaryTa) {
+                    html += '<div>';
+                    html += '<div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">';
+                    html += '<i class="fa fa-language" style="color: #f59e0b; flex-shrink: 0;"></i> <span>Summary (Tamil)</span>';
+                    html += '</div>';
+                    html += '<div style="font-size: 13px; color: #4b5563; line-height: 1.7; white-space: pre-wrap; background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; overflow-x: auto;">' + escapeHtml(summaryTa).replace(/\n/g, '<br>') + '</div>';
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+                html += '</div>';
+            }
+            
+            html += '</div>';
+            html += '</li>';
+        });
+
+        container.innerHTML = html;
+        console.log('Call logs rendered:', callLogs.length);
+    }
+
+    // Toggle function for expandable call log details
+    function toggleCallLogDetails(logId) {
+        var details = document.getElementById(logId + '-details');
+        var buttonText = document.getElementById(logId + '-button-text');
+        if (!details || !buttonText) return;
+        
+        var isExpanded = details.style.display !== 'none';
+        details.style.display = isExpanded ? 'none' : 'block';
+        
+        // Update button text
+        buttonText.textContent = isExpanded ? 'see remaining details()' : 'hide remaining details()';
+    }
+
+    // Expose toggle function globally
+    window.toggleCallLogDetails = toggleCallLogDetails;
+
     function init() {
         setupTabs();
         setupCallButton();
@@ -799,6 +1090,12 @@
         var property = getQueryParam('property');
         var callingFrom = getQueryParam('calling_from');
         fetchSheetData(uid, mobile, city, property, callingFrom);
+        
+        // Check if call history tab is active and render call logs
+        var calllogPane = document.getElementById('calllog');
+        if (calllogPane && calllogPane.classList.contains('active')) {
+            renderCallLogs();
+        }
     }
 
     if (document.readyState === 'loading') {

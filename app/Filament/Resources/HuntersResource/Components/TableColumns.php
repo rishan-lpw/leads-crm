@@ -226,12 +226,23 @@ class TableColumns
                         
                         // Add qa_final_percentage if available
                         if (isset($latestCallLog['qa_final_percentage']) && $latestCallLog['qa_final_percentage'] !== null && $latestCallLog['qa_final_percentage'] !== '') {
-                            $parts[] = 'Percentage: ' . $latestCallLog['qa_final_percentage'] . '%';
+                            $parts[] = $latestCallLog['qa_final_percentage'] . '%';
                         }
                         
                         // Add qa_scorecard if available
-                        if (isset($latestCallLog['qa_scorecard']) && $latestCallLog['qa_scorecard'] !== null && $latestCallLog['qa_scorecard'] !== '') {
-                            $parts[] = 'Score: ' . $latestCallLog['qa_scorecard'];
+                        // if (isset($latestCallLog['qa_scorecard']) && $latestCallLog['qa_scorecard'] !== null && $latestCallLog['qa_scorecard'] !== '') {
+                        //     $parts[] = 'Score: ' . $latestCallLog['qa_scorecard'];
+                        // }
+
+                        // Add call_summary_category, call_summary_tag and "call_summary_stats": "No",
+                        if (isset($latestCallLog['call_summary_category']) && $latestCallLog['call_summary_category'] !== null && $latestCallLog['call_summary_category'] !== '') {
+                            $parts[] = $latestCallLog['call_summary_category'];
+                        }
+                        if (isset($latestCallLog['call_summary_tag']) && $latestCallLog['call_summary_tag'] !== null && $latestCallLog['call_summary_tag'] !== '') {
+                            $parts[] = $latestCallLog['call_summary_tag'];
+                        }
+                        if (isset($latestCallLog['call_summary_stats']) && $latestCallLog['call_summary_stats'] !== null && $latestCallLog['call_summary_stats'] !== '') {
+                            $parts[] = $latestCallLog['call_summary_stats'];
                         }
                         
                         return !empty($parts) ? implode(' | ', $parts) : null;
@@ -239,7 +250,7 @@ class TableColumns
                         return null;
                     }
                 })
-                ->limit(25)
+                ->limit(30)
                 // Add tooltip for the latest comment as $latest->comments
                 ->tooltip(fn($record) => $record->activities->sortByDesc('created_at')->first()->comments ?? 'No Comment')
                 ->toggleable()

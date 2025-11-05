@@ -259,8 +259,8 @@
                             </div>
                         </div>
                         <div class="tab-pane fade" id="calllog">
-                             <div style="max-width: 1100px; margin: 20px auto; font-family: sans-serif; display: list-item;">
-                                 <ul class="timeline" id="call-log-data-container"></ul>
+                             <div style="max-width: 1100px; margin: 20px auto; font-family: sans-serif; padding: 0 20px;">
+                                 <ul class="timeline" id="call-log-data-container" style="list-style: none; padding: 0; margin: 0; position: relative;"></ul>
                              </div>
                         </div>
 
@@ -278,6 +278,7 @@
 <script id="call-script-data" type="application/json">@json($script ?? [])</script>
 <script id="property-data" type="application/json">@json($propertyData ?? [])</script>
 <script id="active-tab-data" type="application/json">"{{ $activeTab ?? 'sinhala' }}"</script>
+<script id="call-logs-data" type="application/json">@json($callLogs ?? [])</script>
 <link rel="stylesheet" href="{{ asset('css/filament/filament/app.css') }}">
 <script src="{{ asset('js/filament/schemas/components/callScript.js') }}"></script>
 @endsection

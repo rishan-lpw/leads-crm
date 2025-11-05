@@ -97,7 +97,7 @@ class LpwApiService
      */
     public function getPendingPayments($dateFrom = null, $cacheDuration = 60)
     {
-        $dateFrom = $dateFrom ?? Carbon::now()->subDays(30)->format('Y-m-d');
+        $dateFrom = $dateFrom ?? '2024-11-01';
         $cacheKey = "lpw_pending_payments_{$dateFrom}";
         
         // Clear cache if cacheDuration is 0 (force refresh)

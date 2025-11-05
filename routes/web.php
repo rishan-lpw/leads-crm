@@ -144,12 +144,24 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
             }
         }
 
+        // Fetch call logs for call history tab
+        $callLogs = [];
+        if ($uid) {
+            try {
+                $callLogs = $service->getCallLogs($uid, 100); // Fetch up to 100 call logs
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to load call logs', ['error' => $e->getMessage()]);
+                $callLogs = [];
+            }
+        }
+
         return view('livewire.pages.call-script', [
             'uid' => $uid,
             'script' => $script,
             'propertyData' => $propertyData,
             'apiStats' => $statsData['api_stats'] ?? [],
             'statsData' => $statsData,
+            'callLogs' => $callLogs,
             'activeTab' => $activeTab,
         ]);
     };
