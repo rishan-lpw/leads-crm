@@ -91,7 +91,7 @@ class TableColumns
                 ->tooltip(function ($state, $record) {
                     $activities = $record->activities ?? collect();
                     $latest = $activities->sortByDesc('created_at')->first();
-                    return $latest?->paymentStatus?->payment_status ?? 'Unknown';
+                    return $latest?->paymentStatus?->sub_status ?? 'Unknown';
                 })
                 ->color(function ($state, $record) {
                     $activities = $record->activities ?? collect();

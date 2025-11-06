@@ -35,16 +35,20 @@ class ActivityTabs
 				->description(function ($record) {
 					$date = $record->created_at ? $record->created_at->format('M d, Y H:i') : 'No date';
 					$user = User::find($record->assigned_by)?->username ?? 'Unknown';
-					$paymentStatus = PaymentStatus::find($record->payment_status_id)?->payment_status ?? 'Not found';
+					$paymentStatus = PaymentStatus::find($record->payment_status_id)?->status ?? 'Not found';
+					$subStatus = PaymentStatus::find($record->payment_status_id)?->sub_status ?? 'Not found';
 					$funnel = Funnel::find($record->funnel_id)?->category ?? 'Not found';
-					return "{$date} | By: {$user} | Payment Status: {$paymentStatus} | Funnel: {$funnel}";
+					$stage = Funnel::find($record->funnel_id)?->stage ?? 'Not found';
+					return "{$date} | By: {$user} | Payment Status: {$paymentStatus} - {$subStatus} | Funnel: {$funnel} - {$stage}";
 				})
 				->schema([
 					TextEntry::make('activity_type')->label('Activity Type')->weight('bold'),
 					TextEntry::make('comments')->label('Comments')->placeholder('No comments'),
 					TextEntry::make('created_at')->label('Date')->dateTime('M d, Y H:i'),
+					// $user = User::find($record->assigned_by)?->username ?? 'Unknown'; This username should be displayed as Done By
 					TextEntry::make('user.username')->label('Done By')->icon('heroicon-o-user'),
-					TextEntry::make('paymentStatus.payment_status')->label('Payment Status')->badge(),
+					TextEntry::make('paymentStatus.status')->label('Payment Status')->badge(),
+					TextEntry::make('paymentStatus.sub_status')->label('Sub Status')->badge(),
 				])
 				->columns(3)
 				->collapsed(),
