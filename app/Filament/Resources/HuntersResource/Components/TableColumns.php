@@ -88,7 +88,12 @@ class TableColumns
                     $latest = $activities->sortByDesc('created_at')->first();
                     return $latest?->paymentStatus?->payment_status ?? 'Unknown';
                 })
-                ->tooltip(function ($state, $record) {
+                // ->tooltip(function ($state, $record) {
+                //     $activities = $record->activities ?? collect();
+                //     $latest = $activities->sortByDesc('created_at')->first();
+                //     return $latest?->paymentStatus?->sub_status ?? 'Unknown';
+                // })
+                ->description(function ($record) {
                     $activities = $record->activities ?? collect();
                     $latest = $activities->sortByDesc('created_at')->first();
                     return $latest?->paymentStatus?->sub_status ?? 'Unknown';
