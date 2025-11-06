@@ -869,6 +869,7 @@
         callLogs.forEach(function(log, index) {
             var dateTime = formatDate(log.date_time || log.date || log.created_at || log.call_date);
             var duration = formatDuration(log.duration || log.call_duration);
+            var talktime = log.talktime || log.duration || log.call_duration || '';
             var sentiment = log.sentiment || '';
             var status = log.status || '';
             var recordingUrl = log.recording_url || log.recording || '';
@@ -934,24 +935,87 @@
             var hasExpandableContent = transcript || summaryEn || summaryTa;
             var isLastItem = index === totalLogs - 1;
 
-            html += '<li style="position: relative; padding-left: 180px; margin-bottom: 30px; list-style: none; overflow: visible;">';
+            html += '<li style="position: relative; padding-left: 180px; margin-bottom: 40px; list-style: none; overflow: visible;">';
             
-            // Timeline date marker
+            // Timeline date marker with talktime and am name
             html += '<div style="position: absolute; left: 0; top: 0; width: 160px; text-align: right; padding-right: 20px; padding-top: 5px; word-wrap: break-word; overflow-wrap: break-word;">';
-            html += '<div style="font-size: 12px; font-weight: 600; color: #2563eb; margin-bottom: 4px; line-height: 1.4;">' + escapeHtml(dateTime) + '</div>';
-            html += '<div style="position: absolute; right: 0; top: 20px; width: 16px; height: 16px; background: #2563eb; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #2563eb; z-index: 10; flex-shrink: 0;"></div>';
+            html += '<div style="font-size: 13px; font-weight: 700; color: #2563eb; margin-bottom: 6px; line-height: 1.4;">' + escapeHtml(dateTime) + '</div>';
+            
+            // Talktime and AM name under date/time
+            if (talktime) {
+                var talktimeDisplay = '';
+                if (typeof talktime === 'number') {
+                    // Convert seconds to minutes if >= 60 seconds
+                    if (talktime >= 60) {
+                        var minutes = Math.floor(talktime / 60);
+                        var seconds = talktime % 60;
+                        if (seconds > 0) {
+                            talktimeDisplay = minutes + ' min ' + seconds + ' sec';
+                        } else {
+                            talktimeDisplay = minutes + ' min';
+                        }
+                    } else {
+                        talktimeDisplay = talktime + ' sec';
+                    }
+                } else if (typeof talktime === 'string') {
+                    // Try to parse if it's a numeric string
+                    var parsed = parseFloat(talktime);
+                    if (!isNaN(parsed)) {
+                        if (parsed >= 60) {
+                            var minutes = Math.floor(parsed / 60);
+                            var seconds = parsed % 60;
+                            if (seconds > 0) {
+                                talktimeDisplay = minutes + ' min ' + seconds + ' sec';
+                            } else {
+                                talktimeDisplay = minutes + ' min';
+                            }
+                        } else {
+                            talktimeDisplay = parsed + ' sec';
+                        }
+                    } else {
+                        // If it's already a formatted string, use it as-is
+                        talktimeDisplay = talktime;
+                    }
+                } else {
+                    talktimeDisplay = String(talktime);
+                }
+                html += '<div style="font-size: 14px; color: #6b7280; margin-bottom: 4px; line-height: 1.5; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">';
+                html += '<i class="fa fa-clock" style="font-size: 10px; color: #9ca3af;"></i>';
+                html += '<span>' + escapeHtml(talktimeDisplay) + '</span>';
+                html += '</div>';
+            }
+            if (am) {
+                html += '<div style="font-size: 14px; color: #6b7280; margin-bottom: 4px; line-height: 1.5; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">';
+                html += '<i class="fa fa-user" style="font-size: 10px; color: #9ca3af;"></i>';
+                html += '<span style="font-weight: 500;">' + escapeHtml(am) + '</span>';
+                html += '</div>';
+            }
+            
+            html += '<div style="position: absolute; right: 0; top: ' + (talktime || am ? '50px' : '20px') + '; width: 16px; height: 16px; background: #2563eb; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #2563eb; z-index: 10; flex-shrink: 0;"></div>';
             html += '</div>';
             
             // Vertical line (don't extend on last item)
+            var timelineTop = (talktime || am) ? '66px' : '36px';
             if (!isLastItem) {
-                html += '<div style="position: absolute; left: 158px; top: 36px; bottom: -30px; width: 2px; background: #e5e7eb; z-index: 1;"></div>';
+                html += '<div style="position: absolute; left: 158px; top: ' + timelineTop + '; bottom: -40px; width: 2px; background: #e5e7eb; z-index: 1;"></div>';
             }
             
-            // Call log card
-            html += '<div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: all 0.3s ease; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word;">';
+            // Call log card with relative positioning for QA Scores
+            html += '<div style="position: relative; background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: all 0.3s ease; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word;">';
+            
+            // QA Scores at top right corner
+            if (qaScore || qaPercentage) {
+                var qaParts = [];
+                if (qaScore) qaParts.push(escapeHtml(String(qaScore)));
+                if (qaPercentage) qaParts.push(escapeHtml(String(qaPercentage)) + '%');
+                html += '<div style="position: absolute; top: 16px; right: 16px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3); z-index: 5; min-width: 80px;">';
+                html += '<div style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; margin-bottom: 2px;">QA Scores</div>';
+                html += '<div style="font-size: 14px; font-weight: 700; line-height: 1.2;">' + qaParts.join(' / ') + '</div>';
+                html += '</div>';
+            }
             
             // Header section
-            html += '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">';
+            html += '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; padding-right: ' + ((qaScore || qaPercentage) ? '120px' : '0') + ';">';
             html += '<div style="flex: 1; min-width: 200px; max-width: 100%;">';
             html += '<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap;">';
             html += '<h4 style="font-size: 18px; font-weight: 700; color: #1f2937; margin: 0; line-height: 1.3; word-break: break-word;">Call #' + (index + 1) + '</h4>';
@@ -963,26 +1027,9 @@
             }
             html += '</div>';
             
-            // Duration and AM
-            html += '<div style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: #6b7280; margin-bottom: 8px; flex-wrap: wrap;">';
-            html += '<div style="display: flex; align-items: center; gap: 8px;">';
-            html += '<i class="fa fa-clock" style="font-size: 12px; color: #9ca3af; flex-shrink: 0;"></i> ';
-            html += '<span style="word-break: break-word;">' + escapeHtml(duration) + '</span>';
-            html += '</div>';
-            if (am) {
-                html += '<div style="display: flex; align-items: center; gap: 8px; padding-left: 12px; border-left: 1px solid #e5e7eb;">';
-                html += '<i class="fa fa-user" style="font-size: 12px; color: #9ca3af; flex-shrink: 0;"></i> ';
-                html += '<span style="word-break: break-word; font-weight: 500;">' + escapeHtml(am) + '</span>';
-                html += '</div>';
-            }
-            html += '</div>';
-            
-            // Header fields (summary_si, call_summary_category, call_summary_tag)
-            if (summarySi || callSummaryCategory || callSummaryTag) {
+            // Header fields (call_summary_category, call_summary_tag) - removed summary_si from here
+            if (callSummaryCategory || callSummaryTag) {
                 html += '<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">';
-                if (summarySi) {
-                    html += '<span style="display: inline-block; padding: 4px 10px; background: #f3f4f6; border-radius: 4px; font-size: 12px; color: #374151; font-weight: 500; word-break: break-word; max-width: 100%;">SI: ' + summarySi + '</span>';
-                }
                 if (callSummaryCategory) {
                     html += '<span style="display: inline-block; padding: 4px 10px; background: #e0e7ff; border-radius: 4px; font-size: 12px; color: #1e40af; font-weight: 500; word-break: break-word; max-width: 100%;">Category: ' + callSummaryCategory + '</span>';
                 }
@@ -994,22 +1041,14 @@
             html += '</div>';
             html += '</div>';
             
-            // QA Scores if available
-            if (qaScore || qaPercentage) {
-                html += '<div style="margin-bottom: 16px; padding: 10px; background: #f9fafb; border-radius: 6px; border-left: 3px solid #3b82f6; overflow: hidden;">';
-                html += '<div style="font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 4px; word-break: break-word;">QA Scores</div>';
-                var qaParts = [];
-                if (qaScore) qaParts.push('Score: ' + escapeHtml(String(qaScore)));
-                if (qaPercentage) qaParts.push(escapeHtml(String(qaPercentage)) + '%');
-                html += '<div style="font-size: 13px; color: #6b7280; font-weight: 500; word-break: break-word;">' + qaParts.join(' | ') + '</div>';
-                html += '</div>';
-            }
-            
             // Recording if available
             if (recordingUrl) {
-                html += '<div style="margin-bottom: 16px; padding: 12px; background: #f0f9ff; border-radius: 6px; border-left: 3px solid #0ea5e9; overflow: hidden;">';
-                html += '<div style="font-size: 12px; font-weight: 600; color: #0369a1; margin-bottom: 8px;">Recording</div>';
-                html += '<audio controls style="width: 100%; height: 36px; outline: none; max-width: 100%; box-sizing: border-box;">';
+                html += '<div style="margin-bottom: 16px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 3px solid #0ea5e9; overflow: hidden;">';
+                html += '<div style="font-size: 12px; font-weight: 600; color: #0369a1; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">';
+                html += '<i class="fa fa-volume-up" style="color: #0ea5e9;"></i>';
+                html += '<span>Recording</span>';
+                html += '</div>';
+                html += '<audio controls style="width: 100%; height: 36px; outline: none; max-width: 100%; box-sizing: border-box; border-radius: 6px;">';
                 html += '<source src="' + escapeHtml(recordingUrl) + '" type="audio/mpeg">';
                 html += '<source src="' + escapeHtml(recordingUrl) + '" type="audio/wav">';
                 html += 'Your browser does not support the audio element.';
@@ -1017,39 +1056,55 @@
                 html += '</div>';
             }
             
-            // Expandable section
+            // Summary SI after recording
+            if (summarySi) {
+                html += '<div style="margin-bottom: 16px; padding: 14px; background: #fefce8; border-radius: 8px; border-left: 3px solid #eab308; overflow: hidden;">';
+                html += '<div style="font-size: 12px; font-weight: 600; color: #854d0e; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">';
+                html += '<i class="fa fa-language" style="color: #eab308;"></i>';
+                html += '<span>Summary (සිංහල)</span>';
+                html += '</div>';
+                html += '<div style="font-size: 13px; color: #713f12; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;">' + summarySi + '</div>';
+                html += '</div>';
+            }
+            
+            // Expandable section with text button
             if (hasExpandableContent) {
-                html += '<div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 16px;">';
-                html += '<button onclick="toggleCallLogDetails(\'' + logId + '\')" style="width: 100%; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; color: #374151; transition: all 0.2s; outline: none; box-sizing: border-box; text-align: center;" onmouseover="this.style.background=\'#f3f4f6\'; this.style.borderColor=\'#d1d5db\';" onmouseout="this.style.background=\'#f9fafb\'; this.style.borderColor=\'#e5e7eb\';" onmousedown="this.style.transform=\'scale(0.98)\';" onmouseup="this.style.transform=\'scale(1)\';" onmouseleave="this.style.transform=\'scale(1)\';">';
-                html += '<span id="' + logId + '-button-text">see remaining details()</span>';
+                html += '<div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 16px; text-align: center;">';
+                html += '<button onclick="toggleCallLogDetails(\'' + logId + '\')" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; padding: 10px 20px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; transition: all 0.2s ease; font-size: 13px; font-weight: 600; color: #374151; outline: none;" onmouseover="this.style.background=\'#f3f4f6\'; this.style.borderColor=\'#d1d5db\';" onmouseout="this.style.background=\'#f9fafb\'; this.style.borderColor=\'#e5e7eb\';" onmousedown="this.style.transform=\'scale(0.98)\';" onmouseup="this.style.transform=\'scale(1)\';" onmouseleave="this.style.transform=\'scale(1)\';">';
+                html += '<span id="' + logId + '-button-text">Show Details</span>';
+                html += '<i id="' + logId + '-icon" class="fa fa-chevron-down" style="font-size: 12px; color: #6b7280; transition: transform 0.3s ease;"></i>';
                 html += '</button>';
+                html += '</div>';
                 
-                html += '<div id="' + logId + '-details" style="display: none; margin-top: 12px; padding: 16px; background: #fafafa; border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word;">';
+                html += '<div id="' + logId + '-details" style="display: none; margin-top: 12px; padding: 20px; background: linear-gradient(to bottom, #fafafa 0%, #f9fafb 100%); border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word; transition: all 0.3s ease;">';
                 
                 if (transcript) {
-                    html += '<div style="margin-bottom: 16px;">';
-                    html += '<div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">';
-                    html += '<i class="fa fa-file-text" style="color: #3b82f6; flex-shrink: 0;"></i> <span>Transcript</span>';
+                    html += '<div style="margin-bottom: 20px;">';
+                    html += '<div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">';
+                    html += '<i class="fa fa-file-text" style="color: #3b82f6; font-size: 14px;"></i>';
+                    html += '<span>Transcript</span>';
                     html += '</div>';
-                    html += '<div style="font-size: 13px; color: #4b5563; line-height: 1.7; white-space: pre-wrap; background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; overflow-x: auto;">' + escapeHtml(transcript).replace(/\n/g, '<br>') + '</div>';
+                    html += '<div style="font-size: 13px; color: #4b5563; line-height: 1.8; white-space: pre-wrap; background: white; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05); word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; overflow-x: auto;">' + escapeHtml(transcript).replace(/\n/g, '<br>') + '</div>';
                     html += '</div>';
                 }
                 
                 if (summaryEn) {
-                    html += '<div style="margin-bottom: 16px;">';
-                    html += '<div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">';
-                    html += '<i class="fa fa-language" style="color: #10b981; flex-shrink: 0;"></i> <span>Summary (English)</span>';
+                    html += '<div style="margin-bottom: 20px;">';
+                    html += '<div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">';
+                    html += '<i class="fa fa-language" style="color: #10b981; font-size: 14px;"></i>';
+                    html += '<span>Summary (English)</span>';
                     html += '</div>';
-                    html += '<div style="font-size: 13px; color: #4b5563; line-height: 1.7; white-space: pre-wrap; background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; overflow-x: auto;">' + escapeHtml(summaryEn).replace(/\n/g, '<br>') + '</div>';
+                    html += '<div style="font-size: 13px; color: #4b5563; line-height: 1.8; white-space: pre-wrap; background: white; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05); word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; overflow-x: auto;">' + escapeHtml(summaryEn).replace(/\n/g, '<br>') + '</div>';
                     html += '</div>';
                 }
                 
                 if (summaryTa) {
                     html += '<div>';
-                    html += '<div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">';
-                    html += '<i class="fa fa-language" style="color: #f59e0b; flex-shrink: 0;"></i> <span>Summary (Tamil)</span>';
+                    html += '<div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">';
+                    html += '<i class="fa fa-language" style="color: #f59e0b; font-size: 14px;"></i>';
+                    html += '<span>Summary (Tamil)</span>';
                     html += '</div>';
-                    html += '<div style="font-size: 13px; color: #4b5563; line-height: 1.7; white-space: pre-wrap; background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; overflow-x: auto;">' + escapeHtml(summaryTa).replace(/\n/g, '<br>') + '</div>';
+                    html += '<div style="font-size: 13px; color: #4b5563; line-height: 1.8; white-space: pre-wrap; background: white; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05); word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; overflow-x: auto;">' + escapeHtml(summaryTa).replace(/\n/g, '<br>') + '</div>';
                     html += '</div>';
                 }
                 
@@ -1069,13 +1124,22 @@
     function toggleCallLogDetails(logId) {
         var details = document.getElementById(logId + '-details');
         var buttonText = document.getElementById(logId + '-button-text');
-        if (!details || !buttonText) return;
+        var icon = document.getElementById(logId + '-icon');
+        if (!details || !buttonText || !icon) return;
         
         var isExpanded = details.style.display !== 'none';
         details.style.display = isExpanded ? 'none' : 'block';
         
-        // Update button text
-        buttonText.textContent = isExpanded ? 'see remaining details()' : 'hide remaining details()';
+        // Update button text and icon
+        if (isExpanded) {
+            buttonText.textContent = 'Show Details';
+            icon.className = 'fa fa-chevron-down';
+            icon.style.transform = 'rotate(0deg)';
+        } else {
+            buttonText.textContent = 'Hide Details';
+            icon.className = 'fa fa-chevron-up';
+            icon.style.transform = 'rotate(180deg)';
+        }
     }
 
     // Expose toggle function globally

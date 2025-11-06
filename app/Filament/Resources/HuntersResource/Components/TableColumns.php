@@ -185,11 +185,11 @@ class TableColumns
                     $weight = $record->weight;
                     $iconHtml = '';
                     if ($weight == 'high') {
-                        $iconHtml = '<i class="bi bi-arrow-up-circle-fill" style="color: #00bf00;"></i> ';
+                        $iconHtml = '<i class="bi bi-arrow-up-circle" style="color: #00bf00;"></i> ';
                     } elseif ($weight == 'low') {
-                        $iconHtml = '<i class="bi bi-arrow-down-circle-fill" style="color: #d80000;"></i> ';
+                        $iconHtml = '<i class="bi bi-arrow-down-circle" style="color: #d80000;"></i> ';
                     } elseif ($weight == 'medium') {
-                        $iconHtml = '<i class="bi bi-dash-circle-fill" style="color: #2b00ed;"></i> ';
+                        $iconHtml = '<i class="bi bi-dash-circle" style="color: #2b00ed;"></i> ';
                     }
                     
                     $city = ucfirst($record->city);
@@ -224,6 +224,16 @@ class TableColumns
                         
                         $parts = [];
                         
+                        if (isset($latestCallLog['call_summary_stats']) && $latestCallLog['call_summary_stats'] !== null && $latestCallLog['call_summary_stats'] !== '') {
+                            $stats = $latestCallLog['call_summary_stats'];
+                            if (strtolower($stats) === 'yes') {
+                                $parts[] = '<i class="bi bi-check-circle" style="color: #10b981; font-size: 16px;"></i>';
+                            } elseif (strtolower($stats) === 'no') {
+                                $parts[] = '<i class="bi bi-x-circle" style="color: #ef4444; font-size: 16px;"></i>';
+                            } else {
+                                $parts[] = $stats;
+                            }
+                        }
                         // Add qa_final_percentage if available
                         if (isset($latestCallLog['qa_final_percentage']) && $latestCallLog['qa_final_percentage'] !== null && $latestCallLog['qa_final_percentage'] !== '') {
                             $parts[] = $latestCallLog['qa_final_percentage'] . '%';
@@ -241,11 +251,25 @@ class TableColumns
                         if (isset($latestCallLog['call_summary_tag']) && $latestCallLog['call_summary_tag'] !== null && $latestCallLog['call_summary_tag'] !== '') {
                             $parts[] = $latestCallLog['call_summary_tag'];
                         }
-                        if (isset($latestCallLog['call_summary_stats']) && $latestCallLog['call_summary_stats'] !== null && $latestCallLog['call_summary_stats'] !== '') {
-                            $parts[] = $latestCallLog['call_summary_stats'];
+                        
+                        if (empty($parts)) {
+                            return null;
                         }
                         
-                        return !empty($parts) ? implode(' | ', $parts) : null;
+                        // Check if any part contains HTML (icons)
+                        $hasHtml = false;
+                        foreach ($parts as $part) {
+                            if (strip_tags($part) !== $part) {
+                                $hasHtml = true;
+                                break;
+                            }
+                        }
+                        
+                        if ($hasHtml) {
+                            return new HtmlString(implode(' | ', $parts));
+                        }
+                        
+                        return implode(' | ', $parts);
                     } catch (\Throwable $e) {
                         return null;
                     }
