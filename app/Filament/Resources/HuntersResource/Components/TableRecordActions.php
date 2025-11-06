@@ -753,18 +753,26 @@ class TableRecordActions
                                                 TextEntry::make('city')->label('City')->icon('heroicon-o-map-pin'),
                                                 TextEntry::make('lat')->label('Latitude')->placeholder('Not specified'),
                                                 TextEntry::make('lng')->label('Longitude')->placeholder('Not specified'),
+
                                             ])
                                             ->columns(6),
                                     ]),
                             ])
                             ->headerActions([
-                                Action::make('view_customer_ads')
-                                    ->label('View Customer Ads')
-                                    ->icon('heroicon-o-newspaper')
+                                Action::make('view_ad')
+                                    ->label('View Ad')
+                                    ->icon('heroicon-o-link')
                                     ->color('primary')
-                                    ->url(fn($record) => HuntersResource::getUrl('customer-ads', ['record' => $record->cust_id]))
-                                    // ->openUrlInNewTab()
-                                    ->visible(fn($record) => !empty($record->cust_id)),
+                                    ->url(fn($record) => $record->ad_url)
+                                    ->openUrlInNewTab(),
+                                    // ->visible(fn($record) => !empty($record->ad_url)),
+                                // Action::make('view_customer_ads')
+                                //     ->label('View Customer Ads')
+                                //     ->icon('heroicon-o-newspaper')
+                                //     ->color('primary')
+                                //     ->url(fn($record) => HuntersResource::getUrl('customer-ads', ['record' => $record->cust_id]))
+                                //     // ->openUrlInNewTab()
+                                //     ->visible(fn($record) => !empty($record->cust_id)),
                             ]),
                         ]),
 
@@ -773,7 +781,7 @@ class TableRecordActions
                                     Tab::make('Activity Log')->lazy()->icon('heroicon-o-list-bullet')->schema([
                                         ComponentsGrid::make(3)->schema([
                                             self::contactDetailsSection(),
-
+                                            
                                             Section::make('Activity History')->columnSpan(2)->schema([
                                                 Tabs::make('ActivityFilterTabs')
                                                     ->persistTabInQueryString('activity_filter')

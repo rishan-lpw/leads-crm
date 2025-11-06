@@ -136,6 +136,7 @@ class TableHeaderActions
                         'submit_date'    => $ad['submit_date'] ?? null,
                         'posted_date'    => $ad['posted_date'] ?? null,
                         'price'          => $ad['price'] ?? null,
+                        'ad_url'        => $ad['ad_link'] ?? null,
                         'alt_price'      => $ad['alt_price'] ?? null,
                         'alt_currency'   => $ad['alt_currency'] ?? null,
                         'price_type'     => $ad['price_type'] ?? null,
@@ -156,6 +157,8 @@ class TableHeaderActions
                         'is_active'      => is_numeric($ad['is_active']) ? (int)$ad['is_active'] : 0,
                         'source'         => $ad['source'] ?? 'API',
                         'score'          => isset($ad['score']) ? (float) $ad['score'] : null,
+                        // 'ad_link'       => $ad['ad_link'] ?? null,
+                        
                         'house_post_url' => $ad['house_post_url'] ?? null,
                         'api_sync_date'  => now(),
                         'last_update_date' => now(),
