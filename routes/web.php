@@ -75,71 +75,18 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
             }
         }
 
-        // Get all stats data if on ad-stats tab
+        // Get ad stats data if on ad-stats tab - only from getUserStatsForAdsNormalized()
         $statsData = [];
         if ($activeTab === 'ad-stats' && $uid) {
             try {
-                // Get the lead record(s) by cust_id
-                $leads = \App\Models\Lead::where('cust_id', $uid)->get();
+                // Create a record object to pass to getUserStatsForAdsNormalized
+                $record = (object)['cust_id' => $uid, 'customer_id' => $uid];
+                $apiStats = \App\Filament\Resources\HuntersResource\Components\Support\LpwData::getUserStatsForAdsNormalized($record);
                 
-                if ($leads->isNotEmpty()) {
-                    // Use the first lead to calculate stats
-                    $lead = $leads->first();
-                    
-                    // Total Activities
-                    $statsData['total_activities'] = $lead->activities()->count();
-                    
-                    // Recent Calls (Last 30 Days)
-                    $statsData['recent_calls'] = $lead->activities()
-                        ->where('stage', 'call')
-                        ->where('created_at', '>=', now()->subDays(30))
-                        ->count();
-                    
-                    // Average Score
-                    $avg = $lead->activities()
-                        ->whereNotNull('level_score')
-                        ->avg('level_score');
-                    $statsData['avg_score'] = $avg ? number_format($avg, 1) . '/10' : 'N/A';
-                    
-                    // Activity Summary
-                    $statsData['today_activities'] = $lead->activities()
-                        ->whereDate('created_at', today())
-                        ->count();
-                    $statsData['week_activities'] = $lead->activities()
-                        ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
-                        ->count();
-                    $statsData['month_activities'] = $lead->activities()
-                        ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
-                        ->count();
-                    $statsData['all_time_activities'] = $lead->activities()->count();
-                    
-                    // Payment Status
-                    $latestActivity = $lead->activities()
-                        ->with('paymentStatus')
-                        ->whereNotNull('payment_status_id')
-                        ->orderByDesc('created_at')
-                        ->first();
-                    $statsData['payment_status'] = $latestActivity?->paymentStatus?->payment_status ?? 'N/A';
-                    
-                    // Activity Breakdown by Stage
-                    $statsData['activity_breakdown'] = $lead->activities()
-                        ->selectRaw('stage, COUNT(*) as count')
-                        ->groupBy('stage')
-                        ->get()
-                        ->map(function ($item) {
-                            return [
-                                'type' => ucfirst($item->stage ?? 'Other'),
-                                'count' => $item->count,
-                            ];
-                        })
-                        ->toArray();
-                    
-                    // API Stats
-                    $record = (object)['cust_id' => $uid, 'customer_id' => $uid];
-                    $statsData['api_stats'] = \App\Filament\Resources\HuntersResource\Components\Support\LpwData::getUserStatsForAdsNormalized($record);
-                }
+                // Only store the API stats data
+                $statsData['api_stats'] = $apiStats;
             } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::error('Failed to load stats data', ['error' => $e->getMessage()]);
+                \Illuminate\Support\Facades\Log::error('Failed to load ad stats data', ['error' => $e->getMessage()]);
                 $statsData = [];
             }
         }

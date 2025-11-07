@@ -113,147 +113,34 @@
                         <div class="tab-pane fade {{ ($activeTab ?? '') === 'ad-stats' ? 'active in' : '' }}" id="ad-stats">
                             <div style="max-width: 1200px; margin: 20px auto; font-family: sans-serif;">
                                 <div id="ad-stats-container">
-                                    @if(!empty($statsData))
-                                        <!-- Top Stats Row -->
-                                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 24px;">
-                                            <!-- Total Activities -->
-                                            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 24px; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                                    <i class="fa fa-clipboard-list" style="font-size: 24px;"></i>
-                                                    <h3 style="font-size: 14px; font-weight: 500; margin: 0; opacity: 0.9;">Total Activities</h3>
-                                                </div>
-                                                <div style="font-size: 32px; font-weight: 700;">{{ $statsData['total_activities'] ?? 0 }}</div>
-                                            </div>
-                                            
-                                            <!-- Recent Calls -->
-                                            <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 12px; padding: 24px; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                                    <i class="fa fa-phone" style="font-size: 24px;"></i>
-                                                    <h3 style="font-size: 14px; font-weight: 500; margin: 0; opacity: 0.9;">Calls (Last 30 Days)</h3>
-                                                </div>
-                                                <div style="font-size: 32px; font-weight: 700;">{{ $statsData['recent_calls'] ?? 0 }}</div>
-                                            </div>
-                                            
-                                            <!-- Average Score -->
-                                            <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; padding: 24px; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                                    <i class="fa fa-star" style="font-size: 24px;"></i>
-                                                    <h3 style="font-size: 14px; font-weight: 500; margin: 0; opacity: 0.9;">Average Lead Score</h3>
-                                                </div>
-                                                <div style="font-size: 32px; font-weight: 700;">{{ $statsData['avg_score'] ?? 'N/A' }}</div>
-                                            </div>
-                                        </div>
-
-                                        <!-- API Stats Section -->
-                                        @if(!empty($statsData['api_stats']))
-                                        <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px;">
-                                            <h3 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                                    @if(!empty($statsData['api_stats']) && is_array($statsData['api_stats']) && count($statsData['api_stats']) > 0)
+                                        <!-- API Stats Section - Only data from getUserStatsForAdsNormalized() -->
+                                        <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                            <h3 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 24px; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
                                                 <i class="fa fa-chart-bar" style="margin-right: 8px; color: #2563eb;"></i>
                                                 Package & Ad Statistics
                                             </h3>
                                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
                                                 @foreach($statsData['api_stats'] as $stat)
-                                                <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px;">
-                                                    <div style="font-size: 12px; font-weight: 500; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
-                                                        {{ $stat['label'] ?? '' }}
+                                                <div style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; transition: all 0.2s; hover:shadow-md;">
+                                                    <div style="font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                                                        <i class="fa fa-info-circle" style="font-size: 10px;"></i>
+                                                        {{ $stat['label'] ?? 'N/A' }}
                                                     </div>
-                                                    <div style="font-size: 24px; font-weight: 700; color: #1f2937;">
-                                                        {{ $stat['value'] ?? '' }}
-                                                    </div>
-                                                </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                        @endif
-
-                                        <!-- Activity Summary Section -->
-                                        <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px;">
-                                            <h3 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
-                                                <i class="fa fa-calendar-days" style="margin-right: 8px; color: #2563eb;"></i>
-                                                Activity Summary
-                                            </h3>
-                                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                                                <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 16px; text-align: center;">
-                                                    <div style="font-size: 12px; font-weight: 500; color: #15803d; margin-bottom: 8px;">
-                                                        <i class="fa fa-clock" style="margin-right: 4px;"></i>Today
-                                                    </div>
-                                                    <div style="font-size: 28px; font-weight: 700; color: #15803d;">
-                                                        {{ $statsData['today_activities'] ?? 0 }}
-                                                    </div>
-                                                </div>
-                                                
-                                                <div style="background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 16px; text-align: center;">
-                                                    <div style="font-size: 12px; font-weight: 500; color: #1e40af; margin-bottom: 8px;">
-                                                        <i class="fa fa-calendar" style="margin-right: 4px;"></i>This Week
-                                                    </div>
-                                                    <div style="font-size: 28px; font-weight: 700; color: #1e40af;">
-                                                        {{ $statsData['week_activities'] ?? 0 }}
-                                                    </div>
-                                                </div>
-                                                
-                                                <div style="background: #fffbeb; border: 1px solid #fde047; border-radius: 8px; padding: 16px; text-align: center;">
-                                                    <div style="font-size: 12px; font-weight: 500; color: #a16207; margin-bottom: 8px;">
-                                                        <i class="fa fa-calendar-days" style="margin-right: 4px;"></i>This Month
-                                                    </div>
-                                                    <div style="font-size: 28px; font-weight: 700; color: #a16207;">
-                                                        {{ $statsData['month_activities'] ?? 0 }}
-                                                    </div>
-                                                </div>
-                                                
-                                                <div style="background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 8px; padding: 16px; text-align: center;">
-                                                    <div style="font-size: 12px; font-weight: 500; color: #0369a1; margin-bottom: 8px;">
-                                                        <i class="fa fa-chart-bar" style="margin-right: 4px;"></i>All Time
-                                                    </div>
-                                                    <div style="font-size: 28px; font-weight: 700; color: #0369a1;">
-                                                        {{ $statsData['all_time_activities'] ?? 0 }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Activity Progress Section -->
-                                        <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px;">
-                                            <h3 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
-                                                <i class="fa fa-chart-bar-square" style="margin-right: 8px; color: #2563eb;"></i>
-                                                Activity Progress
-                                            </h3>
-                                            <div style="background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 8px; padding: 16px;">
-                                                <div style="font-size: 14px; font-weight: 500; color: #0369a1; margin-bottom: 8px;">Payment Status</div>
-                                                <div style="display: inline-block; background: #0ea5e9; color: white; padding: 8px 16px; border-radius: 6px; font-weight: 600;">
-                                                    {{ $statsData['payment_status'] ?? 'N/A' }}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Activity Breakdown Section -->
-                                        @if(!empty($statsData['activity_breakdown']))
-                                        <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px;">
-                                            <h3 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
-                                                <i class="fa fa-chart-pie" style="margin-right: 8px; color: #2563eb;"></i>
-                                                Activity Breakdown
-                                            </h3>
-                                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                                                @foreach($statsData['activity_breakdown'] as $breakdown)
-                                                <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px;">
-                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                                        <div style="font-size: 14px; font-weight: 600; color: #3b82f6;">
-                                                            {{ $breakdown['type'] ?? 'Other' }}
-                                                        </div>
-                                                        <div style="background: #10b981; color: white; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 14px;">
-                                                            {{ $breakdown['count'] ?? 0 }}
-                                                        </div>
+                                                    <div style="font-size: 28px; font-weight: 700; color: #1f2937; line-height: 1.2;">
+                                                        {{ $stat['value'] ?? 'N/A' }}
                                                     </div>
                                                 </div>
                                                 @endforeach
                                             </div>
                                         </div>
-                                        @endif
                                     @else
                                         <!-- Empty State -->
-                                        {{-- <div style="background: #f9fafb; border-radius: 12px; padding: 48px; text-align: center;">
-                                            <i class="fa fa-chart-pie" style="font-size: 48px; color: #9ca3af; margin-bottom: 16px;"></i>
-                                            <p style="color: #6b7280; font-size: 14px;">No statistics data available</p>
-                                        </div> --}}
+                                        <div style="background: #f9fafb; border-radius: 12px; padding: 48px; text-align: center;">
+                                            <i class="fa fa-chart-bar" style="font-size: 48px; color: #9ca3af; margin-bottom: 16px;"></i>
+                                            <p style="color: #6b7280; font-size: 16px; font-weight: 500; margin: 0;">No ad statistics data available</p>
+                                            <p style="color: #9ca3af; font-size: 14px; margin-top: 8px;">The statistics will appear here once data is available.</p>
+                                        </div>
                                     @endif
                                 </div>
                             </div>
