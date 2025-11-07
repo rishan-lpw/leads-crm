@@ -47,12 +47,12 @@ class CronResource extends Resource
                     ->label('Cron Name')
                     ->required(),
 
-                Radio::make('user_value')
-                    ->label('Select Level')
-                    // Add options as user_value_id from user_value table
-                    ->options(UserValue::query()->pluck('category', 'id')->toArray())
-                    ->inline()
-                    ->required(),
+                // Radio::make('user_value')
+                //     ->label('Select Level')
+                //     // Add options as user_value_id from user_value table
+                //     ->options(UserValue::query()->pluck('category', 'id')->toArray())
+                //     ->inline()
+                //     ->required(),
             
                 Select::make('category')
                     ->label('Select Channel')
@@ -68,20 +68,7 @@ class CronResource extends Resource
                     ->label('Select Member/Members')
                     ->multiple()
                     ->required()
-                    ->options(function (callable $get) {
-                        $userValueId = $get('user_value'); // Get the selected radio value
-
-                        if (!$userValueId) {
-                            return [];
-                        }
-
-                        return User::query()
-                            ->where('user_value_id', $userValueId)
-                            ->whereNotNull('name')
-                            ->where('name', '!=', '')
-                            ->pluck('name', 'id')
-                            ->toArray();
-                    }),
+                    ->options(User::query()->pluck('name', 'id')->toArray()),
 
                 Select::make('rule_1_days')
                     ->label('No. of Days Assigned (Rule 1)')

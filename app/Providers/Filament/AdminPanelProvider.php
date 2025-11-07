@@ -54,6 +54,10 @@ class AdminPanelProvider extends PanelProvider
                 'panels::head.end',
                 fn (): string => '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">'
             )
+            ->renderHook(
+                'panels::body.end',
+                fn (): string => view('livewire.whatsapp-listener')->render()
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

@@ -11,6 +11,7 @@ use Filament\Actions\DeleteBulkAction;
 use App\Filament\Resources\CustomerResource\Pages\ListCustomers;
 use App\Filament\Resources\CustomerResource\Pages\CreateCustomer;
 use App\Filament\Resources\CustomerResource\Pages\EditCustomer;
+use App\Filament\Resources\HuntersResource\Components\Support\LpwData;
 use App\Filament\Resources\CustomerResource\Pages;
 use App\Filament\Resources\CustomerResource\RelationManagers;
 use App\Models\Customer;
@@ -77,31 +78,26 @@ class CustomerResource extends Resource
                 TextColumn::make('id')
                     ->label('ID')
                     ->sortable(),
+                // Name: firstname + surname
                 TextColumn::make('firstname')
-                    ->label('First Name')
+                    ->label('Name')
                     ->searchable()
-                    ->sortable()
-                    ->limit(50),
-                TextColumn::make('surname')
-                    ->label('Surname')
-                    ->searchable()
-                    ->sortable()
-                    ->limit(50),
+                    ->sortable(),
                 TextColumn::make('mobile')
                     ->label('Mobile Number')
-                    ->searchable()
-                    ->sortable()
-                    ->limit(15),
+                    ->state(fn (Customer $record) => static::getLpwDetails($record)['mobile'] ?? $record->mobile)
+                    ->formatStateUsing(fn ($state) => $state ?: 'N/A')
+                    ->limit(20),
                 TextColumn::make('email')
                     ->label('Email')
                     ->searchable()
                     ->sortable()
                     ->limit(50),
-                // TextColumn::make('role.role_name')
-                //     ->label('Role')
-                //     ->searchable()
-                //     ->sortable()
-                //     ->limit(50),
+                TextColumn::make('address')
+                    ->label('Address')
+                    ->state(fn (Customer $record) => static::getLpwDetails($record)['address'] ?? $record->address)
+                    ->formatStateUsing(fn ($state) => $state ?: 'N/A')
+                    ->limit(50),
             ])
             ->filters([
                 // Add name, email, id filters
@@ -169,5 +165,19 @@ class CustomerResource extends Resource
             'create' => CreateCustomer::route('/create'),
             'edit' => EditCustomer::route('/{record}/edit'),
         ];
+    }
+
+    protected static function getLpwDetails(Customer $record): array
+    {
+        $custId = $record->getAttribute('cust_id') ?? $record->getAttribute('id');
+
+        if (! $custId) {
+            return [];
+        }
+
+        $lookup = clone $record;
+        $lookup->setAttribute('cust_id', $custId);
+
+        return LpwData::getLpwUserDetailsForRecord($lookup);
     }
 }

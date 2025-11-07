@@ -190,9 +190,9 @@ class TableColumns
                     $weight = $record->weight;
                     $iconHtml = '';
                     if ($weight == 'high') {
-                        $iconHtml = '<i class="bi bi-arrow-up-circle" style="color: #00bf00;"></i> ';
+                        $iconHtml = '<i class="bi bi-arrow-up-circle" style="color: #d80000;"></i> ';
                     } elseif ($weight == 'low') {
-                        $iconHtml = '<i class="bi bi-arrow-down-circle" style="color: #d80000;"></i> ';
+                        $iconHtml = '<i class="bi bi-arrow-down-circle" style="color: #00bf00;"></i> ';
                     } elseif ($weight == 'medium') {
                         $iconHtml = '<i class="bi bi-dash-circle" style="color: #2b00ed;"></i> ';
                     }
@@ -327,7 +327,12 @@ class TableColumns
                 ->description(function ($record) {
                     $activities = $record->activities ?? collect();
                     $latest = $activities->sortByDesc('created_at')->first();
-                    return $latest?->created_at->format('M d Y');
+
+                    if (! $latest?->created_at) {
+                        return null;
+                    }
+
+                    return $latest->created_at->diffForHumans();
                 })
                 ->toggleable()
                 ->sortable(),

@@ -57,24 +57,35 @@ class ListHunters extends ListRecords
                 ->badge($countFor('new', fn($q) => $q->where('status', 'new')))
                 // ->icon('heroicon-o-check-circle')
                 ->badgeColor('success'),
+
+            'transferred' => Tab::make('Transferred')
+                ->lazy()
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'transferred'))
+                ->badge($countFor('transferred', fn($q) => $q->where('status', 'transferred')))
+                // ->icon('heroicon-o-arrow-path')
+                ->badgeColor('gray'),
+
             'follow_up' => Tab::make('Follow-Up')
                 ->lazy()
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'follow_up'))
                 ->badge($countFor('follow_up', fn($q) => $q->where('status', 'follow_up')))
                 // ->icon('heroicon-o-calendar')
                 ->badgeColor('info'),
+
             'reminder' => Tab::make('Reminder')
                 ->lazy()
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'reminder'))
                 ->badge($countFor('reminder', fn($q) => $q->where('status', 'reminder')))
                 // ->icon('heroicon-o-bell-alert')
                 ->badgeColor('warning'),
+
             'last_day' => Tab::make('Last Day')
                 ->lazy()
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'last_day'))
                 ->badge($countFor('last_day', fn($q) => $q->where('status', 'last_day')))
                 // ->icon('heroicon-o-clock')
                 ->badgeColor('danger'),
+                
             // 'system' => Tab::make('System')
             //     ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'system'))
             //     ->badge($countFor('system', fn($q) => $q->where('status', 'system')))
@@ -85,14 +96,6 @@ class ListHunters extends ListRecords
                 ->badge($countFor('favorite', fn($q) => $q->where('is_favourite', 1)))
                 // ->icon('heroicon-o-star')
                 ->badgeColor('gray'),
-
-            // Add two tabs called 'Transferred' and 'Un Mapped'
-            'transferred' => Tab::make('Transferred')
-                ->lazy()
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'transferred'))
-                ->badge($countFor('transferred', fn($q) => $q->where('status', 'transferred')))
-                // ->icon('heroicon-o-arrow-path')
-                ->badgeColor('info'),
 
             'un_mapped' => Tab::make('Un Mapped')
                 ->lazy()

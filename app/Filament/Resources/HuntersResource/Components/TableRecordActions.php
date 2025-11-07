@@ -21,7 +21,6 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Textarea;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Http;
 use Filament\Infolists\Components\Actions as InfolistActions;
 use Filament\Infolists\Components\TextEntry as TextEntryInfo;
 use Filament\Infolists\Components\ViewEntry;
@@ -333,54 +332,130 @@ class TableRecordActions
 	 * Fetch the best-available mobile for the given record, preferring record fields,
 	 * then LPW user details API. Returns 9-digit string like 771234567 or null.
 	 */
-	private static function getNormalizedMobileForRecord($record): ?string
+	private static function getWhatsappTemplates(): array
 	{
-		$possible = [
-			$record->mobile ?? null,
-			$record->mobile_no ?? null,
-			$record->phone ?? null,
+		return [
+			'initial' => [
+				'label' => 'Initial Message',
+				'body' => <<<TEXT
+Dear {customer_name},
+This is {am_name} from Lanka Property Web — www.lankapropertyweb.com, Sri Lanka’s No.1 property advertising portal.
+
+Looking to sell or rent your property? Post your ad on Lanka Property Web and reach thousands of potential buyers and tenants across Sri Lanka and overseas.
+
+Why choose us:
+🔹 Get free ads on House.lk when you post on Lanka Property Web
+🔹 Reach 1M+ visits and 4.8M+ views per month
+🔹 Generate over 100,000 leads monthly
+🔹 18 years of trusted service, exclusively for properties
+🔹 30%+ of visitors from overseas
+🔹 Ranked No.1 on Google for property searches
+🔹 119K+ Facebook followers and strong social media reach
+
+List your property today for maximum exposure and faster results!
+
+Need help? Our friendly team is always ready to assist.
+TEXT,
+			],
+			'paid_ads' => [
+				'label' => 'Paid Ads',
+				'body' => <<<TEXT
+Dear {customer_name},
+
+Your advertisement is now live. You can view it on our websites: www.lankapropertyweb.com and www.house.lk.
+
+Thank you for choosing our service.
+TEXT,
+			],
+			'follow_up' => [
+				'label' => 'Follow Up',
+				'body' => <<<TEXT
+Dear {customer_name},
+This is {am_name} from Lanka Property Web.
+
+I’m following up regarding the advertisement for your property that we previously discussed. Within a short time, we’ve successfully helped many property owners achieve great results, and I’d be delighted for you to benefit from the same.
+
+If you’re interested, I can share more details about our advertising packages or guide you through the simple posting process. Your property will gain visibility among a large audience both locally and internationally.
+
+I look forward to hearing from you soon.
+TEXT,
+			],
+			'rna' => [
+				'label' => 'RNA',
+				'body' => <<<TEXT
+Dear {customer_name},
+This is {am_name} from Lanka Property Web.
+
+I tried reaching you regarding your property advertisement. Please let me know a convenient time to call, or you can contact me back at your earliest convenience.
+TEXT,
+			],
+			'not_interested' => [
+				'label' => 'Not Interested',
+				'body' => <<<TEXT
+Dear {customer_name},
+This is {am_name} from Lanka Property Web.
+
+If you plan to sell or rent your property in the future, please feel free to contact us. We can help you connect with genuine buyers and tenants quickly and efficiently.
+
+We’ll be glad to assist you whenever you’re ready to advertise again.
+TEXT,
+			],
 		];
+	}
 
-		foreach ($possible as $raw) {
-			$normalized = self::normalizeMobile($raw);
-			if ($normalized) {
-				return $normalized;
-			}
-		}
-
-		$userId = $record->cust_id ?? $record->customer_id ?? null;
-		if (! $userId) {
+	private static function buildWhatsappMessage(string $templateKey, $record): ?string
+	{
+		$templates = self::getWhatsappTemplates();
+		if (! isset($templates[$templateKey])) {
 			return null;
 		}
 
-		try {
-			$service = app(LpwApiService::class);
-			$raw = $service->getUserDetails((string) $userId, 10, 2);
-
-			$data = [];
-			if (isset($raw['results'][0]) && is_array($raw['results'][0])) {
-				$data = $raw['results'][0];
-			} elseif (is_array($raw) && array_is_list($raw)) {
-				$data = $raw[0] ?? [];
-			} elseif (is_array($raw)) {
-				$data = $raw;
-			}
-
-			$candidates = [
-				'mobile_no', 'mobile_nos', 'mobile', 'tel', 'telephone', 'phone', 'contact_number',
-			];
-			foreach ($candidates as $key) {
-				$value = data_get($data, $key);
-				$normalized = self::normalizeMobile(is_array($value) ? ($value[0] ?? null) : $value);
-				if ($normalized) {
-					return $normalized;
-				}
-			}
-		} catch (\Throwable $e) {
-			// ignore
+		$templateBody = $templates[$templateKey]['body'] ?? '';
+		if ($templateBody === '') {
+			return null;
 		}
 
-		return null;
+		$search = ['{am_name}', '{customer_name}'];
+		$replace = [
+			self::resolveAccountManagerName(),
+			self::resolveCustomerName($record),
+		];
+
+		return trim(str_replace($search, $replace, $templateBody));
+	}
+
+	private static function resolveAccountManagerName(): string
+	{
+		$user = Auth::user();
+		return $user?->username
+			?? $user?->name
+			?? 'the Lanka Property Web team';
+	}
+
+	private static function resolveCustomerName($record): string
+	{
+		$names = array_filter([
+			$record->firstname ?? null,
+			$record->surname ?? null,
+		]);
+		$name = trim(implode(' ', $names));
+
+		if ($name !== '') {
+			return $name;
+		}
+
+		$customer = $record->customer ?? null;
+		$customerNames = array_filter([
+			$customer?->firstname ?? null,
+			$customer?->surname ?? null,
+		]);
+		$customerName = trim(implode(' ', $customerNames));
+
+		if ($customerName !== '') {
+			return $customerName;
+		}
+
+		return 'Customer';
 	}
 
     private static function sendMessageAction(): Action
@@ -389,77 +464,61 @@ class TableRecordActions
             ->label('Send Message')
             ->icon('heroicon-s-chat-bubble-bottom-center-text')
             ->color('primary')
-            // ->submitAction(false)
             ->modalWidth('xl')
+            ->modalHeading('Send WhatsApp Message')
+            ->modalSubmitActionLabel('Open WhatsApp Web')
             ->schema([
-                // Section::make('Send Message')
-                    // ->columns()
-                    // ->schema([
-                    Radio::make('message_template')
-                        ->label('Message Template')
-                        ->options([
-                            'annex|en' => 'Annex',
-                            'final_annex|si_LK' => 'Final Annex',
-                            'login_details|en' => 'Login Details',
-                            'market_outlook|en_GB' => 'Market Outlook',
-                            'market_report|en_US' => 'Market Report',
-                            'mor23_is_live|en_US' => 'Mor23 Is Live',
-                            'mor23_out_now|en_US' => 'Mor23 Out Now',
-                        ])
-                        ->required(),
-                        
-                        Select::make('mobile')
-                            ->label('Mobile Number')
-							->options(function ($get, $set, $state, $component) {
-								$record = $component->getRecord();
-								$mobileCandidates = [];
+                Radio::make('message_template')
+                    ->label('Message Template')
+                    ->options(fn () => collect(self::getWhatsappTemplates())->mapWithKeys(fn ($template, $key) => [$key => $template['label']])->toArray())
+                    ->inline()
+                    ->required()
+                    ->reactive(),
+                Select::make('mobile')
+                    ->label('Mobile Number')
+                    ->placeholder('Select a mobile number')
+                    ->options(function ($get, $set, $state, $component) {
+                        $record = $component->getRecord();
+                        $mobileCandidates = [];
 
-								// From LPW API normalized details
-								$details = LpwData::getLpwUserDetailsForRecord($record);
-								if (!empty($details['mobile'])) {
-									$apiMob = $details['mobile'];
-									if (is_array($apiMob)) {
-										$mobileCandidates = array_merge($mobileCandidates, $apiMob);
-									} else {
-										$mobileCandidates[] = $apiMob;
-									}
-								}
+                        $details = LpwData::getLpwUserDetailsForRecord($record);
+                        if (! empty($details['mobile'])) {
+                            $apiMob = $details['mobile'];
+                            if (is_array($apiMob)) {
+                                $mobileCandidates = array_merge($mobileCandidates, $apiMob);
+                            } else {
+                                $mobileCandidates[] = $apiMob;
+                            }
+                        }
 
-								// From current record columns
-								$recordMobiles = [
-									$record->mobile ?? null,
-									$record->mobile_no ?? null,
-									$record->phone ?? null,
-								];
-								$mobileCandidates = array_merge($mobileCandidates, array_filter($recordMobiles));
+                        $recordMobiles = [
+                            $record->mobile ?? null,
+                            $record->mobile_no ?? null,
+                            $record->phone ?? null,
+                        ];
+                        $mobileCandidates = array_merge($mobileCandidates, array_filter($recordMobiles));
 
-								// Normalize, unique, and map to display (0XXXXXXXXX)
-								$normalized = [];
-								foreach ($mobileCandidates as $raw) {
-									$nine = self::normalizeMobile(is_array($raw) ? ($raw[0] ?? null) : $raw);
-									if ($nine) {
-										$normalized['0' . $nine] = '0' . $nine; // value => label
-									}
-								}
+                        $normalized = [];
+                        foreach ($mobileCandidates as $raw) {
+                            $nine = self::normalizeMobile(is_array($raw) ? ($raw[0] ?? null) : $raw);
+                            if ($nine) {
+                                $normalized['0' . $nine] = '0' . $nine;
+                            }
+                        }
 
-								return $normalized;
-							})
-                            ->searchable()
-                            ->preload()
-                            ->required(),
-                        
-                        // Textarea::make('message')
-                        //     ->label('Message')
-                        //     ->rows(4)
-                        //     ->required(),
-                    // ]),
+                        return $normalized;
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->helperText('We will open WhatsApp Web in a new tab with the selected template for the chosen number.')
+                    ->required(),
             ])
-            ->action(function (array $data, $record) {
-                // Handle sending message
-                $template = $data['message_template'] ?? null;
-                $mobileNine = self::getNormalizedMobileForRecord($record);
+            ->action(function (array $data, $record, Action $action) {
+                $templateKey = $data['message_template'] ?? null;
+                $selectedMobile = $data['mobile'] ?? null;
+                $mobileNine = self::normalizeMobile($selectedMobile);
 
-                if (! $template) {
+                if (! $templateKey) {
                     Notification::make()
                         ->title('Template is required')
                         ->danger()
@@ -472,36 +531,48 @@ class TableRecordActions
                     Notification::make()
                         ->title('No valid mobile found')
                         ->danger()
-                        ->body('Could not detect a valid mobile number for WhatsApp.')
+                        ->body('Please choose a valid mobile number (format 0XXXXXXXXX).')
                         ->send();
                     return;
                 }
 
-                $phoneParam = '94' . $mobileNine;
+                $message = self::buildWhatsappMessage($templateKey, $record);
 
-                $response = Http::withHeaders([
-                        'accept' => 'application/json',
-                        'X-API-KEY' => 'ipZTsQ6JNnWTbF7Y0PCxz3VjAeJosU5Wi3LsIP0NJmduItGjsP0TAdLbN7X9h9Dgoe2nVQEUaCqizOmlTKGNBJ9luScLMvbHwyjYzaTYmOK3ReWGkfFCJot6WweaV6jr',
-                        'Content-Type' => 'application/json',
-                    ])
-                    ->post('https://n8n.srilankaproperty.lk/webhook/whatsapp-send-template', [
-                        'phone_num' => $phoneParam,
-                        'template' => $template,
-                    ]);
-
-                if ($response->successful()) {
+                if (! $message) {
                     Notification::make()
-                        ->title('WhatsApp message queued')
-                        ->success()
-                        ->body('Template sent to ' . $phoneParam)
-                        ->send();
-                } else {
-                    Notification::make()
-                        ->title('Failed to send WhatsApp')
+                        ->title('Template unavailable')
                         ->danger()
-                        ->body('Error: ' . ($response->json('message') ?? $response->body()))
+                        ->body('The selected template could not be prepared. Please try again.')
                         ->send();
+                    return;
                 }
+
+                $whatsAppUrl = sprintf(
+                    'https://web.whatsapp.com/send?phone=94%s&text=%s',
+                    $mobileNine,
+                    rawurlencode($message)
+                );
+
+                if ($livewire = $action->getLivewire()) {
+                    if (method_exists($livewire, 'dispatch')) {
+                        $livewire->dispatch('lpw-open-whatsapp', url: $whatsAppUrl);
+                    } elseif (method_exists($livewire, 'dispatchBrowserEvent')) {
+                        $livewire->dispatchBrowserEvent('lpw-open-whatsapp', [
+                            'url' => $whatsAppUrl,
+                        ]);
+                    } elseif (method_exists($livewire, 'js')) {
+                        $livewire->js(<<<JS
+window.dispatchEvent(new CustomEvent('lpw-open-whatsapp', { detail: { url: '{$whatsAppUrl}' } }));
+JS
+                        );
+                    }
+                }
+
+                Notification::make()
+                    ->title('Opening WhatsApp Web')
+                    ->success()
+                    ->body('We are opening WhatsApp Web for 0' . $mobileNine . '.')
+                    ->send();
             });
     }
 
