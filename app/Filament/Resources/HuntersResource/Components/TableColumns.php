@@ -59,13 +59,25 @@ class TableColumns
                 ->label('Customer')
                 ->limit(24)
                 ->formatStateUsing(function ($state, $record) {
-                    // Add 📌 emoji before the name if is_pin == 1
-                    return $record->is_pin ? "📌 {$state}" : $state;
+                    $custId = $record->cust_id ?? $record->customer_id ?? $record->customer->id ?? '';
+                    $mobile = $record->customer->mobile ?? '';
+                    
+                    $callScriptUrl = route('call.script.sinhala', [
+                        'uid' => $custId,
+                        'mobile' => $mobile,
+                    ]);
+                    
+                    $name = $record->is_pin ? "📌 {$state}" : $state;
+                    
+                    return new \Illuminate\Support\HtmlString(
+                        $name . ' <a href="' . $callScriptUrl . '" target="_blank" onclick="event.stopPropagation(); window.open(this.href, \'callScript\', \'width=1400,height=900,scrollbars=yes,resizable=yes\'); return false;" style="margin-left: 8px; color: #10b981; text-decoration: none; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color=\'#059669\'" onmouseout="this.style.color=\'#10b981\'" title="Open Call Script"><i class="bi bi-telephone-fill" style="font-size: 14px;"></i></a>'
+                    );
                 })
                 ->tooltip(fn($record) => $record->customer->email)
                 ->description(fn($record) => Str::limit($record->customer->email ?? '', 22))
                 ->searchable()
-                ->sortable(),
+                ->sortable()
+                ->html(),
 
             ColumnText::make('posted_date')
                 ->label('Posted Date')

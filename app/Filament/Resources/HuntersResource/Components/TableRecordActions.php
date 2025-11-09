@@ -37,6 +37,7 @@ use Filament\Notifications\Collection;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid as ComponentsGrid;
+use Illuminate\Support\Js;
 use Filament\Support\View\Components\ButtonComponent;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
@@ -547,11 +548,23 @@ TEXT,
                     return;
                 }
 
-                $whatsAppUrl = sprintf(
-                    'https://web.whatsapp.com/send?phone=94%s&text=%s',
-                    $mobileNine,
-                    rawurlencode($message)
-                );
+                if (! preg_match('/^\d{9}$/', $mobileNine)) {
+                    Notification::make()
+                        ->title('Invalid mobile number')
+                        ->danger()
+                        ->body('The selected mobile number must contain exactly 9 digits after removing the leading 0 or country code.')
+                        ->send();
+                    return;
+                }
+
+                $query = http_build_query([
+                    'phone' => '94' . $mobileNine,
+                    'text' => $message,
+                    'type' => 'custom_url',
+                    'app_absent' => '0',
+                ]);
+
+                $whatsAppUrl = 'https://api.whatsapp.com/send/?' . $query;
 
                 if ($livewire = $action->getLivewire()) {
                     if (method_exists($livewire, 'dispatch')) {
@@ -561,8 +574,9 @@ TEXT,
                             'url' => $whatsAppUrl,
                         ]);
                     } elseif (method_exists($livewire, 'js')) {
+                        $encodedUrl = Js::from($whatsAppUrl);
                         $livewire->js(<<<JS
-window.dispatchEvent(new CustomEvent('lpw-open-whatsapp', { detail: { url: '{$whatsAppUrl}' } }));
+window.dispatchEvent(new CustomEvent('lpw-open-whatsapp', { detail: { url: {$encodedUrl} } }));
 JS
                         );
                     }

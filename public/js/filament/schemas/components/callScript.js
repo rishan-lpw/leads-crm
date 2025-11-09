@@ -4,6 +4,34 @@
  */
 
 (function () {
+    // Add responsive CSS styles
+    var style = document.createElement('style');
+    style.textContent = `
+        @media (max-width: 768px) {
+            .call-btn-text { display: none; }
+            .panel-heading { padding: 10px 15px !important; }
+            .panel-body { padding: 10px 15px !important; }
+            .nav-tabs { font-size: 12px !important; }
+            .message-card { margin-bottom: 15px !important; padding: 12px !important; }
+            .message-speaker { font-size: 14px !important; }
+            .message-content { font-size: 13px !important; }
+        }
+        @media (max-width: 480px) {
+            .panel-title { font-size: 18px !important; }
+            .call-btn { padding: 8px 12px !important; font-size: 12px !important; }
+            .nav-tabs a { padding: 8px 12px !important; font-size: 11px !important; }
+            .message-card { padding: 10px !important; }
+        }
+        .message-card, .message-content, #sheet-data-container, 
+        #bundle-packages-container, #stats-container, #call-log-data-container {
+            max-width: 100% !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+        }
+    `;
+    document.head.appendChild(style);
     function getQueryParam(name) {
         var params = new URLSearchParams(window.location.search);
         return params.get(name) || "";
@@ -369,6 +397,11 @@
     function createMessageCard(content, speaker, commonTextReplacements, propertyData) {
         var card = document.createElement('div');
         card.className = 'message-card';
+        card.style.width = '100%';
+        card.style.maxWidth = '100%';
+        card.style.boxSizing = 'border-box';
+        card.style.wordWrap = 'break-word';
+        card.style.overflowWrap = 'break-word';
 
         if (speaker) {
             var speakerDiv = document.createElement('div');
@@ -380,6 +413,9 @@
 
         var contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
+        contentDiv.style.width = '100%';
+        contentDiv.style.wordWrap = 'break-word';
+        contentDiv.style.overflowWrap = 'break-word';
         contentDiv.innerHTML = formatText(content, commonTextReplacements, propertyData);
         card.appendChild(contentDiv);
 
@@ -428,15 +464,20 @@
                     // Create package card
                     var packageCard = document.createElement('div');
                     packageCard.className = 'message-card';
+                    packageCard.style.width = '100%';
+                    packageCard.style.maxWidth = '100%';
+                    packageCard.style.boxSizing = 'border-box';
                     packageCard.style.marginBottom = '20px';
                     packageCard.style.borderLeft = '4px solid #3b82f6';
                     packageCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    packageCard.style.wordWrap = 'break-word';
+                    packageCard.style.overflowWrap = 'break-word';
                     
                     // Package name header
                     var packageHeader = document.createElement('div');
                     packageHeader.className = 'message-speaker';
                     packageHeader.style.color = '#1e40af';
-                    packageHeader.style.fontSize = '20px';
+                    packageHeader.style.fontSize = 'clamp(16px, 3vw, 20px)';
                     packageHeader.style.marginBottom = '10px';
                     packageHeader.textContent = packageKey;
                     packageCard.appendChild(packageHeader);
@@ -444,6 +485,9 @@
                     // Package content
                     var contentDiv = document.createElement('div');
                     contentDiv.className = 'message-content';
+                    contentDiv.style.width = '100%';
+                    contentDiv.style.wordWrap = 'break-word';
+                    contentDiv.style.overflowWrap = 'break-word';
                     contentDiv.innerHTML = formatText(packageContent, commonTextReplacements, propertyData);
                     packageCard.appendChild(contentDiv);
                     
@@ -472,15 +516,20 @@
                     // Create stat card
                     var statCard = document.createElement('div');
                     statCard.className = 'message-card';
+                    statCard.style.width = '100%';
+                    statCard.style.maxWidth = '100%';
+                    statCard.style.boxSizing = 'border-box';
                     statCard.style.marginBottom = '20px';
                     statCard.style.borderLeft = '4px solid #10b981';
                     statCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    statCard.style.wordWrap = 'break-word';
+                    statCard.style.overflowWrap = 'break-word';
                     
                     // Stat name header
                     var statHeader = document.createElement('div');
                     statHeader.className = 'message-speaker';
                     statHeader.style.color = '#059669';
-                    statHeader.style.fontSize = '20px';
+                    statHeader.style.fontSize = 'clamp(16px, 3vw, 20px)';
                     statHeader.style.marginBottom = '10px';
                     statHeader.textContent = statKey;
                     statCard.appendChild(statHeader);
@@ -488,6 +537,9 @@
                     // Stat content
                     var contentDiv = document.createElement('div');
                     contentDiv.className = 'message-content';
+                    contentDiv.style.width = '100%';
+                    contentDiv.style.wordWrap = 'break-word';
+                    contentDiv.style.overflowWrap = 'break-word';
                     contentDiv.innerHTML = formatText(statContent, commonTextReplacements, propertyData);
                     statCard.appendChild(contentDiv);
                     
@@ -935,11 +987,11 @@
             var hasExpandableContent = transcript || summaryEn || summaryTa;
             var isLastItem = index === totalLogs - 1;
 
-            html += '<li style="position: relative; padding-left: 180px; margin-bottom: 40px; list-style: none; overflow: visible;">';
+            html += '<li style="position: relative; padding-left: clamp(120px, 20vw, 180px); margin-bottom: 40px; list-style: none; overflow: visible;">';
             
             // Timeline date marker with talktime and am name
-            html += '<div style="position: absolute; left: 0; top: 0; width: 160px; text-align: right; padding-right: 20px; padding-top: 5px; word-wrap: break-word; overflow-wrap: break-word;">';
-            html += '<div style="font-size: 13px; font-weight: 700; color: #2563eb; margin-bottom: 6px; line-height: 1.4;">' + escapeHtml(dateTime) + '</div>';
+            html += '<div style="position: absolute; left: 0; top: 0; width: clamp(100px, 18vw, 160px); text-align: right; padding-right: clamp(10px, 2vw, 20px); padding-top: 5px; word-wrap: break-word; overflow-wrap: break-word;">';
+            html += '<div style="font-size: clamp(11px, 2vw, 13px); font-weight: 700; color: #2563eb; margin-bottom: 6px; line-height: 1.4;">' + escapeHtml(dateTime) + '</div>';
             
             // Talktime and AM name under date/time
             if (talktime) {
@@ -1001,7 +1053,7 @@
             }
             
             // Call log card with relative positioning for QA Scores
-            html += '<div style="position: relative; background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: all 0.3s ease; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word;">';
+            html += '<div style="position: relative; background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: clamp(12px, 3vw, 20px); box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: all 0.3s ease; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word; width: 100%; max-width: 100%; box-sizing: border-box;">';
             
             // QA Scores at top right corner
             if (qaScore || qaPercentage) {
@@ -1015,10 +1067,10 @@
             }
             
             // Header section
-            html += '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; padding-right: ' + ((qaScore || qaPercentage) ? '120px' : '0') + ';">';
-            html += '<div style="flex: 1; min-width: 200px; max-width: 100%;">';
+            html += '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; padding-right: ' + ((qaScore || qaPercentage) ? 'clamp(80px, 15vw, 120px)' : '0') + ';">';
+            html += '<div style="flex: 1; min-width: 150px; max-width: 100%;">';
             html += '<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap;">';
-            html += '<h4 style="font-size: 18px; font-weight: 700; color: #1f2937; margin: 0; line-height: 1.3; word-break: break-word;">Call #' + (index + 1) + '</h4>';
+            html += '<h4 style="font-size: clamp(16px, 3vw, 18px); font-weight: 700; color: #1f2937; margin: 0; line-height: 1.3; word-break: break-word;">Call #' + (index + 1) + '</h4>';
             if (sentiment) {
                 html += '<span style="display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0; ' + sentimentClass + '">' + escapeHtml(sentiment) + '</span>';
             }

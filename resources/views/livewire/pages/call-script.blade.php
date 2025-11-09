@@ -1,79 +1,79 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid" style="margin-top: 20px; margin-left: 200px; margin-right: 200px;">
-    <div class="row">
-        <div class="col-lg-10 col-lg-offset-1">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <h2 class="panel-title" id="scriptModalLabel" style="font-weight: bold; font-size: 32px; color: #ffffff; margin: 0;">
+<div class="container-fluid" style="margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden;">
+    <div class="row" style="margin: 0; width: 100%;">
+        <div class="col-xs-12" style="padding: 0;">
+            <div class="panel panel-default" style="margin: 0; border-radius: 0; border-left: none; border-right: none;">
+                <div class="panel-heading" style="padding: 15px 20px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px;">
+                            <h2 class="panel-title" id="scriptModalLabel" style="font-weight: bold; font-size: clamp(20px, 4vw, 32px); color: #ffffff; margin: 0; line-height: 1.2;">
                                 Sales Call Transcript
                             </h2>
                         </div>
                         {{-- Take the mobile number from the customer table column 'mobile'. --}}
-                        <button type="button" class="btn btn-success call-btn" data-phone="{{ request()->query('mobile') ?? request()->query('phone') ?? '' }}" style="background-color: #10b981; border-color: #10b981; color: white; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            <i class="fa fa-phone"></i> Call Customer
+                        <button type="button" class="btn btn-success call-btn" data-phone="{{ request()->query('mobile') ?? request()->query('phone') ?? '' }}" style="background-color: #10b981; border-color: #10b981; color: white; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: nowrap; font-size: 14px;">
+                            <i class="fa fa-phone"></i> <span class="call-btn-text">Call Customer</span>
                         </button>
                     </div>
                 </div>
 
-                <div class="panel-body">
+                <div class="panel-body" style="padding: 15px 20px;">
 
-                    <ul class="nav nav-tabs" id="tabs" style="border-bottom: 2px solid #e5e7eb; margin-top: 20px; margin-bottom: 0; display: flex; list-style: none; padding-left: 0;">
-                        <li class="{{ ($activeTab ?? 'sinhala') === 'sinhala' ? 'active' : '' }}" style="margin-right: 4px;">
+                    <ul class="nav nav-tabs" id="tabs" style="border-bottom: 2px solid #e5e7eb; margin-top: 10px; margin-bottom: 0; display: flex; list-style: none; padding-left: 0; overflow-x: auto; overflow-y: hidden; flex-wrap: nowrap; -webkit-overflow-scrolling: touch;">
+                        <li class="{{ ($activeTab ?? 'sinhala') === 'sinhala' ? 'active' : '' }}" style="margin-right: 4px; flex-shrink: 0;">
                             <a href="{{ route('call.script.sinhala', ['uid' => $uid]) }}" 
-                               style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; 
+                               style="display: inline-block; padding: 10px 16px; font-size: clamp(12px, 2vw, 14px); font-weight: 500; 
                                       color: {{ ($activeTab ?? 'sinhala') === 'sinhala' ? '#2563eb' : '#6b7280' }}; 
                                       background-color: {{ ($activeTab ?? 'sinhala') === 'sinhala' ? 'white' : '#f9fafb' }}; 
                                       border: 2px solid {{ ($activeTab ?? 'sinhala') === 'sinhala' ? '#2563eb' : 'transparent' }}; 
-                                      border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
+                                      border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
                                 Sinhala
                             </a>
                         </li>
-                        <li style="margin-right: 4px;">
-                            <a href="#eng" style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; color: #6b7280; background-color: #f9fafb; border: 2px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
+                        <li style="margin-right: 4px; flex-shrink: 0;">
+                            <a href="#eng" style="display: inline-block; padding: 10px 16px; font-size: clamp(12px, 2vw, 14px); font-weight: 500; color: #6b7280; background-color: #f9fafb; border: 2px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
                                 English
                             </a>
                         </li>
-                        <li style="margin-right: 4px;">
-                            <a href="#tam" style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; color: #6b7280; background-color: #f9fafb; border: 2px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
+                        <li style="margin-right: 4px; flex-shrink: 0;">
+                            <a href="#tam" style="display: inline-block; padding: 10px 16px; font-size: clamp(12px, 2vw, 14px); font-weight: 500; color: #6b7280; background-color: #f9fafb; border: 2px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
                                 Tamil
                             </a>
                         </li>
-                        <li id="bundle_packages_li" class="{{ ($activeTab ?? '') === 'bundle-package' ? 'active' : '' }}" style="margin-right: 4px;">
+                        <li id="bundle_packages_li" class="{{ ($activeTab ?? '') === 'bundle-package' ? 'active' : '' }}" style="margin-right: 4px; flex-shrink: 0;">
                             <a href="{{ route('call.script.bundle-package', ['uid' => $uid]) }}" 
-                               style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; 
+                               style="display: inline-block; padding: 10px 16px; font-size: clamp(12px, 2vw, 14px); font-weight: 500; 
                                       color: {{ ($activeTab ?? '') === 'bundle-package' ? '#2563eb' : '#6b7280' }}; 
                                       background-color: {{ ($activeTab ?? '') === 'bundle-package' ? 'white' : '#f9fafb' }}; 
                                       border: 2px solid {{ ($activeTab ?? '') === 'bundle-package' ? '#2563eb' : 'transparent' }}; 
-                                      border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
+                                      border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
                                 Bundle Packages
                             </a>
                         </li>
-                        <li id="stats_li" class="{{ ($activeTab ?? '') === 'stats' ? 'active' : '' }}" style="margin-right: 4px;">
+                        <li id="stats_li" class="{{ ($activeTab ?? '') === 'stats' ? 'active' : '' }}" style="margin-right: 4px; flex-shrink: 0;">
                             <a href="{{ route('call.script.stats', ['uid' => $uid]) }}" 
-                               style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; 
+                               style="display: inline-block; padding: 10px 16px; font-size: clamp(12px, 2vw, 14px); font-weight: 500; 
                                       color: {{ ($activeTab ?? '') === 'stats' ? '#2563eb' : '#6b7280' }}; 
                                       background-color: {{ ($activeTab ?? '') === 'stats' ? 'white' : '#f9fafb' }}; 
                                       border: 2px solid {{ ($activeTab ?? '') === 'stats' ? '#2563eb' : 'transparent' }}; 
-                                      border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
+                                      border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
                                 Stats
                             </a>
                         </li>
-                        <li id="ad_stats_li" class="{{ ($activeTab ?? '') === 'ad-stats' ? 'active' : '' }}" style="margin-right: 4px;">
+                        <li id="ad_stats_li" class="{{ ($activeTab ?? '') === 'ad-stats' ? 'active' : '' }}" style="margin-right: 4px; flex-shrink: 0;">
                             <a href="{{ route('call.script.ad-stats', ['uid' => $uid]) }}" 
-                               style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; 
+                               style="display: inline-block; padding: 10px 16px; font-size: clamp(12px, 2vw, 14px); font-weight: 500; 
                                       color: {{ ($activeTab ?? '') === 'ad-stats' ? '#2563eb' : '#6b7280' }}; 
                                       background-color: {{ ($activeTab ?? '') === 'ad-stats' ? 'white' : '#f9fafb' }}; 
                                       border: 2px solid {{ ($activeTab ?? '') === 'ad-stats' ? '#2563eb' : 'transparent' }}; 
-                                      border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
+                                      border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
                                 Ad Stats
                             </a>
                         </li>
-                        <li id="call_histry_li" style="margin-right: 4px;">
-                            <a href="#calllog" style="display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: 500; color: #6b7280; background-color: #f9fafb; border: 2px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s;">
+                        <li id="call_histry_li" style="margin-right: 4px; flex-shrink: 0;">
+                            <a href="#calllog" style="display: inline-block; padding: 10px 16px; font-size: clamp(12px, 2vw, 14px); font-weight: 500; color: #6b7280; background-color: #f9fafb; border: 2px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; text-decoration: none; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
                                 Call History
                             </a>
                         </li>
@@ -88,10 +88,10 @@
                     
                     <div class="tab-content" style="padding-top: 15px;">
                         <div class="tab-pane fade {{ ($activeTab ?? 'sinhala') === 'sinhala' ? 'active in' : '' }}" id="srl">
-                            <div class="row">
-                                <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+                            <div class="row" style="margin: 0;">
+                                <div class="col-xs-12" style="padding: 0 10px;">
                                     <div id="sheet-data-container" 
-                                        style="max-width: 1100px; margin: 20px auto 0; font-family: sans-serif; display: list-item;">
+                                        style="width: 100%; max-width: 100%; margin: 20px auto 0; font-family: sans-serif; display: list-item; padding: 0 10px; box-sizing: border-box;">
                                         <!-- Content dynamically loaded by JavaScript -->
                                     </div>
                                 </div>
@@ -101,17 +101,17 @@
                         <div class="tab-pane fade" id="eng"></div>
                         <div class="tab-pane fade" id="tam"></div>
                         <div class="tab-pane fade {{ ($activeTab ?? '') === 'bundle-package' ? 'active in' : '' }}" id="bundles">
-                            <div style="max-width: 1100px; margin: 20px auto; font-family: sans-serif; display: list-item;">
+                            <div style="width: 100%; max-width: 100%; margin: 20px auto; font-family: sans-serif; display: list-item; padding: 0 10px; box-sizing: border-box;">
                                 <div id="bundle-packages-container"></div>
                             </div>
                         </div>
                         <div class="tab-pane fade {{ ($activeTab ?? '') === 'stats' ? 'active in' : '' }}" id="stat">
-                            <div style="max-width: 1100px; margin: 20px auto; font-family: sans-serif; display: list-item;">
+                            <div style="width: 100%; max-width: 100%; margin: 20px auto; font-family: sans-serif; display: list-item; padding: 0 10px; box-sizing: border-box;">
                                 <div id="stats-container"></div>
                             </div>
                         </div>
                         <div class="tab-pane fade {{ ($activeTab ?? '') === 'ad-stats' ? 'active in' : '' }}" id="ad-stats">
-                            <div style="max-width: 1200px; margin: 20px auto; font-family: sans-serif;">
+                            <div style="width: 100%; max-width: 100%; margin: 20px auto; font-family: sans-serif; padding: 0 10px; box-sizing: border-box;">
                                 <div id="ad-stats-container">
                                     @if(!empty($statsData['api_stats']) && is_array($statsData['api_stats']) && count($statsData['api_stats']) > 0)
                                         <!-- API Stats Section - Only data from getUserStatsForAdsNormalized() -->
@@ -146,7 +146,7 @@
                             </div>
                         </div>
                         <div class="tab-pane fade" id="calllog">
-                             <div style="max-width: 1100px; margin: 20px auto; font-family: sans-serif; padding: 0 20px;">
+                             <div style="width: 100%; max-width: 100%; margin: 20px auto; font-family: sans-serif; padding: 0 10px; box-sizing: border-box;">
                                  <ul class="timeline" id="call-log-data-container" style="list-style: none; padding: 0; margin: 0; position: relative;"></ul>
                              </div>
                         </div>

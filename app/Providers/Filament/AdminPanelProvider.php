@@ -13,6 +13,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Http\Middleware\EnsureEmailIsVerified;
+use App\Filament\Resources\AllHuntersResource;
 use App\Filament\Resources\CustomerResource;
 use App\Filament\Resources\HuntersResource;
 use App\Filament\Resources\HuntersResource\Widgets\FunnelChart;
@@ -78,6 +79,7 @@ class AdminPanelProvider extends PanelProvider
             ->resources([
                 UserResource::class,
                 CustomerResource::class,
+                AllHuntersResource::class,
                 HuntersResource::class,
             ])
             ->middleware([
