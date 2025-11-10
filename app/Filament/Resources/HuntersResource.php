@@ -79,7 +79,8 @@ class HuntersResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = Lead::where('is_active', 1)->count();
+        // Take the all records count.
+        $count = Lead::count();
         return $count > 0 ? (string)$count : null;
     }
 

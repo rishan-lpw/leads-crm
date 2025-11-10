@@ -38,7 +38,7 @@ class AllHuntersResource extends Resource
 
         $query->with([
             'customer:id,firstname,email,mobile,membership_status',
-        ])->whereIn('status', ['system', 'not_interested', 'new', 'follow_up', 'favourite']);
+        ])->whereIn('status', ['system', 'not_interested', 'upsell', 'renew', 'new', 'follow_up', 'un_mapped', 'transferred']);
 
         return $query;
     }
@@ -64,7 +64,7 @@ class AllHuntersResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = Lead::whereIn('status', ['system', 'not_interested'])->count();
+        $count = Lead::whereIn('status', ['system', 'not_interested', 'upsell', 'renew', 'new', 'follow_up', 'un_mapped', 'transferred'])->count();
 
         return $count > 0 ? (string) $count : null;
     }
