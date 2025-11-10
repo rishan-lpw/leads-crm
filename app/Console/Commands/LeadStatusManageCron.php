@@ -16,8 +16,8 @@ class LeadStatusManageCron extends Command
     {
         $now = Carbon::now();
 
-        $rule1Days = $cronRules->rule_1_days ?? 7; 
-        $rule2Days = $cronRules->rule_2_days ?? 14;
+        $cronRules = Cron::where('category', 'Other')->first();
+        $rule1Days = (int) ($cronRules?->rule_1_days ?? 7);
 
         /**
          * Rule 1: New -> upsell
@@ -30,12 +30,31 @@ class LeadStatusManageCron extends Command
 
         /**
          * Rule 2: New -> follow_up
-         * If note = NULL within rule_1_days
+         * Only when a call activity exists and its payment status is not completed
          */
         Lead::where('status', 'new')
-            // When an activity has come, status should be follow_up
-            ->whereHas('activities')
+            ->whereHas('activities', function ($query) {
+                $query->where('activity_type', 'call')
+                    ->where(function ($paymentQuery) {
+                        $paymentQuery->whereNull('payment_status_id')
+                            ->orWhere('payment_status_id', '!=', 1);
+                    });
+            })
             ->update(['status' => 'follow_up']);
+
+        /**
+         * Rule 3: New -> transferred
+         * For non Pending Payment sources after rule_1_days
+         */
+        $transferCutoffDate = $now->copy()->subDays((int) $rule1Days);
+
+        Lead::where('status', 'new')
+            ->where(function ($query) {
+                $query->whereNull('source')
+                    ->orWhere('source', '!=', 'Pending Payment');
+            })
+            ->whereDate('posted_date', '<=', $transferCutoffDate)
+            ->update(['status' => 'transferred']);
 
         // any status->Reminder, If activity_follow_up.reminder_at is not null
         Lead::whereHas('activities.followUp', function($query) {
@@ -56,10 +75,18 @@ class LeadStatusManageCron extends Command
          * Rule 5: to_be_expired -> expired
          * If note = NULL within 1 day
          */
-        Lead::where('status', 'to_be_expired')
-            ->whereDate('posted_date', '<=', $now->copy()->subDay())
-            ->whereNull('note')
-            ->update(['status' => 'expired']);
+        // Lead::where('status', 'to_be_expired')
+        //     ->whereDate('posted_date', '<=', $now->copy()->subDay())
+        //     ->whereNull('note')
+        //     ->update(['status' => 'expired']);
+
+        /**
+         * Rule 6: Unassigned Leads -> un_mapped
+         * For any lead that is not mapped to a user
+         */
+        Lead::whereNull('user_id')
+            ->where('status', '!=', 'un_mapped')
+            ->update(['status' => 'un_mapped']);
 
         $this->info("Lead status management cron executed successfully at " . $now);
     }

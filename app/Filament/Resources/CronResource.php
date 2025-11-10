@@ -39,6 +39,17 @@ class CronResource extends Resource
 
     protected static ?string $navigationLabel = 'Assign Rules';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        return in_array($user->user_level_id, [2, 4, 5], true);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema

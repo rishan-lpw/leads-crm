@@ -39,13 +39,18 @@ class UserResource extends Resource
 
     protected static ?int $navigationGroupSort = 3;
 
-    // Hide from lower-level users
     public static function shouldRegisterNavigation(): bool
     {
-    return true;
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        return in_array($user->user_level_id, [2, 4, 5], true);
     }
 
-    public static function form(Schema $schema): Schema
+    public static function form(Schema $schema): Schema  
     {
         
         return $schema

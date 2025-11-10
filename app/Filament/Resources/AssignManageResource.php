@@ -29,6 +29,17 @@ class AssignManageResource extends Resource
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        return in_array($user->user_level_id, [2, 4, 5], true);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
