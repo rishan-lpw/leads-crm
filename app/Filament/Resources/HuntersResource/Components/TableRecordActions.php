@@ -20,6 +20,7 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Illuminate\Support\Facades\Gate;
 use Filament\Infolists\Components\Actions as InfolistActions;
 use Filament\Infolists\Components\TextEntry as TextEntryInfo;
@@ -60,6 +61,8 @@ use Filament\Schemas\Components\Wizard;
 
 class TableRecordActions
 {
+    private const MANUAL_MOBILE_VALUE = '__manual__';
+
     /**
      * Fetch and normalize LPW user details for a given lead record.
      * Normalized keys: email, mobile, address, membership_exp_date, payment_exp_date, membership_status, firstname, last_activity
@@ -231,6 +234,152 @@ class TableRecordActions
         return OldActivitiesSection::build();
     }
 
+    private static function allActivitiesSection(): array
+    {
+        return [
+            RepeatableEntry::make('all_activities')
+                ->label('')
+                ->lazy()
+                ->contained(false)
+                ->getStateUsing(function ($record) {
+                    $activities = $record->activities()
+                        ->with('user', 'paymentStatus', 'funnel')
+                        ->latest()
+                        ->limit(50)
+                        ->get();
+
+                    return self::formatActivities($activities);
+                })
+                ->schema([
+                    Section::make('')
+                        ->lazy()
+                        ->schema([
+                            ComponentsGrid::make(4)->lazy()->schema([
+                                TextEntry::make('user.username')->label('Done By')->placeholder('N/A'),
+                                TextEntry::make('created_at')->label('Date & Time')->dateTime('M d, Y H:i')->placeholder('N/A'),
+                                TextEntry::make('activity_type')->label('Activity Type')->badge()->placeholder('N/A'),
+                                TextEntry::make('paymentStatus.status')->label('Payment Status')->badge()->color('info')->placeholder('N/A'),
+                            ]),
+                            Section::make('More Details')
+                                ->lazy()
+                                ->collapsible()
+                                ->collapsed()
+                                ->schema([
+                                    ComponentsGrid::make(3)->schema([
+                                        TextEntry::make('id')->label('Activity ID')->placeholder('N/A'),
+                                        TextEntry::make('stage')->label('Stage')->placeholder('N/A'),
+                                        TextEntry::make('paymentStatus.sub_status')->label('Sub Status')->badge()->placeholder('N/A'),
+                                        TextEntry::make('funnel.category')->label('Funnel Category')->placeholder('N/A'),
+                                        TextEntry::make('funnel.stage')->label('Funnel Stage')->placeholder('N/A'),
+                                        TextEntry::make('follow_up_type')->label('Follow Up Type')->placeholder('N/A'),
+                                        TextEntry::make('comments')->label('Comments')->columnSpanFull()->default('No comments available'),
+                                    ]),
+                                ])
+                                ->columnSpanFull(),
+                        ])
+                        ->columnSpanFull(),
+                ])
+        ];
+    }
+
+    private static function myActivitiesSection(): array
+    {
+        return [
+            RepeatableEntry::make('my_activities')
+                ->label('')
+                ->lazy()
+                ->contained(false)
+                ->getStateUsing(function ($record) {
+                    $activities = $record->activities()
+                        ->with('user', 'paymentStatus', 'funnel')
+                        ->where('assigned_by', Auth::id())
+                        ->latest()
+                        ->limit(50)
+                        ->get();
+
+                    return self::formatActivities($activities);
+                })
+                ->schema([
+                    Section::make('')
+                        ->lazy()
+                        ->schema([
+                            ComponentsGrid::make(4)->lazy()->schema([
+                                TextEntry::make('user.username')->label('Done By')->placeholder('N/A'),
+                                TextEntry::make('created_at')->label('Date & Time')->dateTime('M d, Y H:i')->placeholder('N/A'),
+                                TextEntry::make('activity_type')->label('Activity Type')->badge()->placeholder('N/A'),
+                                TextEntry::make('paymentStatus.status')->label('Payment Status')->badge()->color('info')->placeholder('N/A'),
+                            ]),
+                            Section::make('More Details')
+                                ->lazy()
+                                ->collapsible()
+                                ->collapsed()
+                                ->schema([
+                                    ComponentsGrid::make(3)->schema([
+                                        TextEntry::make('id')->label('Activity ID')->placeholder('N/A'),
+                                        TextEntry::make('stage')->label('Stage')->placeholder('N/A'),
+                                        TextEntry::make('paymentStatus.sub_status')->label('Sub Status')->badge()->placeholder('N/A'),
+                                        TextEntry::make('funnel.category')->label('Funnel Category')->placeholder('N/A'),
+                                        TextEntry::make('funnel.stage')->label('Funnel Stage')->placeholder('N/A'),
+                                        TextEntry::make('follow_up_type')->label('Follow Up Type')->placeholder('N/A'),
+                                        TextEntry::make('comments')->label('Comments')->columnSpanFull()->default('No comments available'),
+                                    ]),
+                                ])
+                                ->columnSpanFull(),
+                        ])
+                        ->columnSpanFull(),
+                ])
+        ];
+    }
+
+    private static function callActivitiesSection(): array
+    {
+        return [
+            RepeatableEntry::make('call_activities')
+                ->label('')
+                ->lazy()
+                ->contained(false)
+                ->getStateUsing(function ($record) {
+                    $activities = $record->activities()
+                        ->with('user', 'paymentStatus', 'funnel')
+                        ->where('activity_type', 'call')
+                        ->latest()
+                        ->limit(50)
+                        ->get();
+
+                    return self::formatActivities($activities);
+                })
+                ->schema([
+                    Section::make('')
+                        ->lazy()
+                        ->schema([
+                            ComponentsGrid::make(4)->lazy()->schema([
+                                TextEntry::make('user.username')->label('Done By')->placeholder('N/A'),
+                                TextEntry::make('created_at')->label('Date & Time')->dateTime('M d, Y H:i')->placeholder('N/A'),
+                                TextEntry::make('activity_type')->label('Activity Type')->badge()->placeholder('N/A'),
+                                TextEntry::make('paymentStatus.status')->label('Payment Status')->badge()->color('info')->placeholder('N/A'),
+                            ]),
+                            Section::make('More Details')
+                                ->lazy()
+                                ->collapsible()
+                                ->collapsed()
+                                ->schema([
+                                    ComponentsGrid::make(3)->schema([
+                                        TextEntry::make('id')->label('Activity ID')->placeholder('N/A'),
+                                        // TextEntry::make('stage')->label('Stage')->placeholder('N/A'),
+                                        TextEntry::make('paymentStatus.sub_status')->label('Sub Status')->badge()->placeholder('N/A'),
+                                        TextEntry::make('funnel.category')->label('Funnel Category')->placeholder('N/A'),
+                                        TextEntry::make('funnel.stage')->label('Funnel Stage')->placeholder('N/A'),
+                                        TextEntry::make('follow_up_type')->label('Follow Up Type')->placeholder('N/A'),
+                                        TextEntry::make('comments')->label('Comments')->columnSpanFull()->default('No comments available'),
+                                    ]),
+                                ])
+                                ->columnSpanFull(),
+                        ])
+                        ->columnSpanFull(),
+                ])
+        ];
+    }
+
     /**
      * Build the reusable Call Log section schema.
      */
@@ -239,6 +388,31 @@ class TableRecordActions
         return CallLogSection::build();
     }
     
+    private static function formatActivities($activities): array
+    {
+        return $activities->map(function ($activity) {
+            return [
+                'id' => $activity->id,
+                'user' => [
+                    'username' => optional($activity->user)->username,
+                ],
+                'created_at' => $activity->created_at,
+                'activity_type' => $activity->activity_type,
+                'stage' => $activity->stage,
+                'paymentStatus' => [
+                    'status' => optional($activity->paymentStatus)->status,
+                    'sub_status' => optional($activity->paymentStatus)->sub_status,
+                ],
+                'funnel' => [
+                    'category' => optional($activity->funnel)->category,
+                    'stage' => optional($activity->funnel)->stage,
+                ],
+                'follow_up_type' => $activity->follow_up_type,
+                'comments' => $activity->comments,
+            ];
+        })->toArray();
+    }
+
     /**
      * Fetch LPW user ads for the given record and normalize the payload.
      */
@@ -425,6 +599,111 @@ TEXT,
 		return trim(str_replace($search, $replace, $templateBody));
 	}
 
+    private static function getMobileOptions($record): array
+    {
+        if (! $record) {
+            return [];
+        }
+
+        if (method_exists($record, 'loadMissing')) {
+            $record->loadMissing('customer');
+        }
+
+        $options = [];
+
+        $append = function ($raw, string $label) use (&$options) {
+            self::addMobileOption($options, $raw, $label);
+        };
+
+        $lpwDetails = LpwData::getLpwUserDetailsForRecord($record);
+        if (! empty($lpwDetails['mobile'])) {
+            $append($lpwDetails['mobile'], 'LPW API');
+        }
+
+        $customer = $record->customer ?? null;
+        if ($customer) {
+            // First priority: phones JSON array
+            if (!empty($customer->phones) && is_array($customer->phones)) {
+                $append($customer->phones, 'Customer Phone');
+            }
+            
+            // Fallback to individual mobile fields if phones array is empty
+            if (empty($options)) {
+                $append($customer->mobile ?? null, 'Customer Mobile');
+                $append($customer->mobile_alt ?? null, 'Customer Alt');
+            }
+        }
+
+        if (empty($options)) {
+            $append($record->mobile ?? null, 'Lead Mobile');
+            $append($record->mobile_no ?? null, 'Lead Mobile No');
+            $append($record->phone ?? null, 'Lead Phone');
+        }
+
+        return $options;
+    }
+
+    private static function addMobileOption(array &$options, $value, string $label = ''): void
+    {
+        foreach (self::extractMobileCandidates($value) as $normalized) {
+            $formatted = '0' . $normalized;
+
+            if (isset($options[$formatted])) {
+                continue;
+            }
+
+            $options[$formatted] = $label ? "{$formatted} ({$label})" : $formatted;
+        }
+    }
+
+    private static function extractMobileCandidates($value): array
+    {
+        $candidates = [];
+
+        $values = match (true) {
+            is_array($value) => $value,
+            $value instanceof \Stringable => [(string) $value],
+            is_string($value) => [$value],
+            is_null($value) => [],
+            default => [(string) $value],
+        };
+
+        foreach ($values as $item) {
+            if (is_array($item)) {
+                $candidates = array_merge($candidates, self::extractMobileCandidates($item));
+                continue;
+            }
+
+            $string = trim((string) $item);
+
+            if ($string === '') {
+                continue;
+            }
+
+            $parts = preg_split('/[,\n;\/|]+/', $string) ?: [$string];
+
+            foreach ($parts as $part) {
+                $normalized = self::normalizeMobile(trim($part));
+
+                if ($normalized) {
+                    $candidates[] = $normalized;
+                    continue;
+                }
+
+                if (preg_match_all('/\+?\d[\d\s]{8,}/', $part, $matches)) {
+                    foreach ($matches[0] as $match) {
+                        $nested = self::normalizeMobile(trim($match));
+                        if ($nested) {
+                            $candidates[] = $nested;
+                        }
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique($candidates));
+    }
+
 	private static function resolveAccountManagerName(): string
 	{
 		$user = Auth::user();
@@ -468,55 +747,85 @@ TEXT,
             ->modalWidth('xl')
             ->modalHeading('Send WhatsApp Message')
             ->modalSubmitActionLabel('Open WhatsApp Web')
-            ->schema([
-                Radio::make('message_template')
-                    ->label('Message Template')
-                    ->options(fn () => collect(self::getWhatsappTemplates())->mapWithKeys(fn ($template, $key) => [$key => $template['label']])->toArray())
-                    ->inline()
-                    ->required()
-                    ->reactive(),
-                Select::make('mobile')
-                    ->label('Mobile Number')
-                    ->placeholder('Select a mobile number')
-                    ->options(function ($get, $set, $state, $component) {
-                        $record = $component->getRecord();
-                        $mobileCandidates = [];
+            ->fillForm(function (Action $action): array {
+                $record = $action->getRecord();
+                $templates = self::getWhatsappTemplates();
+                $defaultTemplate = array_key_first($templates);
 
-                        $details = LpwData::getLpwUserDetailsForRecord($record);
-                        if (! empty($details['mobile'])) {
-                            $apiMob = $details['mobile'];
-                            if (is_array($apiMob)) {
-                                $mobileCandidates = array_merge($mobileCandidates, $apiMob);
-                            } else {
-                                $mobileCandidates[] = $apiMob;
+                $defaultMessage = $defaultTemplate ? self::buildWhatsappMessage($defaultTemplate, $record) : '';
+                $mobileOptions = self::getMobileOptions($record);
+                $hasStoredNumbers = ! empty($mobileOptions);
+                $defaultMobile = $hasStoredNumbers
+                    ? array_key_first($mobileOptions)
+                    : self::MANUAL_MOBILE_VALUE;
+
+                return [
+                    'message_template' => $defaultTemplate,
+                    'message_body' => $defaultMessage,
+                    'mobile' => $defaultMobile,
+                ];
+            })
+            ->form(function (Action $action) {
+                $record = $action->getRecord();
+
+                if ($record && method_exists($record, 'loadMissing')) {
+                    $record->loadMissing('customer');
+                }
+
+                $mobileOptions = self::getMobileOptions($record);
+                $hasStoredNumbers = ! empty($mobileOptions);
+                $selectOptions = $hasStoredNumbers
+                    ? $mobileOptions
+                    : [self::MANUAL_MOBILE_VALUE => 'Enter mobile number manually'];
+
+                return [
+                    Select::make('message_template')
+                        ->label('Message Template')
+                        ->placeholder('Select a message template')
+                        ->options(fn () => collect(self::getWhatsappTemplates())->mapWithKeys(fn ($template, $key) => [$key => $template['label']])->toArray())
+                        ->searchable()
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function (callable $set, $state) use ($record) {
+                            if (!$state) {
+                                $set('message_body', '');
+                                return;
                             }
-                        }
-
-                        $recordMobiles = [
-                            $record->mobile ?? null,
-                            $record->mobile_no ?? null,
-                            $record->phone ?? null,
-                        ];
-                        $mobileCandidates = array_merge($mobileCandidates, array_filter($recordMobiles));
-
-                        $normalized = [];
-                        foreach ($mobileCandidates as $raw) {
-                            $nine = self::normalizeMobile(is_array($raw) ? ($raw[0] ?? null) : $raw);
-                            if ($nine) {
-                                $normalized['0' . $nine] = '0' . $nine;
-                            }
-                        }
-
-                        return $normalized;
-                    })
-                    ->searchable()
-                    ->preload()
-                    ->helperText('We will open WhatsApp Web in a new tab with the selected template for the chosen number.')
-                    ->required(),
-            ])
+                            
+                            $message = self::buildWhatsappMessage($state, $record);
+                            $set('message_body', $message ?: '');
+                        }),
+                    Select::make('mobile')
+                        ->label('Mobile Number')
+                        ->placeholder($hasStoredNumbers ? 'Select a mobile number' : 'Enter a mobile number')
+                        ->options($selectOptions)
+                        ->searchable()
+                        ->preload()
+                        ->helperText($hasStoredNumbers
+                            ? 'Pick an existing customer number.'
+                            : 'No saved mobile numbers found. Please enter one manually.')
+                        ->required()
+                        ->reactive(),
+                    TextInput::make('manual_mobile')
+                        ->label('Manual Mobile Number')
+                        ->placeholder('0XXXXXXXXX')
+                        ->visible(fn (callable $get) => $get('mobile') === self::MANUAL_MOBILE_VALUE)
+                        ->required(fn (callable $get) => $get('mobile') === self::MANUAL_MOBILE_VALUE)
+                        ->helperText('Provide a Sri Lankan mobile number starting with 0.'),
+                    Textarea::make('message_body')
+                        ->label('Message')
+                        ->rows(12)
+                        ->helperText('Review and personalize the template before sending.')
+                        ->required(),
+                ];
+            })
             ->action(function (array $data, $record, Action $action) {
                 $templateKey = $data['message_template'] ?? null;
+                $messageBody = trim($data['message_body'] ?? '');
                 $selectedMobile = $data['mobile'] ?? null;
+                if ($selectedMobile === self::MANUAL_MOBILE_VALUE) {
+                    $selectedMobile = $data['manual_mobile'] ?? null;
+                }
                 $mobileNine = self::normalizeMobile($selectedMobile);
 
                 if (! $templateKey) {
@@ -537,13 +846,26 @@ TEXT,
                     return;
                 }
 
-                $message = self::buildWhatsappMessage($templateKey, $record);
+                if ($messageBody === '') {
+                    $messageBody = self::buildWhatsappMessage($templateKey, $record) ?? '';
+                }
 
-                if (! $message) {
+                if ($messageBody === '') {
                     Notification::make()
                         ->title('Template unavailable')
                         ->danger()
                         ->body('The selected template could not be prepared. Please try again.')
+                        ->send();
+                    return;
+                }
+
+                $message = $messageBody;
+
+                if (! $message) {
+                    Notification::make()
+                        ->title('Message is required')
+                        ->danger()
+                        ->body('Please review the template message and ensure it is not empty before sending.')
                         ->send();
                     return;
                 }
@@ -877,65 +1199,50 @@ JS
 
                         Tab::make('Activity')->lazy()->icon('heroicon-o-clipboard-document-list')->schema([
                             Tabs::make('ActivitySubTabs')->tabs([
-                                    Tab::make('Activity Log')->lazy()->icon('heroicon-o-list-bullet')->schema([
-                                        ComponentsGrid::make(3)->schema([
-                                            self::contactDetailsSection(),
-                                            
-                                            Section::make('Activity History')->columnSpan(2)->schema([
-                                                Tabs::make('ActivityFilterTabs')
-                                                    ->persistTabInQueryString('activity_filter')
-                                                    ->tabs([
-                                                        ActivityTabs::createActivityTab('All', 'heroicon-o-queue-list', fn($query) => null)->lazy(),
-                                                        ActivityTabs::createActivityTab('My Activities', 'heroicon-o-user', fn($query) => $query->where('assigned_by', Auth::id()))->lazy(),
-                                                        ActivityTabs::createActivityTab('Call', 'heroicon-o-phone', fn($query) => $query->where('activity_type', 'call'))->lazy(),
-                                                    ]),
-                                            ])->headerActions([
+                                Tab::make('All Activities')->lazy()->icon('heroicon-o-queue-list')->schema([
+                                    ComponentsGrid::make(3)->lazy()->schema([
+                                        self::contactDetailsSection(),
+                                        
+                                        Section::make('All Activities')
+                                            ->icon('heroicon-o-queue-list')
+                                            ->columnSpan(2)
+                                            ->description('All activities of the customer.')
+                                            ->headerActions([
                                                 RecordActions::getAddActivityAction(),
-                                                // self::getShowMoreActivitiesAction(),
-                                            ]),
-                                    ]),
+                                            ])
+                                            ->schema(self::allActivitiesSection()),
+                                    ])
                                 ]),
-                                
-                                // Tab::make('Call Log')->icon('heroicon-s-phone-arrow-up-right')->schema([
-                                //     ComponentsGrid::make(3)->schema([
-                                //         self::contactDetailsSection(),
+
+                                Tab::make('My Activities')->lazy()->icon('heroicon-o-user')->schema([
+                                    ComponentsGrid::make(3)->lazy()->schema([
+                                        self::contactDetailsSection(),
                                         
-                                //         Section::make('Call Logs')
-                                //             ->icon('heroicon-s-phone-arrow-up-right')
-                                //             ->columnSpan(2)
-                                //             ->description('Call logs Details')
-                                //             ->headerActions([
-                                //                 self::getAddActivityAction(),
-                                //             ])
-                                //             ->schema(self::callLogSection()),
-                                //     ]),
-                                // ]),
-                                
-                                // Tab::make('Call Script')->icon('heroicon-m-clipboard-document-list')->schema([
-                                //     ComponentsGrid::make(3)->schema([
-                                //         self::contactDetailsSection(),
+                                        Section::make('My Activities')
+                                            ->icon('heroicon-o-user')
+                                            ->columnSpan(2)
+                                            ->description('Activities assigned by me.')
+                                            ->headerActions([
+                                                RecordActions::getAddActivityAction(),
+                                            ])
+                                            ->schema(self::myActivitiesSection()),
+                                    ])
+                                ]),
+
+                                Tab::make('Call Activities')->lazy()->icon('heroicon-o-phone')->schema([
+                                    ComponentsGrid::make(3)->lazy()->schema([
+                                        self::contactDetailsSection(),
                                         
-                                //         Section::make('Call Scripts')
-                                //             ->icon('heroicon-m-clipboard-document-list')
-                                //             ->columnSpan(2)
-                                //             ->description('Call script for the customer.')
-                                //             ->headerActions([
-                                //                 self::getAddActivityAction(),
-                                //                 Action::make('refresh')
-                                //                     ->label('Refresh')
-                                //                     ->icon('heroicon-o-arrow-path')
-                                //                     ->color('gray')
-                                //                     ->action(function ($record) {
-                                //                         $userId = $record->cust_id ?? $record->customer_id ?? null;
-                                //                         if ($userId) {
-                                //                             Cache::forget("lpw_call_script_{$userId}");
-                                //                         }
-                                //                         Notification::make()->title('Call script refreshed')->success()->send();
-                                //                     }),
-                                //             ])
-                                //             ->schema(self::callScriptSection()),
-                                //     ]),
-                                // ]),
+                                        Section::make('Call Activities')
+                                            ->icon('heroicon-o-phone')
+                                            ->columnSpan(2)
+                                            ->description('Call activities of the customer.')
+                                            ->headerActions([
+                                                RecordActions::getAddActivityAction(),
+                                            ])
+                                            ->schema(self::callActivitiesSection()),
+                                    ])
+                                ]),
 
                                 Tab::make('Old Activities')->lazy()->icon('heroicon-o-clock')->schema([
                                     ComponentsGrid::make(3)->lazy()->schema([
@@ -944,13 +1251,9 @@ JS
                                         Section::make('Old Activities')
                                             ->icon('heroicon-o-clock')
                                             ->columnSpan(2)
-                                            // ->lazy()
                                             ->description('Old activities of the customer.')
                                             ->schema(self::oldActivitiesSection()),
                                     ])
-                                    // ->headerActions([
-                                    //     self::getAddActivityAction(),
-                                    // ]),
                                 ]),
                             ]),
                         ]),

@@ -16,7 +16,7 @@ class Lead extends Model
         'pic', 'pic_count', 'youtube_link', 'video_link', 'image_360',
         'contact_type', 'contact_name', 'email',
         'lat', 'lng',
-        'blocked', 'is_active', 'is_trending', 'is_pin', 'is_favorite', 'status', 'source', 'posted_date', 'weight', 'score',
+        'blocked', 'is_active', 'is_trending', 'is_pin', 'is_favorite', 'status', 'source', 'posted_date', 'weight', 'score', 'phones',
         'ad_url'
     ];
 
@@ -28,6 +28,7 @@ class Lead extends Model
         'is_favorite' => 'integer',
         'blocked' => 'integer',
         'score' => 'float',
+        'phones' => 'array',
     ];
 
     // belongs to user

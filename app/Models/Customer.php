@@ -16,7 +16,7 @@ class Customer extends Model
     protected $fillable = [
         'id', 'firstname', 'surname', 'mobile', 'mobile_alt', 'email',
         'address', 'add_id', 'role_id', 'membership_exp_date', 'payment_exp_date', 'membership_status',
-        'last_boost_added_date'
+        'last_boost_added_date', 'phones'
     ];
 
     protected $casts = [
@@ -25,6 +25,7 @@ class Customer extends Model
         'last_boost_added_date' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'phones' => 'array',
     ];
 
     protected $table = 'customer';

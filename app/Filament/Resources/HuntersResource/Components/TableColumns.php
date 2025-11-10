@@ -126,6 +126,16 @@ class TableColumns
                         default => 'secondary',
                     };
                 })
+                ->tooltip(function ($record) {
+                    $activities = $record->activities ?? collect();
+                    $callCount = $activities
+                        ->filter(fn ($activity) => ($activity->activity_type ?? null) === 'call')
+                        ->count();
+
+                    $formattedCount = str_pad((string) $callCount, 2, '0', STR_PAD_LEFT);
+
+                    return "No. of Calls: {$formattedCount}";
+                })
                 ->toggleable()
                 ->sortable(),
 

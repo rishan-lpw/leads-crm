@@ -84,6 +84,7 @@ class TableHeaderActions
                                     'mobile'           => $user['mobile'] ?? null,
                                     'mobile_alt'       => $user['mobile_alt'] ?? null,
                                     'email'            => $user['email'] ?? null,
+                                    'phones'           => $user['phones'] ?? null,
                                 ];
 
                                 try {
@@ -104,6 +105,7 @@ class TableHeaderActions
                                 'mobile'           => $user['mobile'] ?? null,
                                 'mobile_alt'       => $user['mobile_alt'] ?? null,
                                 'email'            => $user['email'] ?? null,
+                                'phones'           => $user['phones'] ?? null,
                             ];
 
                             $hasChanges = false;
@@ -157,6 +159,7 @@ class TableHeaderActions
                         'is_active'      => is_numeric($ad['is_active']) ? (int)$ad['is_active'] : 0,
                         'source'         => $ad['source'] ?? 'API',
                         'score'          => isset($ad['score']) ? (float) $ad['score'] : null,
+                        // 'phones'         => $ad['phones'] ?? null,
                         // 'ad_link'       => $ad['ad_link'] ?? null,
                         
                         'house_post_url' => $ad['house_post_url'] ?? null,
