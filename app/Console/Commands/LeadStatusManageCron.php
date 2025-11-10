@@ -71,7 +71,7 @@ class LeadStatusManageCron extends Command
             ->whereNull('note')
             ->update(['status' => 'to_be_expired']);
 
-        /**
+        /**vvv
          * Rule 5: to_be_expired -> expired
          * If note = NULL within 1 day
          */
