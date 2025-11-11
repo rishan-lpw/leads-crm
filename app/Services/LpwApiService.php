@@ -93,6 +93,63 @@ class LpwApiService
     }
 
     /**
+     * Get all hunters data from the API
+     */
+    public function getAllHunters($cacheDuration = 0)
+    {
+        $cacheKey = "lpw_all_hunters";
+        
+        // Clear cache if cacheDuration is 0 (force refresh)
+        if ($cacheDuration === 0) {
+            Cache::forget($cacheKey);
+        }
+      
+        try {
+            return Cache::remember($cacheKey, $cacheDuration, function () {
+                $url = "{$this->baseUrl}/HuntersAll/all";
+                $requestParams = [
+                    'token' => $this->apiToken,
+                    'cache' => 'N',
+                ];
+                
+                Log::info("Making request to LPW HuntersAll API", [
+                    'url' => $url,
+                    'params' => ['cache' => 'N', 'token' => substr($this->apiToken, 0, 10) . '...']
+                ]);
+                
+                // Increase timeout for large dataset
+                $response = Http::timeout(120)->get($url, $requestParams);
+                
+                if ($response->successful()) {
+                    $responseData = $response->json();
+                    
+                    Log::info("LPW HuntersAll API response received", [
+                        'status' => $response->status(),
+                        'count' => is_array($responseData) ? count($responseData) : 'not an array',
+                    ]);
+                   
+                    return $responseData ?? [];
+                } else {
+                    Log::error("LPW HuntersAll API request failed", [
+                        'url' => $url,
+                        'status' => $response->status(),
+                        'reason' => $response->reason(),
+                        'body' => substr($response->body(), 0, 500) // Limit body log
+                    ]);
+                    
+                    return [];
+                }
+            });
+        } catch (Exception $e) {
+            Log::error('Exception in LPW HuntersAll API service', [
+                'message' => $e->getMessage(),
+                'trace' => substr($e->getTraceAsString(), 0, 1000)
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * Get all pending payments from the API
      */
     public function getPendingPayments($dateFrom = null, $cacheDuration = 60)
@@ -149,6 +206,90 @@ class LpwApiService
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+            return [];
+        }
+    }
+
+    /**
+     * Get other pending payments (e.g. Other Website sources) from the API.
+     */
+    public function getOtherPendingPayments(
+        $dateFrom = null,
+        $source = null,
+        $sourceType = null,
+        $cacheDuration = 0
+    ) {
+        $dateFrom = $dateFrom ?? '2025-11-10';
+        $cacheKey = "lpw_other_pending_payments_{$dateFrom}_" . ($source ?? 'all') . "_" . ($sourceType ?? 'all');
+
+        if ($cacheDuration === 0) {
+            Cache::forget($cacheKey);
+        }
+
+        $fetchData = function () use ($dateFrom, $source, $sourceType) {
+            $url = "{$this->baseUrl}/OtherPendingPayments/all";
+            $requestParams = [
+                'token' => $this->apiToken,
+                'cache' => 'N',
+                'date_from' => $dateFrom,
+            ];
+
+            if ($source) {
+                $requestParams['source'] = $source;
+            }
+            if ($sourceType) {
+                $requestParams['source_type'] = $sourceType;
+            }
+
+            Log::info("Making request to LPW OtherPendingPayments API", [
+                'url' => $url,
+                'params' => array_merge(
+                    ['cache' => 'N', 'date_from' => $dateFrom],
+                    $source ? ['source' => $source] : [],
+                    $sourceType ? ['source_type' => $sourceType] : [],
+                    ['token' => substr($this->apiToken, 0, 10) . '...']
+                ),
+            ]);
+
+            $response = Http::timeout(120)->get($url, $requestParams);
+
+            if ($response->successful()) {
+                $responseData = $response->json();
+
+                Log::info("LPW OtherPendingPayments API response received", [
+                    'status' => $response->status(),
+                    'count' => is_array($responseData) ? count($responseData) : 'not an array',
+                ]);
+
+                return $responseData ?? [];
+            }
+
+            Log::error("LPW OtherPendingPayments API request failed", [
+                'url' => $url,
+                'status' => $response->status(),
+                'reason' => $response->reason(),
+                'body' => substr($response->body(), 0, 500),
+            ]);
+
+            return [];
+        };
+
+        try {
+            if ($cacheDuration === 0) {
+                return $fetchData();
+            }
+
+            return Cache::remember(
+                $cacheKey,
+                now()->addMinutes($cacheDuration),
+                $fetchData
+            );
+        } catch (Exception $e) {
+            Log::error('Exception in LPW OtherPendingPayments API service', [
+                'message' => $e->getMessage(),
+                'trace' => substr($e->getTraceAsString(), 0, 1000),
+            ]);
+
             return [];
         }
     }
@@ -389,6 +530,186 @@ class LpwApiService
                 'trace' => $e->getTraceAsString(),
             ]);
             return [];
+        }
+    }
+
+    /**
+     * Check if user has any call activities from the activity API.
+     * Returns true if call activities exist, false otherwise.
+     */
+    public function hasCallActivities(int|string $userId, int $cacheMinutes = 10): bool
+    {
+        try {
+            $activities = $this->getOldActivities($userId, $cacheMinutes, 2);
+            
+            if (empty($activities) || !is_array($activities)) {
+                return false;
+            }
+            
+            // Check if any activity has action = 'call' or similar
+            foreach ($activities as $activity) {
+                $action = null;
+                
+                // Try different possible field names for action
+                if (isset($activity['action'])) {
+                    $action = strtolower(trim((string) $activity['action']));
+                } elseif (isset($activity['activity_type'])) {
+                    $action = strtolower(trim((string) $activity['activity_type']));
+                } elseif (isset($activity['type'])) {
+                    $action = strtolower(trim((string) $activity['type']));
+                }
+                
+                // Check if action is 'call'
+                if ($action === 'call') {
+                    return true;
+                }
+            }
+            
+            return false;
+        } catch (Exception $e) {
+            Log::error('LPW hasCallActivities exception', [
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Check if user has calls with talktime >= 50 seconds.
+     * Returns true if such calls exist, false otherwise.
+     */
+    public function hasSignificantCallActivity(int|string $userId, int $cacheMinutes = 5): bool
+    {
+        try {
+            $callLogs = $this->getCallLogs($userId, 50, $cacheMinutes);
+            
+            if (empty($callLogs) || !is_array($callLogs)) {
+                return false;
+            }
+            
+            // Check if any call has talktime >= 50
+            foreach ($callLogs as $call) {
+                $talktime = null;
+                
+                // Try different possible field names for talktime
+                if (isset($call['talktime'])) {
+                    $talktime = $call['talktime'];
+                } elseif (isset($call['talk_time'])) {
+                    $talktime = $call['talk_time'];
+                } elseif (isset($call['duration'])) {
+                    $talktime = $call['duration'];
+                }
+                
+                // Convert to integer and check if >= 50
+                if ($talktime !== null && (int) $talktime >= 50) {
+                    return true;
+                }
+            }
+            
+            return false;
+        } catch (Exception $e) {
+            Log::error('LPW hasSignificantCallActivity exception', [
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Check if user has comments in their activity from LPW API.
+     * Returns true if comments exist, false otherwise.
+     */
+    public function hasUserActivityComments(int|string $userId, int $cacheMinutes = 10, int|string $cacheFlag = 2): bool
+    {
+        $cacheKey = "lpw_user_activity_comments_{$userId}_{$cacheFlag}";
+
+        try {
+            return Cache::remember($cacheKey, now()->addMinutes($cacheMinutes), function () use ($userId, $cacheFlag) {
+                $url = "{$this->baseUrl}/UserDetails/activity";
+                $params = [
+                    'token' => $this->apiToken,
+                    'cache' => (string) $cacheFlag,
+                    'user_id' => (string) $userId,
+                ];
+
+                Log::info('LPW hasUserActivityComments request', [
+                    'url' => $url,
+                    'user_id' => $userId,
+                    'cache' => $cacheFlag,
+                ]);
+
+                $response = Http::timeout(6)->get($url, $params);
+
+                if (! $response->successful()) {
+                    Log::warning('LPW hasUserActivityComments failed', [
+                        'status' => $response->status(),
+                        'reason' => $response->reason(),
+                    ]);
+                    return false;
+                }
+
+                $json = $response->json();
+                
+                // Fallback: some servers may send application/octet-stream or text/plain
+                if ($json === null) {
+                    $rawBody = $response->body();
+                    if (is_string($rawBody) && $rawBody !== '') {
+                        $decoded = json_decode($rawBody, true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $json = $decoded;
+                        }
+                    }
+                }
+
+                // Check if there are any comments in the activity data
+                if (is_array($json)) {
+                    // Check if 'comment' or 'comments' field exists and is not empty
+                    if (isset($json['comment']) && !empty(trim((string) $json['comment']))) {
+                        return true;
+                    }
+                    if (isset($json['comments']) && !empty(trim((string) $json['comments']))) {
+                        return true;
+                    }
+                    
+                    // Check in results array if it exists
+                    if (isset($json['results']) && is_array($json['results'])) {
+                        foreach ($json['results'] as $result) {
+                            if (is_array($result)) {
+                                if (isset($result['comment']) && !empty(trim((string) $result['comment']))) {
+                                    return true;
+                                }
+                                if (isset($result['comments']) && !empty(trim((string) $result['comments']))) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Check in data array if it exists
+                    if (isset($json['data']) && is_array($json['data'])) {
+                        foreach ($json['data'] as $item) {
+                            if (is_array($item)) {
+                                if (isset($item['comment']) && !empty(trim((string) $item['comment']))) {
+                                    return true;
+                                }
+                                if (isset($item['comments']) && !empty(trim((string) $item['comments']))) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return false;
+            });
+        } catch (Exception $e) {
+            Log::error('LPW hasUserActivityComments exception', [
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+            ]);
+            return false;
         }
     }
 }

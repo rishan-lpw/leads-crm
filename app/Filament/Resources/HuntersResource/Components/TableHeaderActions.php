@@ -21,6 +21,10 @@ class TableHeaderActions
             // ->visible(fn() => auth()->user()->id === 5)
             ->icon('heroicon-o-arrow-path')
             ->color('primary')
+            ->requiresConfirmation()
+            ->modalHeading('Sync API Data')
+            ->modalDescription('This will sync data from Pending Payments, HuntersAll, and Other Pending Payments APIs. Large datasets will be processed in chunks. This may take several minutes.')
+            ->modalSubmitActionLabel('Start Sync')
             ->action(function () {
                 $apiService = new LpwApiService();
                 
@@ -33,15 +37,72 @@ class TableHeaderActions
                     $allResults = array_merge($allResults, $pendingPayments['results']);
                 }
                 
-                // Sync other data sources if available
+                // Sync HuntersAll data
                 try {
-                    // Add other API endpoints here as they become available
-                    // $otherData = $apiService->getAllLeads();
-                    // if (isset($otherData['results'])) {
-                    //     $allResults = array_merge($allResults, $otherData['results']);
-                    // }
+                    $huntersAll = $apiService->getAllHunters();
+                    if (is_array($huntersAll)) {
+                        // HuntersAll might have different structure, handle both cases
+                        if (isset($huntersAll['results'])) {
+                            $allResults = array_merge($allResults, $huntersAll['results']);
+                        } elseif (!empty($huntersAll)) {
+                            // If it's a direct array of items
+                            $allResults = array_merge($allResults, $huntersAll);
+                        }
+                    }
                 } catch (Exception $e) {
-                    // Continue with pending payments only if other endpoints fail
+                    Log::error('HuntersAll API sync failed', [
+                        'message' => $e->getMessage(),
+                    ]);
+                }
+
+                // Sync Other Pending Payments (e.g. Other Website sources)
+                try {
+                    $otherPendingPayments = $apiService->getOtherPendingPayments('2025-11-10', 'Other Website', 'Ikman');
+
+                    if (is_array($otherPendingPayments)) {
+                        $metaSource = $otherPendingPayments['source'] ?? null;
+                        $metaSourceType = $otherPendingPayments['source_type'] ?? null;
+
+                        $otherResults = $otherPendingPayments['results'] ?? null;
+
+                        if (!is_array($otherResults) && is_array($otherPendingPayments) && isset($otherPendingPayments[0])) {
+                            $otherResults = $otherPendingPayments;
+                        }
+
+                        if (is_array($otherResults) && !empty($otherResults)) {
+                            $otherResults = array_map(function ($entry) use ($metaSource, $metaSourceType) {
+                                if (!is_array($entry)) {
+                                    return $entry;
+                                }
+
+                                if ($metaSource !== null) {
+                                    $entry['source'] = $metaSource;
+                                }
+
+                                if ($metaSourceType !== null) {
+                                    $entry['source_type'] = $metaSourceType;
+                                }
+
+                                if (isset($entry['ad']) && is_array($entry['ad'])) {
+                                    if ($metaSource !== null && empty($entry['ad']['source'])) {
+                                        $entry['ad']['source'] = $metaSource;
+                                    }
+
+                                    if ($metaSourceType !== null && empty($entry['ad']['source_type'])) {
+                                        $entry['ad']['source_type'] = $metaSourceType;
+                                    }
+                                }
+
+                                return $entry;
+                            }, $otherResults);
+
+                            $allResults = array_merge($allResults, $otherResults);
+                        }
+                    }
+                } catch (Exception $e) {
+                    Log::error('OtherPendingPayments API sync failed', [
+                        'message' => $e->getMessage(),
+                    ]);
                 }
                 
                 $results = $allResults;
@@ -53,7 +114,27 @@ class TableHeaderActions
                 $skipped = 0;
                 $errors = 0;
 
-                foreach ($results as $item) {
+                // Process in chunks for better memory management
+                $chunkSize = 100;
+                $totalRecords = count($results);
+                $chunks = array_chunk($results, $chunkSize);
+                $processedCount = 0;
+
+                Log::info("Starting API sync", [
+                    'total_records' => $totalRecords,
+                    'chunks' => count($chunks),
+                    'chunk_size' => $chunkSize,
+                ]);
+
+                foreach ($chunks as $chunkIndex => $chunk) {
+                    Log::info("Processing chunk", [
+                        'chunk' => $chunkIndex + 1,
+                        'of' => count($chunks),
+                        'records_in_chunk' => count($chunk),
+                    ]);
+
+                foreach ($chunk as $item) {
+                    $processedCount++;
                     if (!isset($item['ad']['ad_id'])) {
                         $skipped++;
                         continue;
@@ -125,11 +206,37 @@ class TableHeaderActions
 
                     $existingLead = Lead::where('ad_id', $ad['ad_id'])->first();
 
+                    // Check if customer has comments, call activities, or significant call activity in API to determine status
+                    $leadStatus = 'new'; // Default status
+                    if ($customerId) {
+                        // Check for comments
+                        $hasComments = $apiService->hasUserActivityComments($customerId, 10, 2);
+                        
+                        // Check for call activities in API (action = 'call')
+                        $hasApiCallActivities = $apiService->hasCallActivities($customerId, 10);
+                        
+                        // Check for significant call activity (talktime >= 50)
+                        $hasSignificantCalls = $apiService->hasSignificantCallActivity($customerId, 5);
+                        
+                        // Check for call activities in local database
+                        $hasLocalCallActivities = false;
+                        if ($existingLead) {
+                            $hasLocalCallActivities = $existingLead->activities()
+                                ->where('activity_type', 'call')
+                                ->exists();
+                        }
+                        
+                        // Set status to 'follow_up' if any condition is met
+                        if ($hasComments || $hasApiCallActivities || $hasSignificantCalls || $hasLocalCallActivities) {
+                            $leadStatus = 'follow_up';
+                        }
+                    }
+
                     $payload = [
                         'ad_id'          => $ad['ad_id'],
                         'cust_id'        => $customerId,
                         'type'           => $ad['type'] ?? null,
-                        'propty_type'    => $ad['propty_type'] ?? null,
+                        'propty_type'    => $ad['propty_type'] ?? ($ad['property_type'] ?? null),
                         'service_type'   => $ad['service_type'] ?? null,
                         'street'         => $ad['street'] ?? null,
                         'city'           => $ad['city'] ?? null,
@@ -157,8 +264,10 @@ class TableHeaderActions
                         'lng'            => $ad['lng'] ?? null,
                         'blocked'        => ($ad['blocked'] ?? 'N') === 'Y' ? 1 : 0,
                         'is_active'      => is_numeric($ad['is_active']) ? (int)$ad['is_active'] : 0,
-                        'source'         => $ad['source'] ?? 'API',
+                        'source'         => $item['source'] ?? ($ad['source'] ?? 'API'),
+                        'source_type'    => $item['source_type'] ?? ($ad['source_type'] ?? null),
                         'score'          => isset($ad['score']) ? (float) $ad['score'] : null,
+                        'status'         => $leadStatus, // Set status based on comments
                         // 'phones'         => $ad['phones'] ?? null,
                         // 'ad_link'       => $ad['ad_link'] ?? null,
                         
@@ -207,12 +316,27 @@ class TableHeaderActions
                             'data' => $item
                         ]);
                     }
-                }
+                } // End of chunk foreach
+
+                    // Optional: Clear memory after each chunk
+                    if (($chunkIndex + 1) % 10 === 0) {
+                        gc_collect_cycles();
+                    }
+                } // End of chunks foreach
+
+                Log::info("API sync completed", [
+                    'total_processed' => $processedCount,
+                    'created' => $created,
+                    'updated' => $updated,
+                    'skipped' => $skipped,
+                    'errors' => $errors,
+                ]);
 
                 Notification::make()
                     ->title('API Sync Completed')
-                    ->body("Leads: Created {$created}, Updated {$updated}, Skipped {$skipped}\nCustomers: Created {$customerCreated}, Updated {$customerUpdated}\nErrors: {$errors}")
+                    ->body("Total Records: {$totalRecords}\nLeads: Created {$created}, Updated {$updated}, Skipped {$skipped}\nCustomers: Created {$customerCreated}, Updated {$customerUpdated}\nErrors: {$errors}")
                     ->success()
+                    ->duration(10000)
                     ->send();
             });
 

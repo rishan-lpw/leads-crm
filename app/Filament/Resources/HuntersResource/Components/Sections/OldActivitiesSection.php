@@ -41,7 +41,8 @@ class OldActivitiesSection
 									ComponentsGrid::make(3)->schema([
 										TextEntry::make('id')->label('Activity ID')->placeholder('N/A'),
 										TextEntry::make('uid')->label('Customer ID')->placeholder('N/A'),
-										TextEntry::make('value')->label('Value')->placeholder('N/A'),
+										// Add talktime column
+										TextEntry::make('talktime')->label('Duration')->placeholder('N/A')->color('gray'),
 										TextEntry::make('old_am')->label('Old AM')->placeholder('N/A')->color('gray'),
 										TextEntry::make('reminder')->label('Reminder')->placeholder('N/A')->color('warning'),
 										TextEntry::make('comments')->label('Comments')->columnSpanFull()->default('No comments available'),

@@ -41,7 +41,7 @@ class RecordActions
 			->icon('heroicon-o-plus')
 			->color('primary')
 			->form([
-				Radio::make('activity_type')->label('Activity Type')->inline()->options([
+				Select::make('activity_type')->label('Activity Type')->options([
 					'email' => 'Email',
 					'call' => 'Call',
 					'meeting' => 'Meeting',
@@ -218,18 +218,45 @@ class RecordActions
 					'comments'          => $data['comments'] ?? null,
 					'assigned_by'       => Auth::id(),
 				]);
+				
+				// Update lead status to 'follow_up' if activity_type is 'call'
+				if ($activity && $data['activity_type'] === 'call') {
+					$record->update(['status' => 'follow_up']);
+				}
+				
 				$followUpProvided = ! empty($data['follow_up_date_time']);
 				$reminderProvided = ! empty($data['reminder_date']);
+				
 				if ($activity && ($followUpProvided || $reminderProvided)) {
+					// Check if activity_follow_up record already exists
+					$existingFollowUp = DB::table('activity_follow_up')
+						->where('activity_id', $activity->id)
+						->first();
+					
 					$payload = [
-						'activity_id'    => $activity->id,
 						'follow_up_time' => $followUpProvided ? $data['follow_up_date_time'] : null,
 						'reminder_at'    => $reminderProvided ? $data['reminder_date'] : null,
-						'created_at'     => now(),
 						'updated_at'     => now(),
 					];
-					DB::table('activity_follow_up')->insert($payload);
+					
+					if ($existingFollowUp) {
+						// Update existing record
+						DB::table('activity_follow_up')
+							->where('activity_id', $activity->id)
+							->update($payload);
+					} else {
+						// Insert new record
+						$payload['activity_id'] = $activity->id;
+						$payload['created_at'] = now();
+						DB::table('activity_follow_up')->insert($payload);
+					}
+					
+					// Update lead status to 'reminder' if reminder_at is provided
+					if ($reminderProvided) {
+						$record->update(['status' => 'reminder']);
+					}
 				}
+				
 				Notification::make()->title('Activity added')->success()->send();
 			});
 	}

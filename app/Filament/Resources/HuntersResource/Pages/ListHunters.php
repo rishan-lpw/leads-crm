@@ -74,8 +74,17 @@ class ListHunters extends ListRecords
 
             'reminder' => Tab::make('Reminder')
                 ->lazy()
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'reminder'))
-                ->badge($countFor('reminder', fn($q) => $q->where('status', 'reminder')))
+                // If any activity has reminder_at in activity_follow_up table, those activities should be move to the reminder tab.
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereHas('activities', function ($query) {
+                    $query->whereHas('followUp', function ($query) {
+                        $query->whereNotNull('reminder_at');
+                    });
+                }))
+                ->badge($countFor('reminder', fn($q) => $q->whereHas('activities', function ($query) {
+                    $query->whereHas('followUp', function ($query) {
+                        $query->whereNotNull('reminder_at');
+                    });
+                })))
                 ->icon('heroicon-o-bell-alert')
                 ->badgeColor('warning'),
 
