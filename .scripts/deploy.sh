@@ -1,7 +1,7 @@
 export TERM=xterm
 set -e
 
-echo "Starting deployment...."
+echo "Starting deployment!...."
 
 # Take the application down (ignore if already down)
 (php artisan down) || true
