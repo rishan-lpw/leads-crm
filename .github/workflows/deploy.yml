@@ -3,10 +3,10 @@ name: Deploy
 on:
   push:
     branches:
-      - main
+      - upgrade_filament4.0
   pull_request:
     branches:
-      - main
+      - upgrade_filament4.0
 
 jobs:
   deploy:

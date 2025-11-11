@@ -1,7 +1,7 @@
 export TERM=xterm
 set -e
 
-echo "Starting deployment..."
+echo "Starting deployment...."
 
 # Take the application down (ignore if already down)
 (php artisan down) || true
@@ -22,7 +22,7 @@ php artisan config:clear
 php artisan optimize
 
 # Run migrations
-php artisan migrate --force
+# php artisan migrate --force
 
 # Bring application back up
 php artisan up
